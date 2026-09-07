@@ -13,8 +13,8 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from new_program import (FOUNDERS, group_of, money, parse_doctors,  # noqa: E402
-                         parse_payments, parse_services, enrich)
+from new_program import (FOUNDERS, enrich, group_of, money, parse_doctors,  # noqa: E402
+                         parse_finresult, parse_payments, parse_services, report_group)
 from old_program import parse_doctor_report  # noqa: E402
 
 
@@ -37,6 +37,7 @@ def main():
     f_pay = find(a.folder, "оплаты")
     f_srv = find(a.folder, "услуги")
     f_doc = find(a.folder, "хирург")
+    f_fin = find(a.folder, "финрезультат")
     missing = [n for n, f in (("«Отчет по врачам (УК)» старой программы", f_old),
                               ("«Оплаты» новой программы", f_pay),
                               ("«Услуги» новой программы", f_srv)) if not f]
@@ -122,6 +123,49 @@ def main():
         print(f"  отдельные платёжные документы:        {money(adv):>14}")
         print(f"  закрыли реализацию по врачам:         {money(total['paid_by_advance']):>14}")
         print(f"  разница (методология неизвестна):     {money(adv - total['paid_by_advance']):>14}")
+    # ---------------------------------------------------------- структура месяца
+    if f_fin:
+        cells = parse_finresult(f_fin)
+        new_grp = defaultdict(float)
+        for c in cells:
+            new_grp[report_group(c["spec"], c["doctor"])] += c["sale"]
+        real_total = sum(new_grp.values())
+
+        # кто косметолог — берём из специализаций финрезультата
+        dom = defaultdict(lambda: defaultdict(float))
+        for c in cells:
+            dom[c["doctor"]][c["spec"]] += c["sale"]
+        cosmet = {d.split()[0] for d, v in dom.items()
+                  if sum(v.values()) > 0 and max(v.items(), key=lambda x: x[1])[0] == "Косметология" and d.split()}
+
+        def old_group(row):
+            doctor = str(row["doctor"] or "").strip()
+            for f in FOUNDERS:
+                if f in doctor:
+                    return f
+            if row["direction"] == "Косметология" or (doctor.split() and doctor.split()[0] in cosmet):
+                return "Косметология"
+            if row["direction"] in ("Товары", "КДЛ"):
+                return "Прочие доходы"
+            return "Другие хирурги"
+
+        old_grp = defaultdict(float)
+        for r in old_in:
+            old_grp[old_group(r)] += r["paid"]
+
+        order = list(FOUNDERS) + ["Другие хирурги", "Косметология", "Прочие доходы"]
+        print()
+        print("СТРУКТУРА ВЫРУЧКИ ЗА МЕСЯЦ")
+        print(f"  {'группа':22s}{'первая часть':>16}{'вторая часть':>18}{'август':>16}{'доля':>8}")
+        print("  вторая часть разнесена по группам пропорционально реализации —")
+        print("  точное разнесение денег по врачам даст «Взаиморасчеты с клиентами»")
+        total = old_sum + new_sum
+        for k in order:
+            a = old_grp.get(k, 0.0)
+            b = new_sum * (new_grp.get(k, 0.0) / real_total) if real_total else 0.0
+            print(f"  {k:22s}{money(a):>16}{money(b):>18}{money(a + b):>16}"
+                  f"{(a + b) / total * 100 if total else 0:7.1f}%")
+        print(f"  {'ИТОГО':22s}{money(old_sum):>16}{money(new_sum):>18}{money(total):>16}{100.0:7.1f}%")
     return 0
 
 

@@ -140,6 +140,41 @@ def parse_doctors(path):
     return out, total
 
 
+def parse_finresult(path):
+    """«Финансовый результат»: специализация -> сотрудник -> сумма продажи.
+
+    Даёт справочник «кто чем занимается» — из него берётся деление на хирургов,
+    косметологов и прочее, которого нет ни в одном другом отчёте.
+    """
+    ws = open_fixed(path).worksheets[0]
+    cells, spec = [], None
+    for r in range(6, ws.max_row + 1):
+        label = ws.cell(row=r, column=1).value
+        if label in (None, ""):
+            continue
+        label = str(label).strip()
+        if label.lower().startswith("итого"):
+            continue
+        sale = _num(ws.cell(row=r, column=7).value) or 0.0
+        if _indent(ws.cell(row=r, column=1)) == 0:
+            spec = label
+        else:
+            cells.append({"spec": spec, "doctor": label, "sale": sale})
+    return cells
+
+
+def report_group(spec, doctor):
+    """Пять групп отчёта: два учредителя, другие хирурги, косметология, прочее."""
+    for f in FOUNDERS:
+        if f in str(doctor):
+            return f
+    if spec == "Косметология":
+        return "Косметология"
+    if spec in ("Материал", "Не указано", "Товары", "КДЛ"):
+        return "Прочие доходы"
+    return "Другие хирурги"
+
+
 def parse_grouped(path, value_cols):
     """Отчёты вида «группа -> документы» (взаиморасчёты, кассы): итоги по группам."""
     ws = open_fixed(path).worksheets[0]
