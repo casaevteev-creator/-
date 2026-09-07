@@ -112,6 +112,34 @@ def parse_services(path):
     return rows
 
 
+def parse_doctors(path):
+    """«Взаиморасчёты по хирургам»: на каждого врача — реализация и оплата внутри документа.
+
+    Разница между ними — та часть услуг, которую закрыли отдельным платежом
+    (карта, кассовый ордер). Врач по ней известен именно отсюда.
+    """
+    ws = open_fixed(path).worksheets[0]
+    out, total = {}, None
+    for r in range(6, ws.max_row + 1):
+        label = ws.cell(row=r, column=1).value
+        if label in (None, ""):
+            continue
+        label = str(label).strip()
+        vals = [_num(ws.cell(row=r, column=c).value) or 0.0 for c in range(5, 11)]
+        rec = {"debt_open": vals[0], "deposit_open": vals[1], "realization": vals[2],
+               "paid_in_doc": vals[3], "debt_close": vals[4], "deposit_close": vals[5]}
+        rec["paid_by_advance"] = rec["realization"] - rec["paid_in_doc"]
+        if label.lower().startswith("итог"):
+            total = rec
+        elif _indent(ws.cell(row=r, column=1)) == 0:
+            out[label] = rec
+    # в строке «Итого» остатки часто не выводятся — собираем их из строк сотрудников
+    for key in ("debt_open", "deposit_open", "debt_close", "deposit_close"):
+        if total is not None and not total[key]:
+            total[key] = sum(rec[key] for rec in out.values())
+    return out, total
+
+
 def parse_grouped(path, value_cols):
     """Отчёты вида «группа -> документы» (взаиморасчёты, кассы): итоги по группам."""
     ws = open_fixed(path).worksheets[0]
@@ -214,19 +242,43 @@ def report(folder):
     grp = defaultdict(float)
     for p in with_doc:
         grp[group_of(p["doctor"])] += p["amount"]
-    print("  по группам (только привязанные):")
+    print("  по группам (только по документам услуг; полный разрез — ниже, по реализации):")
     for k, v in sorted(grp.items(), key=lambda x: -x[1]):
         print(f"      {k:40s} {money(v):>14}")
     print()
 
     # --- сверки с другими отчётами
+    residual = None
     if p_doc:
-        emp, total = parse_grouped(p_doc, [7, 8])
-        print("СВЕРКА С «ВЗАИМОРАСЧЁТАМИ ПО ХИРУРГАМ»")
-        print(f"  реализация (услуги):       {money(total[0]):>16}")
-        print(f"  оплата, привязанная к врачу:{money(total[1]):>15}")
-        print(f"  та же величина из «Оплат»: {money(s_doc):>16}"
-              f"   Δ {money(s_doc - total[1])}")
+        emp, total = parse_doctors(p_doc)
+        print("ВЫРУЧКА ПО ВРАЧАМ («Взаиморасчёты по хирургам»)")
+        print(f"  {'врач':34s}{'реализация':>15}{'оплата в док-те':>17}{'закрыто авансом':>17}")
+        grp2 = defaultdict(lambda: defaultdict(float))
+        for name, rec in sorted(emp.items(), key=lambda x: -x[1]["realization"]):
+            g = group_of(name)
+            for k in ("realization", "paid_in_doc", "paid_by_advance"):
+                grp2[g][k] += rec[k]
+            if rec["realization"] >= 500_000:
+                print(f"  {name[:34]:34s}{money(rec['realization']):>15}"
+                      f"{money(rec['paid_in_doc']):>17}{money(rec['paid_by_advance']):>17}")
+        print(f"  {'ИТОГО':34s}{money(total['realization']):>15}"
+              f"{money(total['paid_in_doc']):>17}{money(total['paid_by_advance']):>17}")
+        print("  по группам:")
+        for g, v in sorted(grp2.items(), key=lambda x: -x[1]["realization"]):
+            print(f"      {g:12s} реализация {money(v['realization']):>14}"
+                  f"   в т.ч. закрыто авансом {money(v['paid_by_advance']):>14}")
+        print()
+        print("СВЕРКА ДЕНЕГ И УСЛУГ")
+        print(f"  оплата внутри документов услуг:      {money(total['paid_in_doc']):>16}"
+              f"   (из «Оплат»: {money(s_doc)}, Δ {money(s_doc - total['paid_in_doc'])})")
+        adv = s_all - s_doc
+        residual = adv - total["paid_by_advance"]
+        print(f"  отдельные платёжные документы:       {money(adv):>16}")
+        print(f"  из них закрыли реализацию по врачам: {money(total['paid_by_advance']):>16}")
+        print(f"  остаток без объяснения:              {money(residual):>16}")
+        print(f"  депозиты клиентов: начало {money(total['deposit_open'])} -> "
+              f"конец {money(total['deposit_close'])}; "
+              f"долг: {money(total['debt_open'])} -> {money(total['debt_close'])}")
         print()
     if p_cash:
         desks, total = parse_grouped(p_cash, [5, 6, 7, 8])
@@ -240,9 +292,11 @@ def report(folder):
     first = min(p["dt"].date() for p in payments)
     if first.day > 1:
         print(f"  · платежей за 01–{first.day:02d} число нет — нужна такая же выгрузка «Оплаты» из старой программы")
-    if without:
-        print(f"  · {money(s_all-s_doc)} ₽ платежей без врача — нужен отчёт «Оплаты» с полем «Сотрудник»"
-              " или «Взаиморасчёты с клиентами» с детализацией по документам")
+    if residual is not None and abs(residual) > 1000:
+        print(f"  · {money(residual)} ₽ денег не объясняются реализацией по врачам — "
+              "нужна методология: авансы под услуги следующего месяца, депозиты или что-то ещё")
+    elif without:
+        print(f"  · {money(s_all-s_doc)} ₽ платежей без врача — нужен отчёт «Оплаты» с полем «Сотрудник»")
     if len(ways) < 3:
         print("  · «Безналичными» одной строкой — нужно понять, входят ли туда оплаты на р/с "
               "или это только эквайринг")
