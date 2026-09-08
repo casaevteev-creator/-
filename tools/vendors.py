@@ -41,16 +41,29 @@ def read_turnover(path):
     return out
 
 
-def classify(turnover, doctors=None, prev_month=None):
+def load_notes():
+    """Ручные пометки по новым контрагентам: data/vendor_notes.json."""
+    import json
+    f = ROOT / "data" / "vendor_notes.json"
+    if not f.exists():
+        return {}
+    raw = json.loads(f.read_text(encoding="utf-8"))
+    return {" ".join(k.split()).lower(): v for k, v in raw.items() if not k.startswith("_")}
+
+
+def classify(turnover, doctors=None, prev_month=None, notes=None):
     lastnames = {d.split()[0].lower() for d in (doctors or set()) if d.split()}
     prev = {" ".join(v["name"].split()).lower(): v.get("note", "") for v in (prev_month or [])}
+    notes = notes or {}
     buckets, unknown = defaultdict(float), {}
     detail = defaultdict(list)
     for name, (pay, corr) in turnover.items():
-        low = name.lower()
+        low = " ".join(name.split()).lower()
         first = low.split()[0].strip('"')
         if first in lastnames:
             key = "Гонорары врачей (ИП)"
+        elif low in notes:
+            key = "Ручные пометки: " + notes[low].get("bucket", "управленческие")
         elif prev.get(low):
             key = "Классификатор прошлого месяца"
         elif corr["10"] > 0:
@@ -76,7 +89,7 @@ def main(path):
     doctors = {c["doctor"] for c in parse_finresult(
         ROOT / "data/source/2026-08/Новая-Финрезультат-10-31.08.2026.xlsx")}
     prev = parse_expenses(ROOT / "data/source/Расходы-июнь-2026.xls")["vendors"]
-    buckets, unknown, _ = classify(turnover, doctors, prev)
+    buckets, unknown, _ = classify(turnover, doctors, prev, load_notes())
 
     total = sum(p for p, _ in turnover.values())
     print(f"оплачено с расчётного счёта: {money(total)} ₽, контрагентов {len(turnover)}")
