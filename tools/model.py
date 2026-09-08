@@ -98,7 +98,8 @@ def compute(c):
 
     # ---------------------------------------------------------------- ФОТ и банк
     payroll = _line(costs, "salary") + _line(costs, "payroll_taxes") + _line(costs, "alimony")
-    bank_fees = _line(costs, "bank_common") + _line(costs, "bank_acquiring")
+    bank_fees = (_line(costs, "bank_common") + _line(costs, "bank_acquiring")
+                 + _line(costs, "credit_interest"))
     # «Халва» в исходном файле не имеет итога в колонке «всего» — собираем из долей
     halva = _line(costs, "halva") or (_line(costs, "halva", "mal") + _line(costs, "halva", "pog"))
     other_small = _line(costs, "cash_expenses") + halva
@@ -109,7 +110,8 @@ def compute(c):
         "total": payroll,
     }
     out["bank_fees"] = {"common": _line(costs, "bank_common"),
-                        "acquiring": _line(costs, "bank_acquiring"), "total": bank_fees}
+                        "acquiring": _line(costs, "bank_acquiring"),
+                        "credit_interest": _line(costs, "credit_interest"), "total": bank_fees}
 
     # ---------------------------------------------------------------- водопад
     steps = [
@@ -137,8 +139,9 @@ def compute(c):
     out["waterfall_result"] = running
 
     # ---------------------------------------------------------------- учредители
+    # «% по кредиту» с июля выделены отдельной строкой; в июне сидели в услугах банка
     cost_keys = ["payroll_taxes", "salary", "cash_expenses", "bank_common",
-                 "bank_acquiring", "alimony", "adjust", "suppliers_bank"]
+                 "bank_acquiring", "alimony", "credit_interest", "adjust", "suppliers_bank"]
     founders = {}
     for f in FOUNDERS:
         own = _n(by_group[f]["total"])
@@ -146,9 +149,13 @@ def compute(c):
         half_other = _n(by_group["other"]["total"]) / 2
         half_cosm = _n(by_group["cosm"]["total"]) / 2
         half_misc = _n(by_group["misc"]["total"]) / 2
-        income = own - share_costs + half_other + half_cosm + half_misc
+        # проценты по депозитам делятся пополам и входят в доход месяца
+        deposit_share = _n((man.get("deposit_share") or {}).get(f))
+        income = own - share_costs + half_other + half_cosm + half_misc + deposit_share
         prev_bal = _n((c["founders_reference"].get("prev_balance") or {}).get(f))
         reserve = _n((man.get("reserve_month") or {}).get(f))
+        reserve_return = _n((man.get("reserve_return") or {}).get(f))
+        dividends = _n((man.get("dividends") or {}).get(f))
         founders[f] = {
             "name": GROUP_RU[f],
             "own_revenue": own,
@@ -158,9 +165,12 @@ def compute(c):
             "costs": share_costs,
             "costs_detail": {k: _line(costs, k, f) for k in cost_keys},
             "income": income,
+            "deposit_share": deposit_share,
             "prev_balance": prev_bal,
             "reserve": reserve,
-            "payout": income + prev_bal - reserve,
+            "reserve_return": reserve_return,
+            "dividends": dividends,
+            "payout": income + prev_bal - reserve + reserve_return - dividends,
         }
     out["founders"] = founders
     out["founders_total_income"] = sum(founders[f]["income"] for f in FOUNDERS)

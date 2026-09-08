@@ -1,0 +1,491 @@
+{
+ "meta": {
+  "company": "ООО «ОМЕГА»",
+  "brand": "Форма",
+  "year": 2026,
+  "month": 7,
+  "month_ru": "Июль",
+  "period": "Июль 2026",
+  "source": "файл БАНК за июль"
+ },
+ "revenue": {
+  "daily": [],
+  "by_group": {
+   "mal": {
+    "cash": 890000.0,
+    "card": 3090000.0,
+    "bank_ind": 0.0,
+    "refund": 0.0,
+    "total": 3980000.0
+   },
+   "pog": {
+    "cash": 7690000.0,
+    "card": 5948500.0,
+    "bank_ind": 0.0,
+    "refund": 0.0,
+    "total": 13638500.0
+   },
+   "other": {
+    "cash": 27470400.0,
+    "card": 59817790.0,
+    "bank_ind": 0.0,
+    "refund": 40000.0,
+    "total": 87248190.0
+   },
+   "misc": {
+    "cash": 162600.0,
+    "card": 576470.72,
+    "bank_ind": 0.0,
+    "refund": 0.0,
+    "total": 739070.72
+   },
+   "cosm": {
+    "cash": 779600.0,
+    "card": 1741055.0,
+    "bank_ind": 0.0,
+    "refund": 0.0,
+    "total": 2520655.0
+   }
+  },
+  "totals": {
+   "cash": 36992600.0,
+   "card": 71173815.72,
+   "bank_ind": 0.0,
+   "refund": 40000.0,
+   "total": 108126415.72
+  },
+  "month_cash_basis": null,
+  "acquiring_fee": {},
+  "acquiring_fee_total": null,
+  "kkt_diff_total": null
+ },
+ "history": {},
+ "expenses": {
+  "vendors": [],
+  "medical": [],
+  "management": [],
+  "totals": {}
+ },
+ "cashflow": {
+  "opening": 48095891.76,
+  "closing": 2691202.9499998093,
+  "turnover_debit": 842103544.39,
+  "turnover_credit": 887508233.2000002,
+  "flows": [
+   {
+    "row": 7,
+    "label": "Начальное сальдо",
+    "debit": 48095891.76,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 8,
+    "label": "55.03",
+    "debit": 726180000.0,
+    "credit": 775519000.0,
+    "note": "Оборот денежных средств по ДЕПOЗИТАМ"
+   },
+   {
+    "row": 9,
+    "label": "57.01",
+    "debit": 37760000.0,
+    "credit": null,
+    "note": "сдано в Банк инкассация"
+   },
+   {
+    "row": 10,
+    "label": "57.03",
+    "debit": 71173815.72,
+    "credit": null,
+    "note": "Банк - оплата картами"
+   },
+   {
+    "row": 11,
+    "label": "Маланичев",
+    "debit": 3090000.0,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 12,
+    "label": "Погосян",
+    "debit": 5948500.0,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 13,
+    "label": "Др.хирурги",
+    "debit": 59817790.0,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 14,
+    "label": "Прочие",
+    "debit": 576470.72,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 15,
+    "label": "Косметология",
+    "debit": 1741055.0,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 16,
+    "label": "60",
+    "debit": null,
+    "credit": 53416727.72,
+    "note": "поставщики"
+   },
+   {
+    "row": 17,
+    "label": "хирургия",
+    "debit": null,
+    "credit": 23506558.089999996,
+    "note": ""
+   },
+   {
+    "row": 21,
+    "label": "За счет кредита",
+    "debit": null,
+    "credit": 6545366.22,
+    "note": "Ремонт Самокатная 1 стр12"
+   },
+   {
+    "row": 22,
+    "label": "Аренда за счет депозита",
+    "debit": null,
+    "credit": 21087200.0,
+    "note": "Аренда Самокатная 1 стр.12"
+   },
+   {
+    "row": 23,
+    "label": "аренда",
+    "debit": null,
+    "credit": 224103.63,
+    "note": "Коммунальные услуги"
+   },
+   {
+    "row": 24,
+    "label": "аренда",
+    "debit": null,
+    "credit": 4462500.0,
+    "note": "аренда Самокатная 1 стр.1"
+   },
+   {
+    "row": 29,
+    "label": "ИП хирурги",
+    "debit": null,
+    "credit": 25223566.0,
+    "note": ""
+   },
+   {
+    "row": 30,
+    "label": "62",
+    "debit": 1478.6,
+    "credit": 40000.0,
+    "note": ""
+   },
+   {
+    "row": 34,
+    "label": "Прочие",
+    "debit": null,
+    "credit": 40000.0,
+    "note": ""
+   },
+   {
+    "row": 38,
+    "label": "Прочие",
+    "debit": 1478.6,
+    "credit": null,
+    "note": "Командировочные, суточные, подотчет"
+   },
+   {
+    "row": 39,
+    "label": "67 Кредит",
+    "debit": 6545367.0,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 41,
+    "label": "75 Выплата дивидендов",
+    "debit": 0.0,
+    "credit": 10000000.0,
+    "note": "Выплата дивидендов"
+   },
+   {
+    "row": 45,
+    "label": "68.01 НДФЛ с дивидендов",
+    "debit": null,
+    "credit": 1764706.0,
+    "note": ""
+   },
+   {
+    "row": 48,
+    "label": "68.90",
+    "debit": null,
+    "credit": 6341186.84,
+    "note": "налоги ЗП (НДФЛ+страховые взносы+Торговый сбор+НДС)"
+   },
+   {
+    "row": 52,
+    "label": "69",
+    "debit": null,
+    "credit": 29522.65,
+    "note": "налоги ЗП (фонды)"
+   },
+   {
+    "row": 56,
+    "label": "70",
+    "debit": null,
+    "credit": 12148685.72,
+    "note": "зарплата по банку"
+   },
+   {
+    "row": 58,
+    "label": "76.41 Выплата по ИЛ",
+    "debit": null,
+    "credit": 23201.61,
+    "note": "алименты Заведягин (удерживаются из ЗП)"
+   },
+   {
+    "row": 59,
+    "label": "91.01 % по депозитам",
+    "debit": 442883.07,
+    "credit": null,
+    "note": ""
+   },
+   {
+    "row": 60,
+    "label": "91.01 % по кредиту",
+    "debit": null,
+    "credit": 151764.47,
+    "note": ""
+   },
+   {
+    "row": 61,
+    "label": "91",
+    "debit": null,
+    "credit": 440871.97,
+    "note": "услуги банка"
+   },
+   {
+    "row": 62,
+    "label": "Маланичев",
+    "debit": null,
+    "credit": 14072.78,
+    "note": "эквайринг"
+   },
+   {
+    "row": 63,
+    "label": "Погосян",
+    "debit": null,
+    "credit": 27491.02,
+    "note": "эквайринг"
+   },
+   {
+    "row": 64,
+    "label": "Др.хирурги",
+    "debit": null,
+    "credit": 274910.0,
+    "note": "эквайринг"
+   },
+   {
+    "row": 65,
+    "label": "Прочие",
+    "debit": null,
+    "credit": 2618.18,
+    "note": "эквайринг"
+   },
+   {
+    "row": 66,
+    "label": "Общее",
+    "debit": null,
+    "credit": 113598.14,
+    "note": "обслуживание р/с, сдача выручки в банк"
+   },
+   {
+    "row": 67,
+    "label": "Косметология",
+    "debit": null,
+    "credit": 8181.85,
+    "note": ""
+   },
+   {
+    "row": 68,
+    "label": "Оборот",
+    "debit": 842103544.39,
+    "credit": 887508233.2000002,
+    "note": ""
+   },
+   {
+    "row": 69,
+    "label": "Конечное сальдо",
+    "debit": 2691202.9499998093,
+    "credit": null,
+    "note": "Депозит ВТБ"
+   }
+  ]
+ },
+ "costs": {
+  "payroll_taxes": {
+   "row": 84,
+   "total": 6370709.49,
+   "mal": 3185354.745,
+   "pog": 3185354.745
+  },
+  "writ_payments": {
+   "row": 85,
+   "total": null,
+   "mal": 0.0,
+   "pog": 0.0
+  },
+  "salary": {
+   "row": 86,
+   "total": 12148685.72,
+   "mal": 6121733.86,
+   "pog": 6026951.86
+  },
+  "cash_expenses": {
+   "row": 87,
+   "total": 1170.0,
+   "mal": 585.0,
+   "pog": 585.0
+  },
+  "bank_common": {
+   "row": 88,
+   "total": 399308.17,
+   "mal": 199654.085,
+   "pog": 199654.085
+  },
+  "bank_acquiring": {
+   "row": 89,
+   "total": 41563.8,
+   "mal": 14072.78,
+   "pog": 27491.02
+  },
+  "alimony": {
+   "row": 90,
+   "total": 23201.61,
+   "mal": 11600.805,
+   "pog": 11600.805
+  },
+  "credit_interest": {
+   "row": 91,
+   "total": 151764.47,
+   "mal": 75882.235,
+   "pog": 75882.235
+  },
+  "adjust": {
+   "row": 92,
+   "total": 0.0,
+   "mal": 263750.0,
+   "pog": -263750.0
+  },
+  "suppliers_bank": {
+   "row": 93,
+   "total": 53416727.72,
+   "mal": 25950462.86,
+   "pog": 27466264.86
+  },
+  "utilities": {
+   "row": 94,
+   "total": 224103.63,
+   "mal": 112051.815,
+   "pog": 112051.815
+  },
+  "halva": {
+   "row": 96,
+   "total": 0.0,
+   "mal": 0.0,
+   "pog": 0.0
+  },
+  "ip_surgeons": {
+   "row": 97,
+   "total": 25223566.0,
+   "mal": 12611783.0,
+   "pog": 12611783.0
+  },
+  "total": {
+   "row": 102,
+   "total": 72553130.98,
+   "mal": 35823096.37,
+   "pog": 36730034.61
+  },
+  "rent": {
+   "row": 95,
+   "total": 4462500.0,
+   "mal": 2231250.0,
+   "pog": 2231250.0
+  },
+  "operational": {
+   "row": 99,
+   "total": 2254782.0,
+   "mal": 369490.0,
+   "pog": 1885292.0
+  },
+  "common": {
+   "row": 100,
+   "total": 21251776.089999996,
+   "mal": 10625888.044999998,
+   "pog": 10625888.044999998
+  },
+  "suppliers": {
+   "row": 98,
+   "total": 23506558.089999996,
+   "mal": 10995378.044999998,
+   "pog": 12511180.044999998
+  }
+ },
+ "founders_reference": {
+  "income": {
+   "row": 115,
+   "total": 36016167.81,
+   "mal": 13632303.025000002,
+   "pog": 22383864.785
+  },
+  "prev_balance": {
+   "row": 117,
+   "total": 49770606.410000004,
+   "mal": 16070192.99,
+   "pog": 33700413.42
+  },
+  "payout": {
+   "row": 124,
+   "total": 75934868.22,
+   "mal": 30658896.015,
+   "pog": 45275972.205
+  }
+ },
+ "manual": {
+  "reserve_total": 23000000.0,
+  "reserve_month": null,
+  "credit_debt": 19545367.0,
+  "cash_on_hand": 5036955.0,
+  "deposit_interest": 442883.07,
+  "deposit_share": {
+   "row": 111,
+   "total": 442883.07,
+   "mal": 221441.535,
+   "pog": 221441.535
+  },
+  "dividends": {
+   "row": 118,
+   "total": null,
+   "mal": null,
+   "pog": 11764706.0
+  },
+  "reserve_return": {
+   "row": 121,
+   "total": 1912800.0,
+   "mal": 956400.0,
+   "pog": 956400.0
+  }
+ }
+}

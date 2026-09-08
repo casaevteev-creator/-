@@ -226,6 +226,7 @@ def parse_bank(path):
         "bank_common": line("услуги банка (общие)"),
         "bank_acquiring": line("услуги банка (эквайринг)"),
         "alimony": line("алименты"),
+        "credit_interest": line("% по кредиту"),
         "adjust": line("доп.расходы"),
         "suppliers_bank": line("поставщики банк"),
         "utilities": line("аренда коммун"),
@@ -245,6 +246,13 @@ def parse_bank(path):
     costs["suppliers"] = {"row": r_sb + 5, "total": cell(r_sb + 5, 3),
                           "mal": cell(r_sb + 5, 4), "pog": cell(r_sb + 5, 5)}
 
+    deposit_share = line("% по депозитам за")
+    dividends = line("выплачены дивиденды")
+    rent_paid = line("оплата аренды")
+    reserve_return = None
+    if rent_paid:
+        rr = rent_paid["row"] + 1
+        reserve_return = {"row": rr, "total": cell(rr, 3), "mal": cell(rr, 4), "pog": cell(rr, 5)}
     income = line("итого за месяц")
     prev = line("остаток с предыд")
     payout = line("итого к выплате")
@@ -274,6 +282,9 @@ def parse_bank(path):
         "income": income,
         "prev_balance": prev,
         "payout": payout,
+        "deposit_share": deposit_share,
+        "dividends": dividends,
+        "reserve_return": reserve_return,
         "reserve_total": cell(reserve_total_row, 3) if reserve_total_row else None,
         "reserve_month": reserve_month,
         "credit_debt": scalar("долг по кредитной линии"),

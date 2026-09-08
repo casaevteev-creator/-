@@ -1889,6 +1889,14 @@
   },
   "credit_debt": 12541957.0,
   "cash_on_hand": 3535526.17,
-  "deposit_interest": 472991.6
+  "deposit_interest": 472991.6,
+  "deposit_share": {
+   "row": 110,
+   "total": 0.0,
+   "mal": 0.0,
+   "pog": 0.0
+  },
+  "dividends": null,
+  "reserve_return": null
  }
 }
