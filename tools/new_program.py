@@ -24,7 +24,10 @@ from pathlib import Path
 
 import openpyxl
 
-DOC_RE = re.compile(r"^(.+?)\s+([A-ZА-Я]?\d{6,})\s+от\s+(\d{2}\.\d{2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})$")
+# «Оказание услуг 00000000117 от 11.08.2026 11:25:02, Габеев Алан Ирбекович»
+# у авансовых документов хвост с врачом пустой
+DOC_RE = re.compile(r"^(.+?)\s+([A-ZА-Яa-zа-я]*\d{6,})\s+от\s+"
+                    r"(\d{2}\.\d{2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2}),?\s*(.*)$")
 DT_RE = re.compile(r"(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})")
 FOUNDERS = ("Маланичев", "Погосян")
 
@@ -76,16 +79,44 @@ def parse_payments(path):
         if _indent(ws.cell(row=r, column=1)) == 0:
             way = label
             continue
-        m = DOC_RE.match(label)
+        m = DOC_RE.match(" ".join(label.split()))
         if not m:
             continue
         rows.append({
             "doc_type": m.group(1), "doc_num": m.group(2),
             "dt": datetime.datetime.strptime(f"{m.group(3)} {m.group(4)}", "%d.%m.%Y %H:%M:%S"),
+            "doctor_in_doc": (m.group(5) or "").strip() or None,
             "client": ws.cell(row=r, column=5).value, "way": way,
             "amount": _num(ws.cell(row=r, column=6).value) or 0.0,
         })
     return rows
+
+
+def _norm(v):
+    return " ".join(str(v or "").split()).lower()
+
+
+def allocate_advances(payments, services):
+    """Авансовые платежи (карта, кассовые ордера) врача в документе не имеют.
+    Разносим их по врачам этого же клиента пропорционально его услугам за месяц."""
+    by_client = defaultdict(lambda: defaultdict(float))
+    for s in services:
+        sign = -1 if s.get("op") == "Возврат клиенту" else 1
+        if s.get("amount"):
+            by_client[_norm(s["client"])][str(s.get("doctor") or "").strip()] += s["amount"] * sign
+
+    allocated, unmatched = defaultdict(float), []
+    for p in payments:
+        if p.get("doctor"):
+            continue
+        doctors = {d: v for d, v in by_client.get(_norm(p["client"]), {}).items() if v > 0}
+        total = sum(doctors.values())
+        if not total:
+            unmatched.append(p)
+            continue
+        for d, v in doctors.items():
+            allocated[d] += p["amount"] * v / total
+    return dict(allocated), unmatched
 
 
 def parse_services(path):
@@ -215,7 +246,8 @@ def enrich(payments, services):
     by_num = {s["num"]: s for s in services}
     for p in payments:
         s = by_num.get(p["doc_num"]) if p["doc_type"].startswith("Оказание услуг") else None
-        p["doctor"] = s["doctor"] if s else None
+        # врач берётся из самого документа, если он там есть, иначе из реестра услуг
+        p["doctor"] = p.get("doctor_in_doc") or (s["doctor"] if s else None)
         p["kassa"] = s["kassa"] if s else None
         p["clinic"] = s["clinic"] if s else None
     return payments
