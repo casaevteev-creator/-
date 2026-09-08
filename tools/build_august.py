@@ -97,8 +97,11 @@ def revenue():
 
 
 # --------------------------------------------------------------------------- расходы
-def expenses():
+def expenses(adjustments=None):
     turn = read_turnover(SRC / "1С-Обороты-счета-60-август-2026.xlsx")
+    for name, delta in (adjustments or {}).items():      # платежи, не попавшие в выгрузку
+        pay, corr = turn.get(name, (0.0, {k: 0.0 for k in ("08", "10", "19", "20", "26", "41", "76")}))
+        turn[name] = (pay + delta, corr)
     prev = {norm(v["name"]): (v.get("note") or "")
             for v in parse_expenses(ROOT / "data/source/Расходы-июнь-2026.xls")["vendors"]}
     notes = {norm(k): v for k, v in load_notes().items()}
@@ -201,8 +204,17 @@ def main():
     manual = json.loads((ROOT / "data" / "manual_2026-08.json").read_text(encoding="utf-8"))
     a = manual["august_2026"]
     by_group, totals, daily = revenue()
-    exp = expenses()
+    exp = expenses(a.get("vendor_adjustments"))
     cf = cashflow()
+    adj = sum((a.get("vendor_adjustments") or {}).values())
+    if adj:                                   # тот же платёж в ДДС: выборка кредита -> поставщику
+        for f in cf["flows"]:
+            if f["label"] == "Оплаты поставщикам и подрядчикам":
+                f["credit"] = round(f["credit"] + adj, 2)
+            if f["label"] == "Кредит банка":
+                f["debit"] = round(f["debit"] + adj, 2)
+        cf["turnover_debit"] = round(cf["turnover_debit"] + adj, 2)
+        cf["turnover_credit"] = round(cf["turnover_credit"] + adj, 2)
 
     half = lambda x: {"total": round(x, 2), "mal": round(x / 2, 2), "pog": round(x / 2, 2)}
     # то, что оплачено за счёт кредитной линии, в расходы учредителей не входит:
@@ -256,6 +268,9 @@ def main():
             "deposit_share": {"mal": a["deposit_interest"] / 2, "pog": a["deposit_interest"] / 2},
             "credit_debt": a["credit_line_debt"],
             "credit_funded": credit_funded,
+            "vendor_adjustments": a.get("vendor_adjustments"),
+            "credit_line_limit": a.get("credit_line_limit"),
+            "credit_line_available": a.get("credit_line_available"),
             "cash_on_hand": a["cash_on_hand_31_08"],
             "deposit_interest": a["deposit_interest"],
         },

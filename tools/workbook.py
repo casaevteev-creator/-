@@ -315,33 +315,44 @@ def build(c, r, path):
         ("2", "+ ½ выручки других хирургов", "half_other", "выручка «Другие хирурги» / 2"),
         ("3", "+ ½ косметологии", "half_cosm", "выручка косметологии / 2"),
         ("4", "+ ½ прочих доходов", "half_misc", "прочие доходы / 2"),
+        ("5", "+ ½ процентов по депозитам", "deposit_share", "проценты по депозитам / 2"),
     ]
     for n, label, key, note in steps:
-        rr = _row(ws, rr, [n, label, f["mal"][key], f["pog"][key], f["mal"][key] + f["pog"][key], note],
-                  money_cols=(3, 4, 5))
+        a, b = f["mal"].get(key, 0.0), f["pog"].get(key, 0.0)
+        if not (a or b) and key == "deposit_share":
+            continue
+        rr = _row(ws, rr, [n, label, a, b, a + b, note], money_cols=(3, 4, 5))
     cost_labels = {
         "payroll_taxes": "налоги с ФОТ (68.90 + 69)", "salary": "зарплата по банку",
         "cash_expenses": "расходы по кассе", "bank_common": "услуги банка (общие)",
         "bank_acquiring": "услуги банка (эквайринг, персонально)", "alimony": "алименты (удержание из ЗП)",
         "adjust": "дополнительные корректировки", "suppliers_bank": "поставщики (счёт 60) + Халва",
     }
-    rr = _row(ws, rr, ["5", "− Доля расходов, в том числе:", -f["mal"]["costs"], -f["pog"]["costs"],
+    rr = _row(ws, rr, ["6", "− Доля расходов, в том числе:", -f["mal"]["costs"], -f["pog"]["costs"],
                        -(f["mal"]["costs"] + f["pog"]["costs"]), "½ общих + персональные"],
               money_cols=(3, 4, 5), bold=True)
     for k, label in cost_labels.items():
         a, b = f["mal"]["costs_detail"].get(k, 0), f["pog"]["costs_detail"].get(k, 0)
         rr = _row(ws, rr, ["", f"      {label}", -a, -b, -(a + b), ""], money_cols=(3, 4, 5))
-    rr = _row(ws, rr, ["6", "ДОХОД ЗА МЕСЯЦ (шаги 1–5)", f["mal"]["income"], f["pog"]["income"],
-                       r["founders_total_income"], "шаги 1–5"],
+    rr = _row(ws, rr, ["7", "ДОХОД ЗА МЕСЯЦ", f["mal"]["income"], f["pog"]["income"],
+                       r["founders_total_income"], "сумма шагов выше"],
               money_cols=(3, 4, 5), bold=True, fill=TOT_FILL)
-    rr = _row(ws, rr, ["7", "+ Остаток с прошлого месяца", f["mal"]["prev_balance"], f["pog"]["prev_balance"],
+    rr = _row(ws, rr, ["8", "+ Остаток с прошлого месяца", f["mal"]["prev_balance"], f["pog"]["prev_balance"],
                        f["mal"]["prev_balance"] + f["pog"]["prev_balance"], "ручной ввод бухгалтерии"],
               money_cols=(3, 4, 5))
-    rr = _row(ws, rr, ["8", "− Удержано в резерв (аренда)", -f["mal"]["reserve"], -f["pog"]["reserve"],
-                       -(f["mal"]["reserve"] + f["pog"]["reserve"]), "ручной ввод бухгалтерии"],
-              money_cols=(3, 4, 5))
-    _row(ws, rr, ["9", "К ВЫПЛАТЕ НА КОНЕЦ МЕСЯЦА", f["mal"]["payout"], f["pog"]["payout"],
-                  f["mal"]["payout"] + f["pog"]["payout"], "шаги 6 + 7 − 8"],
+    step = 9
+    for label, key, note in (("− Выплачены дивиденды", "dividends", "ручной ввод бухгалтерии"),
+                             ("− Удержано в резерв (аренда)", "reserve", "ручной ввод бухгалтерии"),
+                             ("+ Возврат остатка резерва", "reserve_return", "ручной ввод бухгалтерии")):
+        a, b = f["mal"].get(key, 0.0), f["pog"].get(key, 0.0)
+        if not (a or b):
+            continue
+        sign = 1 if key == "reserve_return" else -1
+        rr = _row(ws, rr, [str(step), label, sign * a, sign * b, sign * (a + b), note],
+                  money_cols=(3, 4, 5))
+        step += 1
+    _row(ws, rr, [str(step), "К ВЫПЛАТЕ НА КОНЕЦ МЕСЯЦА", f["mal"]["payout"], f["pog"]["payout"],
+                  f["mal"]["payout"] + f["pog"]["payout"], "доход + остаток − дивиденды − резерв"],
          money_cols=(3, 4, 5), bold=True, fill=TOT_FILL)
 
     # ---------------------------------------------------------------- 08

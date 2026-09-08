@@ -614,7 +614,7 @@
    },
    {
     "name": "КВАЛИТЕТ ООО",
-    "amount": 9000000,
+    "amount": 11000000.0,
     "note": "Ремонт Самокатная 1 стр12"
    },
    {
@@ -1249,13 +1249,13 @@
    "СитиМед ООО": 63600,
    "СМБ-СЕРВИС ООО": 37700
   },
-  "credit_funded": 9000000.0
+  "credit_funded": 11000000.0
  },
  "cashflow": {
   "opening": 2691202.95,
   "closing": 19042449.94,
-  "turnover_debit": 672731579.65,
-  "turnover_credit": 656380332.66,
+  "turnover_debit": 674731579.65,
+  "turnover_credit": 658380332.66,
   "flows": [
    {
     "label": "Возврат средств с депозитов",
@@ -1277,7 +1277,7 @@
    },
    {
     "label": "Кредит банка",
-    "debit": 9000000,
+    "debit": 11000000.0,
     "credit": null,
     "note": "кор. счёт 67"
    },
@@ -1308,7 +1308,7 @@
    {
     "label": "Оплаты поставщикам и подрядчикам",
     "debit": null,
-    "credit": 78794048.05,
+    "credit": 80794048.05,
     "note": "кор. счёт 60"
    },
    {
@@ -1439,7 +1439,12 @@
    "pog": 198168.62
   },
   "credit_debt": 27545367.0,
-  "credit_funded": 9000000.0,
+  "credit_funded": 11000000.0,
+  "vendor_adjustments": {
+   "КВАЛИТЕТ ООО": 2000000.0
+  },
+  "credit_line_limit": 30000000.0,
+  "credit_line_available": 2454633.0,
   "cash_on_hand": null,
   "deposit_interest": 396337.24
  }

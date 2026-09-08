@@ -30,6 +30,9 @@ def add_sheets(path, canon, model_out):
 
     # ------------------------------------------------ 11 Классификация расходов
     turn = read_turnover(SRC / "1С-Обороты-счета-60-август-2026.xlsx")
+    for name, delta in (canon["manual"].get("vendor_adjustments") or {}).items():
+        pay, corr = turn.get(name, (0.0, {k: 0.0 for k in ("08", "10", "19", "20", "26", "41", "76")}))
+        turn[name] = (pay + delta, corr)
     prev = {norm(v["name"]): (v.get("note") or "")
             for v in parse_expenses(ROOT / "data/source/Расходы-июнь-2026.xls")["vendors"]}
     notes = {norm(k): v for k, v in load_notes().items()}
@@ -80,7 +83,7 @@ def add_sheets(path, canon, model_out):
     ws = wb.create_sheet("12 Июль-август")
     top = _title(ws, "Что изменилось против июля",
                  "Из расходов исключено оплаченное за счёт кредитной линии: 6 545 366,22 в июле и "
-                 "9 000 000 в августе")
+                 "11 000 000 в августе")
     _header(ws, ["Показатель", "Июль", "Август", "Разница"], [40, 20, 20, 20], row=top)
     r = top + 1
     a = canon["manual"]
