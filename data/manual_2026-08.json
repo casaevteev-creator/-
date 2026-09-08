@@ -1,0 +1,32 @@
+{
+  "_comment": "Ручные данные бухгалтерии. Июль — с фото расчётного листа, август — по мере поступления.",
+  "july_2026": {
+    "revenue_total": 108126415.72,
+    "expenses_total": 72553130.98,
+    "income_total": 36016167.81,
+    "income": {"mal": 13632303.03, "pog": 22383864.79},
+    "expenses": {"mal": 35823096.37, "pog": 36730034.61},
+    "deposit_interest": 442883.07,
+    "revenue_split": {"other_surgeons": 87248190.00, "cosmetology": 2520655.00, "misc": 739070.72,
+                      "founders_personal": 17618500.00},
+    "rent_reserve": {"total": 23000000.00, "paid_8_months_bld12": 21087200.00,
+                     "returned": 1912800.00, "returned_each": 956400.00},
+    "dividends_charged": 11764706.00,
+    "dividends_charged_to": "Погосян (по листу июля); выплата 10 000 000 нетто прошла в августе",
+    "payout_31_07": {"mal": 30658896.02, "pog": 45275972.21, "total": 75934868.22},
+    "credit_line_debt_07_08": 19545367.00,
+    "cash_on_hand_31_07": 5036955.00
+  },
+  "august_2026": {
+    "opening_balance": {"mal": 30658896.02, "pog": 45275972.21},
+    "dividends_paid_net": 10000000.00,
+    "dividends_ndfl": 1764706.00,
+    "dividends_note": "выплата июльского начисления; повторно из остатков августа не вычитается",
+    "payroll_taxes": 6106538.91,
+    "salary_total": 12490831.85,
+    "salary_split": null,
+    "suppliers_split": null,
+    "cash_on_hand_31_08": null,
+    "credit_line_debt": null
+  }
+}
