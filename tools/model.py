@@ -123,7 +123,11 @@ def compute(c):
         ("Ремонт нового корпуса", "Ремонт", -repair, "inv"),
         ("Услуги банка", "Банк", -bank_fees, "exp"),
         ("Прочее (касса, Халва)", "Прочее", -other_small, "exp"),
+        ("Проценты по депозитам", "Депозиты",
+         _n((man.get("deposit_share") or {}).get("mal")) + _n((man.get("deposit_share") or {}).get("pog")),
+         "pos"),
     ]
+    steps = [s for s in steps if s[2] or s[0] == "Выручка"]
     running, wf = 0.0, []
     for i, (name, short, val, cls) in enumerate(steps):
         if i == 0:
@@ -203,8 +207,10 @@ def _checks(c, out):
 
     add("Сумма выручки по группам = итог выручки",
         sum(by_group[g]["total"] for g in GROUPS), tot["total"])
+    note = ("часть месяца без разбивки по каналам" if tot.get("undivided_first_decade") else "")
     add("Касса + эквайринг + р/с физлиц − возвраты = итог выручки",
-        tot["cash"] + tot["card"] + tot["bank_ind"] - tot["refund"], tot["total"])
+        tot["cash"] + tot["card"] + tot["bank_ind"] - tot["refund"]
+        + _n(tot.get("undivided_first_decade")), tot["total"], note)
     add("Сумма шагов водопада = доход месяца",
         out["waterfall_result"], out["founders_total_income"],
         "водопад строится от выручки, доход — по методике учредителей")

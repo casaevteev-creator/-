@@ -74,11 +74,11 @@ def _summary(r, n):
               if tr.get("yoy_month") is not None else
               "Сравнение год к году недоступно: нет данных за тот же месяц прошлого года."),
     }, {
-        "h": (f"С начала года — {mln(tr['ytd_cur'])} млн ₽" if tr.get("ytd_cur")
-              else "Выручка с начала года"),
+        "h": f"С начала года — {mln(sum(v for v in tr['cur'][:meta['month']] if v))} млн ₽",
         "p": (f"Рост <b>{arrow(tr['ytd_growth'])}</b> к тому же периоду прошлого года "
               f"({mln(tr['ytd_prev'])} млн ₽)." if tr.get("ytd_growth") is not None else
-              "Накопленный итог посчитать не из чего — не хватает помесячных данных."),
+              "Сравнение с прошлым годом неполное: за "
+              + ", ".join(tr.get("missing_prev") or []) + " данных в архиве нет."),
     }, {
         "h": f"Денежная позиция — {mln(r['cashflow']['closing'])} млн ₽ на счёте",
         "p": (f"Против {mln(r['cashflow']['opening'])} млн ₽ на начало месяца. "
@@ -158,6 +158,7 @@ h2{font-family:'Cormorant Garamond',Cambria,serif;font-weight:600;font-size:clam
 .bar.g25{background:var(--ghost)}.bar.g26{background:var(--green)}.bar.acc{background:var(--bronze2)}
 .bar .bv{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;opacity:0;transition:opacity .5s .8s}
 .on .bar .bv{opacity:1}
+@media(max-width:700px){.bar .bv{display:none}.bar{width:min(4.5vw,34px)}.bgrp{gap:2px}.bars{padding:0 2px}}
 .bx{display:flex;padding:10px 4px 0}
 .bx span{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute)}
 .leg{display:flex;gap:18px;padding:14px 4px 4px;font-size:13px;color:var(--mute);flex-wrap:wrap}
@@ -301,9 +302,9 @@ def render(r, narrative=None):
 <h1>Отчёт учредителям</h1><div class="yr">{escape(period)}</div>
 <div class="strip">
 <div class="it"><div class="v mono" data-cnt="{rev['total']/1e6:.2f}" data-dec="2">0</div><div class="l">млн ₽ выручка</div></div>
-<div class="it"><div class="v mono" style="color:#8FBFA9" data-cnt="{r['founders_total_income']/1e6:.2f}" data-dec="2">0</div><div class="l">млн ₽ доход учредителей</div></div>
+<div class="it"><div class="v mono" style="color:{'#8FBFA9' if r['founders_total_income'] >= 0 else '#D98A82'}" data-cnt="{r['founders_total_income']/1e6:.2f}" data-dec="2">0</div><div class="l">млн ₽ доход учредителей</div></div>
 <div class="it"><div class="v mono" data-cnt="{cf['closing']/1e6:.2f}" data-dec="2">0</div><div class="l">млн ₽ на счёте на {last_day}</div></div>
-<div class="it"><div class="v mono" style="color:#B9895A" data-cnt="{(tr['ytd_growth'] or 0):.1f}" data-dec="1" data-suf="%">0</div><div class="l">рост с начала года</div></div>
+{f'<div class="it"><div class="v mono" style="color:#B9895A" data-cnt="{tr["ytd_growth"]:.1f}" data-dec="1" data-suf="%">0</div><div class="l">рост с начала года</div></div>' if tr.get("ytd_growth") is not None else f'<div class="it"><div class="v mono" style="color:#B9895A" data-cnt="{sum(v for v in tr["cur"][:meta["month"]] if v)/1e6:.1f}" data-dec="1">0</div><div class="l">млн ₽ с начала года</div></div>'}
 </div></div></header>""")
 
     # ---------------------------------------------------------------- резюме
@@ -318,8 +319,9 @@ def render(r, narrative=None):
         (mln(rev["total"]), "млн ₽", "Выручка за месяц",
          (arrow(tr["yoy_month"]) + f" к {meta['month_ru'].lower()}ю {meta['year']-1}") if tr.get("yoy_month") is not None
          else "нет данных за прошлый год", "up" if (tr.get("yoy_month") or 0) >= 0 else "neg"),
-        (mln(tr["ytd_cur"]) if tr.get("ytd_cur") else "—", "млн ₽", "Выручка с начала года",
-         arrow(tr["ytd_growth"]) + " к прошлому году" if tr.get("ytd_growth") is not None else "—",
+        (mln(sum(v for v in tr["cur"][:meta["month"]] if v)), "млн ₽", "Выручка с начала года",
+         (arrow(tr["ytd_growth"]) + " к прошлому году") if tr.get("ytd_growth") is not None
+         else "сравнение неполное: нет августа 2025",
          "up" if (tr.get("ytd_growth") or 0) >= 0 else "neg"),
         (mln(rev.get("avg_day")), "млн ₽", "Средняя выручка в день",
          f"пик {rev['best_day']['day']} — {mln(rev['best_day']['total'])} млн", ""),
@@ -470,9 +472,11 @@ def render(r, narrative=None):
 <div class="orow"><span>½ выручки других хирургов</span><span class="n">+{mln(d['half_other'])}</span></div>
 <div class="orow"><span>½ косметологии и прочего</span><span class="n">+{mln(d['half_cosm']+d['half_misc'])}</span></div>
 <div class="orow"><span>Доля расходов</span><span class="n neg">−{mln(d['costs'])}</span></div>
-<div class="oinc"><span class="t">Доход за месяц</span><span class="n">{mln(d['income'])} млн ₽</span></div>
+<div class="oinc"><span class="t">Доход за месяц</span><span class="n" style="color:{'#8FBFA9' if d['income'] >= 0 else '#D98A82'}">{mln(d['income'])} млн ₽</span></div>
 <div class="orow"><span>Остаток с прошлого месяца</span><span class="n">+{mln(d['prev_balance'])}</span></div>
-<div class="orow"><span>Отложено на аренду (депозит)</span><span class="n neg">−{mln(d['reserve'])}</span></div>
+{f'<div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−{mln(d["dividends"])}</span></div>' if d.get('dividends') else ''}
+{f'<div class="orow"><span>Отложено на аренду (депозит)</span><span class="n neg">−{mln(d["reserve"])}</span></div>' if d.get('reserve') else ''}
+{f'<div class="orow"><span>Возврат остатка резерва</span><span class="n">+{mln(d["reserve_return"])}</span></div>' if d.get('reserve_return') else ''}
 <div class="opay"><span class="t">К выплате на {last_day}</span><span class="n">{mln(d['payout'])} млн ₽</span></div></div>""")
     A(f"""</div><p class="onote rv">Суммы в млн ₽. Доля расходов: ½ общих затрат плюс персональные —
 эквайринг и операционные расходы своих пациентов. Полная расшифровка каждой строки — в Excel-приложении, лист «07 Учредители».</p>

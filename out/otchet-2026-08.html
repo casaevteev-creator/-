@@ -1,0 +1,278 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ФОРМА · Отчёт учредителям · Август 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1C1B18;--ink2:#423E37;--mute:#807A70;--bg:#FAF9F6;--panel:#FFFFFF;--tint:#F1EFEA;
+--line:#E7E3D9;--green:#2E5E4E;--green2:#4A7A68;--green3:#7BA08F;--bronze:#8A7350;--bronze2:#B9895A;
+--red:#A3423B;--ghost:#D9D4C9}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.mono{font-family:'IBM Plex Mono',monospace}
+.rv{opacity:0;transform:translateY(24px);transition:opacity .8s cubic-bezier(.2,.6,.2,1),transform .8s cubic-bezier(.2,.6,.2,1)}
+.rv.on{opacity:1;transform:none}
+.rv.d1{transition-delay:.1s}.rv.d2{transition-delay:.2s}.rv.d3{transition-delay:.3s}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv{opacity:1;transform:none;transition:none}}
+nav{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:13px}
+nav a{width:8px;height:8px;border-radius:50%;background:var(--ghost);display:block;transition:all .3s;position:relative}
+nav a.act{background:var(--bronze2);transform:scale(1.5)}
+nav a:hover::after{content:attr(data-t);position:absolute;right:20px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;white-space:nowrap}
+@media(max-width:1000px){nav{display:none}}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+@media(min-width:700px){.wrap{padding:0 32px}}
+section{padding:64px 0}
+@media(min-width:700px){section{padding:88px 0}}
+.kick{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--bronze);font-weight:600}
+h2{font-family:'Cormorant Garamond',Cambria,serif;font-weight:600;font-size:clamp(30px,6vw,50px);line-height:1.08;margin:12px 0 8px}
+.sub{font-family:'Cormorant Garamond',Cambria,serif;font-style:italic;font-size:18px;color:var(--mute);margin-bottom:32px}
+.hero{background:var(--ink);color:#fff;min-height:88vh;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;padding:80px 0}
+.hero::before{content:"";position:absolute;right:-180px;top:-180px;width:560px;height:560px;border-radius:50%;border:1px solid rgba(185,137,90,.22)}
+.hero::after{content:"";position:absolute;right:-80px;top:-80px;width:360px;height:360px;border-radius:50%;border:1px solid rgba(185,137,90,.36)}
+.hero .brand{font-size:13px;font-weight:700;letter-spacing:.55em;margin-bottom:10px}
+.hero .tag{font-family:'Cormorant Garamond',Cambria,serif;font-style:italic;color:#9C968A;font-size:16px;max-width:32ch}
+.hero h1{font-family:'Cormorant Garamond',Cambria,serif;font-weight:600;font-size:clamp(42px,10vw,92px);line-height:1;margin:36px 0 6px}
+.hero .yr{font-family:'Cormorant Garamond',Cambria,serif;font-style:italic;font-weight:500;font-size:clamp(30px,7vw,60px);color:var(--bronze2)}
+.hero .strip{display:grid;grid-template-columns:1fr 1fr;gap:24px 32px;margin-top:48px;max-width:640px}
+@media(min-width:760px){.hero .strip{display:flex;gap:44px;flex-wrap:wrap;max-width:none}}
+.hero .strip .v{font-family:'IBM Plex Mono',monospace;font-size:clamp(20px,5vw,25px);font-weight:600}
+.hero .strip .l{font-size:12px;color:#9C968A;margin-top:4px}
+.tez{display:grid;grid-template-columns:44px 1fr;gap:12px 20px;padding:22px 0;border-bottom:1px solid var(--line);align-items:start}
+@media(min-width:860px){.tez{grid-template-columns:64px 320px 1fr;gap:24px}}
+.tez:last-child{border-bottom:none}
+.tez .n{font-family:'Cormorant Garamond',Cambria,serif;font-size:30px;font-weight:700;color:var(--bronze);line-height:1}
+.tez h3{font-size:16px;font-weight:700;line-height:1.35}
+.tez p{grid-column:1/-1;font-family:'Cormorant Garamond',Cambria,serif;font-size:18px;line-height:1.5;color:var(--ink2)}
+@media(min-width:860px){.tez p{grid-column:auto}}
+.tez p b{font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--green)}
+.kpi{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:620px){.kpi{grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px 26px}
+.card .v{font-family:'IBM Plex Mono',monospace;font-size:clamp(28px,7vw,36px);font-weight:600;letter-spacing:-.02em}
+.card .v small{font-size:15px;color:var(--mute);font-weight:400}
+.card .l{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-top:10px}
+.card .d{font-size:13px;margin-top:6px;color:var(--mute)}
+.up{color:var(--green)}.neg{color:var(--red)}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px 16px 14px}
+@media(min-width:700px){.chart{padding:30px 26px 18px}}
+.bars{display:flex;align-items:flex-end;gap:0;height:250px;border-bottom:1.5px solid var(--ink);padding:0 4px}
+@media(min-width:700px){.bars{height:300px}}
+.bgrp{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;height:100%}
+.bar{width:min(6vw,34px);border-radius:5px 5px 0 0;position:relative;height:0;transition:height 1.1s cubic-bezier(.2,.7,.2,1)}
+.bar.g25{background:var(--ghost)}.bar.g26{background:var(--green)}.bar.acc{background:var(--bronze2)}
+.bar .bv{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;opacity:0;transition:opacity .5s .8s}
+.on .bar .bv{opacity:1}
+@media(max-width:700px){.bar .bv{display:none}.bar{width:min(4.5vw,34px)}.bgrp{gap:2px}.bars{padding:0 2px}}
+.bx{display:flex;padding:10px 4px 0}
+.bx span{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute)}
+.leg{display:flex;gap:18px;padding:14px 4px 4px;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.dot{display:inline-block;width:11px;height:11px;border-radius:3.5px;margin-right:7px;vertical-align:-1px}
+.hl{background:var(--tint);border-radius:18px;padding:24px 26px;margin-top:18px;display:flex;gap:24px;flex-wrap:wrap;align-items:center}
+.hl .big{font-family:'Cormorant Garamond',Cambria,serif;font-size:46px;font-weight:700;color:var(--green);line-height:1}
+.hl p{font-family:'Cormorant Garamond',Cambria,serif;font-size:18px;color:var(--ink2);max-width:520px}
+.dsplit{display:grid;grid-template-columns:1fr;gap:22px;align-items:center}
+@media(min-width:820px){.dsplit{grid-template-columns:300px 1fr;gap:32px}}
+.donut{width:100%;max-width:300px;margin:0 auto;display:block}
+.dseg{stroke-dasharray:0 9999;transition:stroke-dasharray 1.1s cubic-bezier(.2,.7,.2,1)}
+.dcv{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;fill:var(--ink)}
+.dcl{font-size:11px;fill:var(--mute);letter-spacing:.1em;text-transform:uppercase}
+.dail{display:flex;align-items:flex-end;gap:2px;height:160px;border-bottom:1.5px solid var(--ink);padding:0 2px}
+.dail div{flex:1;background:var(--green);border-radius:3px 3px 0 0;height:0;transition:height .9s cubic-bezier(.2,.7,.2,1);position:relative;cursor:pointer}
+.dail div.act::after,.dail div:hover::after{content:attr(data-v);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:11px;font-family:'IBM Plex Mono',monospace;padding:4px 9px;border-radius:6px;white-space:nowrap;z-index:5}
+.dx{display:flex;gap:2px;padding-top:8px}
+.dx span{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mute)}
+.split{display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:860px){.split{grid-template-columns:1fr 1fr;gap:20px}}
+.stackbar{display:flex;height:52px;border-radius:14px;overflow:hidden;margin:6px 0 20px}
+.stackbar div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap;width:0;transition:width 1.2s cubic-bezier(.2,.7,.2,1)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--mute);font-weight:700;text-align:left;padding:13px 16px;border-bottom:1px solid var(--line);background:#FCFBF8}
+td{padding:11px 16px;border-bottom:1px solid var(--line);font-size:14px}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;white-space:nowrap}
+tr.tot td{font-weight:700;background:#EDF1EE}
+.wf{display:flex;align-items:flex-end;gap:6px;height:300px;border-bottom:1.5px solid var(--ink);padding:0 2px;position:relative}
+@media(min-width:700px){.wf{gap:14px;height:360px}}
+.wcol{flex:1;position:relative;height:100%}
+.wbar{position:absolute;left:0;right:0;border-radius:4px;opacity:0;transform:scaleY(.6);transform-origin:bottom;transition:opacity .6s,transform .6s cubic-bezier(.2,.7,.2,1)}
+.on .wbar{opacity:1;transform:none}
+.wbar.pos{background:var(--green)}.wbar.exp{background:#CCC5B7}.wbar.inv{background:var(--bronze2)}
+.wbridge{position:absolute;left:0;right:-8px;border-top:1px dashed var(--ghost);opacity:0;transition:opacity .5s}
+.on .wbridge{opacity:1}
+.wv{position:absolute;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .5s}
+@media(min-width:700px){.wv{font-size:13px}}
+.on .wv{opacity:1}
+.wl{display:flex;gap:6px;padding:12px 2px 0}
+@media(min-width:700px){.wl{gap:14px}}
+.wl span{flex:1;min-width:0;overflow-wrap:break-word;text-align:center;font-size:10px;color:var(--ink2);line-height:1.25}
+.wfscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wfinner{min-width:660px}
+@media(min-width:720px){.wfinner{min-width:0}}
+.bx span,.dx span{min-width:0}
+@media(min-width:700px){.wl span{font-size:12px}}
+.kop{margin-top:22px;background:var(--tint);border-radius:18px;padding:24px 26px}
+.kop p{font-family:'Cormorant Garamond',Cambria,serif;font-size:18px;color:var(--ink2)}
+.kop b{color:var(--green)}
+.dark{background:var(--ink);color:#fff}
+.dark h2{color:#fff}.dark .sub{color:#9C968A}
+.own{display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:860px){.own{grid-template-columns:1fr 1fr;gap:22px}}
+.ocard{background:rgba(255,255,255,.045);border:1px solid rgba(217,212,201,.16);border-radius:20px;padding:28px 24px 24px}
+@media(min-width:700px){.ocard{padding:34px 34px 28px}}
+.ocard h3{font-family:'Cormorant Garamond',Cambria,serif;font-size:30px;font-weight:600;margin-bottom:18px}
+.orow{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid rgba(217,212,201,.12);font-size:14px;color:#CFC9BD}
+.orow .n{font-family:'IBM Plex Mono',monospace;font-weight:600;color:#fff;white-space:nowrap}
+.orow .n.neg{color:#D98A82}
+.oinc{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:16px 0 8px}
+.oinc .t{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#7BA08F}
+.oinc .n{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:#8FBFA9}
+.opay{margin-top:16px;background:var(--bronze2);color:var(--ink);border-radius:14px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.opay .t{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}
+.opay .n{font-family:'IBM Plex Mono',monospace;font-size:23px;font-weight:600;white-space:nowrap}
+.opay .t{max-width:11ch}
+.onote{font-family:'Cormorant Garamond',Cambria,serif;font-style:italic;font-size:16px;color:#9C968A;margin-top:24px;max-width:860px}
+.note{background:#EDF1EE;border-radius:16px;padding:20px 22px;margin-top:20px;font-size:14px;color:var(--ink2)}
+.note b{color:var(--green)}
+.foc{display:grid;grid-template-columns:1fr;gap:16px;margin-top:32px}
+@media(min-width:820px){.foc{grid-template-columns:1fr 1fr;gap:20px}}
+.fcard{border:1px solid rgba(217,212,201,.16);border-radius:18px;padding:24px 26px}
+.fcard .fn{font-family:'Cormorant Garamond',Cambria,serif;font-size:28px;font-weight:700;color:var(--bronze2)}
+.fcard h3{font-family:'Cormorant Garamond',Cambria,serif;font-size:22px;margin:8px 0 8px}
+.fcard p{font-size:14px;color:#A8A296;line-height:1.6}
+footer{background:var(--ink);color:#6E6960;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:28px 0;border-top:1px solid rgba(217,212,201,.12)}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style></head><body>
+<nav id="nav"><a href="#s0" data-t="Титул"></a><a href="#s1" data-t="Резюме"></a><a href="#s2" data-t="Показатели"></a><a href="#s3" data-t="Динамика"></a><a href="#s4" data-t="Структура"></a><a href="#s5" data-t="По дням"></a><a href="#s6" data-t="Расходы"></a><a href="#s7" data-t="Экономика"></a><a href="#s8" data-t="Учредители"></a><a href="#s9" data-t="Деньги"></a><a href="#s10" data-t="Фокус"></a></nav><header class="hero" id="s0"><div class="wrap">
+<div class="brand">Ф О Р М А</div>
+<div class="tag">клиника пластической хирургии и эстетической косметологии</div>
+<h1>Отчёт учредителям</h1><div class="yr">Август 2026</div>
+<div class="strip">
+<div class="it"><div class="v mono" data-cnt="95.81" data-dec="2">0</div><div class="l">млн ₽ выручка</div></div>
+<div class="it"><div class="v mono" style="color:#D98A82" data-cnt="-1.77" data-dec="2">0</div><div class="l">млн ₽ доход учредителей</div></div>
+<div class="it"><div class="v mono" data-cnt="19.04" data-dec="2">0</div><div class="l">млн ₽ на счёте на 31.08</div></div>
+<div class="it"><div class="v mono" style="color:#B9895A" data-cnt="792.5" data-dec="1">0</div><div class="l">млн ₽ с начала года</div></div>
+</div></div></header><section id="s1"><div class="wrap"><div class="kick rv">01 · Executive Summary</div>
+<h2 class="rv d1">Резюме месяца</h2><div class="sub rv d1">Пять тезисов, которые описывают август полностью</div><div class="tez rv"><div class="n">01</div><h3>Выручка месяца — 95,81 млн ₽</h3><p>Сравнение год к году недоступно: нет данных за тот же месяц прошлого года.</p></div><div class="tez rv"><div class="n">02</div><h3>С начала года — 792,46 млн ₽</h3><p>Сравнение с прошлым годом неполное: за Август данных в архиве нет.</p></div><div class="tez rv"><div class="n">03</div><h3>Денежная позиция — 19,04 млн ₽ на счёте</h3><p>Против 2,69 млн ₽ на начало месяца. Проценты по депозитам за месяц — <b>396 337 ₽</b>.</p></div><div class="tez rv"><div class="n">04</div><h3>Расходы по счёту 60 — 78,79 млн ₽</h3><p>Это 82,2% выручки. Медицинские и ИП — 55,43 млн, управленческие — 23,36 млн.</p></div><div class="tez rv"><div class="n">05</div><h3>Доход учредителей — -1,77 млн ₽</h3><p>Погосян — <b>3,55 млн</b>, Маланичев — <b>-5,32 млн</b>. С учётом накопленных остатков к выплате: 42,94 и 19,45 млн ₽.</p></div></div></section><section id="s2" style="padding-top:0"><div class="wrap"><div class="kick rv">02 · Показатели</div>
+<h2 class="rv d1">Ключевые показатели</h2><div class="sub rv d1">Шесть чисел, по которым можно судить о месяце</div><div class="kpi"><div class="card rv d0"><div class="v">95,81 <small>млн ₽</small></div><div class="l">Выручка за месяц</div><div class="d up">нет данных за прошлый год</div></div><div class="card rv d1"><div class="v">792,46 <small>млн ₽</small></div><div class="l">Выручка с начала года</div><div class="d up">сравнение неполное: нет августа 2025</div></div><div class="card rv d2"><div class="v">3,09 <small>млн ₽</small></div><div class="l">Средняя выручка в день</div><div class="d ">пик 13 — 5,70 млн</div></div><div class="card rv d0"><div class="v">78,79 <small>млн ₽</small></div><div class="l">Оплаты поставщикам · сч. 60</div><div class="d ">82,2% от выручки</div></div><div class="card rv d1"><div class="v">18,63 <small>млн ₽</small></div><div class="l">ФОТ с налогами по банку</div><div class="d ">ЗП 12,49 + налоги 6,14</div></div><div class="card rv d2"><div class="v">19,04 <small>млн ₽</small></div><div class="l">Остаток на р/с на конец месяца</div><div class="d up">▲ +607,6% — 16,35 млн за месяц</div></div></div></div></section><section id="s3" style="padding-top:0"><div class="wrap"><div class="kick rv">03 · Динамика</div>
+<h2 class="rv d1">Динамика выручки</h2>
+<div class="sub rv d1">Январь – август: 2026 год против 2025-го, млн ₽</div>
+<div class="chart rv"><div class="bars"><div class="bgrp"><div class="bar g25" data-h="49.1"></div><div class="bar g26" data-h="71.6"><span class="bv">95,7</span></div></div><div class="bgrp"><div class="bar g25" data-h="55.4"></div><div class="bar g26" data-h="74.5"><span class="bv">99,6</span></div></div><div class="bgrp"><div class="bar g25" data-h="61.4"></div><div class="bar g26" data-h="85.4"><span class="bv">114,2</span></div></div><div class="bgrp"><div class="bar g25" data-h="63.3"></div><div class="bar g26" data-h="86.2"><span class="bv">115,3</span></div></div><div class="bgrp"><div class="bar g25" data-h="59.5"></div><div class="bar g26" data-h="59.6"><span class="bv">79,7</span></div></div><div class="bgrp"><div class="bar g25" data-h="54.0"></div><div class="bar g26" data-h="62.9"><span class="bv">84,1</span></div></div><div class="bgrp"><div class="bar g25" data-h="51.7"></div><div class="bar g26" data-h="80.9"><span class="bv">108,1</span></div></div><div class="bgrp"><div class="bar g25" data-h="0.0"></div><div class="bar acc" data-h="71.6"><span class="bv">95,8</span></div></div></div>
+<div class="bx"><span>Янв</span><span>Фев</span><span>Мар</span><span>Апр</span><span>Май</span><span>Июн</span><span>Июл</span><span>Авг</span></div>
+<div class="leg"><span><span class="dot" style="background:var(--ghost)"></span>2025</span>
+<span><span class="dot" style="background:var(--green)"></span>2026</span>
+<span><span class="dot" style="background:#B9895A"></span>2026 · отчётный месяц</span></div></div><div class="note rv"><b>Нет данных:</b> за Август 2025 года в источнике нет выручки — сравнение за эти месяцы не строится.</div></div></section><section id="s4" style="padding-top:0"><div class="wrap"><div class="kick rv">04 · Выручка</div>
+<h2 class="rv d1">Структура выручки</h2>
+<div class="sub rv d1">95 806 484 ₽ — по направлениям и каналам оплаты</div>
+<div class="dsplit rv"><div class="chart"><svg class="donut" viewBox="0 0 260 260" role="img" aria-label="Структура выручки"><circle class="dseg" cx="130.0" cy="130.0" r="108.0" fill="none" stroke="#2E5E4E" stroke-width="34" stroke-dasharray="532.98 145.61" stroke-dashoffset="-0.00" transform="rotate(-90 130.0 130.0)"><title>Другие хирурги — 75,25 млн ₽</title></circle><circle class="dseg" cx="130.0" cy="130.0" r="108.0" fill="none" stroke="#4A7A68" stroke-width="34" stroke-dasharray="92.46 586.12" stroke-dashoffset="-532.98" transform="rotate(-90 130.0 130.0)"><title>Погосян — 13,05 млн ₽</title></circle><circle class="dseg" cx="130.0" cy="130.0" r="108.0" fill="none" stroke="#7BA08F" stroke-width="34" stroke-dasharray="29.61 648.97" stroke-dashoffset="-625.44" transform="rotate(-90 130.0 130.0)"><title>Маланичев — 4,18 млн ₽</title></circle><circle class="dseg" cx="130.0" cy="130.0" r="108.0" fill="none" stroke="#B9895A" stroke-width="34" stroke-dasharray="21.61 656.98" stroke-dashoffset="-655.05" transform="rotate(-90 130.0 130.0)"><title>Косметология — 3,05 млн ₽</title></circle><circle class="dseg" cx="130.0" cy="130.0" r="108.0" fill="none" stroke="#D9D4C9" stroke-width="34" stroke-dasharray="1.92 676.66" stroke-dashoffset="-676.66" transform="rotate(-90 130.0 130.0)"><title>Прочие доходы — 0,27 млн ₽</title></circle><text x="130.0" y="126.0" text-anchor="middle" class="dcv">95,81</text><text x="130.0" y="148.0" text-anchor="middle" class="dcl">млн ₽ выручка</text></svg></div>
+<div class="tw"><table><tr><th>Направление</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
+<tr><td><span class="dot" style="background:#2E5E4E"></span>Другие хирурги</td><td class="num">75 249 046</td><td class="num">78,5%</td></tr><tr><td><span class="dot" style="background:#4A7A68"></span>Погосян</td><td class="num">13 054 662</td><td class="num">13,6%</td></tr><tr><td><span class="dot" style="background:#7BA08F"></span>Маланичев</td><td class="num">4 180 781</td><td class="num">4,4%</td></tr><tr><td><span class="dot" style="background:#B9895A"></span>Косметология</td><td class="num">3 050 756</td><td class="num">3,2%</td></tr><tr><td><span class="dot" style="background:#D9D4C9"></span>Прочие доходы</td><td class="num">271 239</td><td class="num">0,3%</td></tr><tr class="tot"><td>Итого выручка</td><td class="num">95 806 484</td><td class="num">100%</td></tr></table></div></div>
+<div class="tw rv d1" style="margin-top:18px"><table><tr><th>Канал поступления</th><th class="num">Сумма, ₽</th></tr>
+<tr><td>Эквайринг (оплата картами)</td><td class="num">41 764 940</td></tr><tr><td>Касса (наличные)</td><td class="num">24 293 400</td></tr><tr><td>Оплата на р/с (физлица)</td><td class="num">0</td></tr>
+<tr><td>Возвраты пациентам</td><td class="num" style="color:var(--red)">−0</td></tr>
+<tr class="tot"><td>Итого</td><td class="num">95 806 484</td></tr></table></div>
+<p class="rv" style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--mute);margin-top:14px;font-size:16px">
+Комиссия эквайринга — 373 487 ₽ (0,89% оборота по картам).</p>
+</div></section><section id="s5" style="padding-top:0"><div class="wrap"><div class="kick rv">05 · Выручка</div>
+<h2 class="rv d1">Выручка по дням</h2>
+<div class="sub rv d1">млн ₽ в день, по данным кассовых отчётов · нажмите на столбец</div>
+<div class="chart rv"><div class="dail"><div data-h="20.0" data-v="1 август · 1,20 млн ₽" style="opacity:0.60"></div><div data-h="76.9" data-v="2 август · 4,60 млн ₽" style="opacity:0.88"></div><div data-h="75.0" data-v="3 август · 4,48 млн ₽" style="opacity:0.87"></div><div data-h="68.1" data-v="4 август · 4,07 млн ₽" style="opacity:0.84"></div><div data-h="53.6" data-v="5 август · 3,21 млн ₽" style="opacity:0.77"></div><div data-h="40.2" data-v="6 август · 2,40 млн ₽" style="opacity:0.70"></div><div data-h="38.5" data-v="7 август · 2,30 млн ₽" style="opacity:0.69"></div><div data-h="32.4" data-v="8 август · 1,94 млн ₽" style="opacity:0.66"></div><div data-h="64.5" data-v="9 август · 3,86 млн ₽" style="opacity:0.82"></div><div data-h="28.2" data-v="10 август · 1,69 млн ₽" style="opacity:0.64"></div><div data-h="48.5" data-v="11 август · 2,90 млн ₽" style="opacity:0.74"></div><div data-h="87.3" data-v="12 август · 5,22 млн ₽" style="opacity:0.94"></div><div data-h="95.2" data-v="13 август · 5,70 млн ₽" style="opacity:0.98"></div><div data-h="31.9" data-v="14 август · 1,91 млн ₽" style="opacity:0.66"></div><div data-h="76.8" data-v="15 август · 4,60 млн ₽" style="opacity:0.88"></div><div data-h="39.6" data-v="16 август · 2,37 млн ₽" style="opacity:0.70"></div><div data-h="27.4" data-v="17 август · 1,64 млн ₽" style="opacity:0.64"></div><div data-h="38.4" data-v="18 август · 2,30 млн ₽" style="opacity:0.69"></div><div data-h="71.8" data-v="19 август · 4,29 млн ₽" style="opacity:0.86"></div><div data-h="82.0" data-v="20 август · 4,90 млн ₽" style="opacity:0.91"></div><div data-h="20.7" data-v="21 август · 1,24 млн ₽" style="opacity:0.60"></div><div data-h="56.8" data-v="22 август · 3,40 млн ₽" style="opacity:0.78"></div><div data-h="32.4" data-v="23 август · 1,94 млн ₽" style="opacity:0.66"></div><div data-h="33.9" data-v="24 август · 2,03 млн ₽" style="opacity:0.67"></div><div data-h="84.5" data-v="25 август · 5,05 млн ₽" style="opacity:0.92"></div><div data-h="53.4" data-v="26 август · 3,20 млн ₽" style="opacity:0.77"></div><div data-h="27.3" data-v="27 август · 1,63 млн ₽" style="opacity:0.64"></div><div data-h="40.5" data-v="28 август · 2,42 млн ₽" style="opacity:0.70"></div><div data-h="41.6" data-v="29 август · 2,49 млн ₽" style="opacity:0.71"></div><div data-h="62.1" data-v="30 август · 3,71 млн ₽" style="opacity:0.81"></div><div data-h="52.5" data-v="31 август · 3,14 млн ₽" style="opacity:0.76"></div></div><div class="dx"><span>1</span><span></span><span></span><span></span><span>5</span><span></span><span></span><span></span><span></span><span>10</span><span></span><span></span><span></span><span></span><span>15</span><span></span><span></span><span></span><span></span><span>20</span><span></span><span></span><span></span><span></span><span>25</span><span></span><span></span><span></span><span></span><span>30</span><span></span></div></div>
+<p class="rv" style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--ink2);margin-top:16px">
+<b style="font-family:'Inter';font-size:15px">Средний день — 3,09 млн ₽.</b>
+Сильнейший — 13 август (5,70 млн),
+самый тихий — 1 август (1,20 млн).</p>
+</div></section><section id="s6" style="padding-top:0"><div class="wrap"><div class="kick rv">06 · Расходы</div>
+<h2 class="rv d1">Расходы: оплаты поставщикам</h2>
+<div class="sub rv d1">78 794 048 ₽ по счёту 60 — 82,2% выручки месяца</div>
+<div class="stackbar rv"><div style="background:#2E5E4E" data-w="70">Медицинские + ИП · 70%</div>
+<div style="background:#8A7350" data-w="30">Управленческие · 30%</div></div>
+<div class="split"><div class="tw"><table><tr><th>Медицинские расходы + ИП</th><th class="num">млн ₽</th></tr>
+<tr><td>Гонорары ИП хирургов</td><td class="num">39,82</td></tr><tr><td>Импланты</td><td class="num">4,53</td></tr><tr><td>Медицинские материалы</td><td class="num">3,30</td></tr><tr><td>ИП Завиркин А.В.</td><td class="num">2,89</td></tr><tr><td>Расходка</td><td class="num">2,25</td></tr><tr><td>Лекарства</td><td class="num">0,83</td></tr><tr><td>18550-расходка, 320588-мед.оборудованеи</td><td class="num">0,52</td></tr><tr><td>Прочие статьи (8)</td><td class="num">1,30</td></tr><tr class="tot"><td>Итого</td><td class="num">55,43</td></tr></table></div>
+<div class="tw"><table><tr><th>Управленческие расходы</th><th class="num">млн ₽</th></tr>
+<tr><td>Ремонт нового корпуса</td><td class="num">9,00</td></tr><tr><td>Урегулирование досудебного спора</td><td class="num">4,69</td></tr><tr><td>Маркетинговые услуги</td><td class="num">2,51</td></tr><tr><td>Аренда Самокатная 1 стр1</td><td class="num">1,16</td></tr><tr><td>Прочие управленческие</td><td class="num">0,88</td></tr><tr><td>ЗП Заведягин ОН</td><td class="num">0,57</td></tr><tr><td>Ремонт</td><td class="num">0,52</td></tr><tr><td>Прочие статьи (41)</td><td class="num">4,04</td></tr><tr class="tot"><td>Итого</td><td class="num">23,36</td></tr></table></div></div>
+</div></section><section id="s7" style="padding-top:0"><div class="wrap"><div class="kick rv">07 · Экономика</div>
+<h2 class="rv d1">Куда уходит выручка</h2>
+<div class="sub rv d1">От 95,81 млн ₽ выручки — к доходу месяца</div>
+<div class="chart rv" id="wfC"><div class="wfscroll"><div class="wfinner"><div class="wf"><div class="wcol"><div class="wbar pos" style="bottom:0.00%;height:100.00%;transition-delay:0.00s"></div><div class="wv" style="bottom:91.00%;color:#fff;transition-delay:0.30s">95,81</div><div class="wbridge" style="bottom:100.00%;transition-delay:0.40s"></div></div><div class="wcol"><div class="wbar exp" style="bottom:58.44%;height:41.56%;transition-delay:0.14s"></div><div class="wv" style="bottom:91.00%;color:var(--ink);transition-delay:0.44s">-39,82</div><div class="wbridge" style="bottom:100.00%;transition-delay:0.54s"></div></div><div class="wcol"><div class="wbar exp" style="bottom:42.14%;height:16.30%;transition-delay:0.28s"></div><div class="wv" style="bottom:calc(58.44% + 6px);color:var(--mute);transition-delay:0.58s">-15,61</div><div class="wbridge" style="bottom:58.44%;transition-delay:0.68s"></div></div><div class="wcol"><div class="wbar exp" style="bottom:22.66%;height:19.48%;transition-delay:0.42s"></div><div class="wv" style="bottom:calc(42.14% + 6px);color:var(--mute);transition-delay:0.72s">-18,67</div><div class="wbridge" style="bottom:42.14%;transition-delay:0.82s"></div></div><div class="wcol"><div class="wbar exp" style="bottom:7.67%;height:14.99%;transition-delay:0.56s"></div><div class="wv" style="bottom:calc(22.66% + 6px);color:var(--mute);transition-delay:0.86s">-14,36</div><div class="wbridge" style="bottom:22.66%;transition-delay:0.96s"></div></div><div class="wcol"><div class="wbar inv" style="bottom:-1.73%;height:9.39%;transition-delay:0.70s"></div><div class="wv" style="bottom:calc(7.67% + 6px);color:var(--bronze2);transition-delay:1.00s">-9,00</div><div class="wbridge" style="bottom:7.67%;transition-delay:1.10s"></div></div><div class="wcol"><div class="wbar exp" style="bottom:-2.26%;height:1.00%;transition-delay:0.84s"></div><div class="wv" style="bottom:calc(-1.73% + 6px);color:var(--mute);transition-delay:1.14s">-0,51</div><div class="wbridge" style="bottom:-1.73%;transition-delay:1.24s"></div></div><div class="wcol"><div class="wbar pos" style="bottom:-2.26%;height:1.00%;transition-delay:0.98s"></div><div class="wv" style="bottom:calc(-1.85% + 6px);color:var(--green);transition-delay:1.28s">+0,40</div><div class="wbridge" style="bottom:-1.85%;transition-delay:1.38s"></div></div><div class="wcol"><div class="wbar pos" style="bottom:-1.85%;height:1.85%;transition-delay:1.12s"></div><div class="wv" style="bottom:calc(0.00% + 6px);color:var(--green);transition-delay:1.42s">+-1,77</div></div></div><div class="wl"><span>Выручка</span><span>Гонорары хирургов</span><span>Медицина</span><span>ФОТ и налоги</span><span>Управление</span><span>Ремонт</span><span>Банк</span><span>Депозиты</span><span>Доход</span></div></div></div></div>
+<div class="kop rv d1"><p>Из каждого рубля выручки <b>42 копеек</b> забирают гонорары хирургов,
+<b>19</b> — персонал и налоги,
+<b>16</b> — медицинские закупки,
+<b>24</b> — управление и ремонт.
+Учредителям остаётся <b>-2 копеек</b> — маржа месяца -1,8%.</p></div>
+</div></section><section class="dark" id="s8"><div class="wrap"><div class="kick rv">08 · Учредители</div>
+<h2 class="rv d1">Доход учредителей</h2>
+<div class="sub rv d1">Методика 50/50: личная выручка + ½ общих доходов − доля расходов</div><div class="own"><div class="ocard rv d0"><h3>Маланичев</h3>
+<div class="orow"><span>Личная выручка (операции)</span><span class="n">4,18</span></div>
+<div class="orow"><span>½ выручки других хирургов</span><span class="n">+37,62</span></div>
+<div class="orow"><span>½ косметологии и прочего</span><span class="n">+1,66</span></div>
+<div class="orow"><span>Доля расходов</span><span class="n neg">−48,99</span></div>
+<div class="oinc"><span class="t">Доход за месяц</span><span class="n" style="color:#D98A82">-5,32 млн ₽</span></div>
+<div class="orow"><span>Остаток с прошлого месяца</span><span class="n">+30,66</span></div>
+<div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−5,88</span></div>
+
+
+<div class="opay"><span class="t">К выплате на 31.08</span><span class="n">19,45 млн ₽</span></div></div><div class="ocard rv d1"><h3>Погосян</h3>
+<div class="orow"><span>Личная выручка (операции)</span><span class="n">13,05</span></div>
+<div class="orow"><span>½ выручки других хирургов</span><span class="n">+37,62</span></div>
+<div class="orow"><span>½ косметологии и прочего</span><span class="n">+1,66</span></div>
+<div class="orow"><span>Доля расходов</span><span class="n neg">−48,99</span></div>
+<div class="oinc"><span class="t">Доход за месяц</span><span class="n" style="color:#8FBFA9">3,55 млн ₽</span></div>
+<div class="orow"><span>Остаток с прошлого месяца</span><span class="n">+45,28</span></div>
+<div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−5,88</span></div>
+
+
+<div class="opay"><span class="t">К выплате на 31.08</span><span class="n">42,94 млн ₽</span></div></div></div><p class="onote rv">Суммы в млн ₽. Доля расходов: ½ общих затрат плюс персональные —
+эквайринг и операционные расходы своих пациентов. Полная расшифровка каждой строки — в Excel-приложении, лист «07 Учредители».</p>
+</div></section><section id="s9"><div class="wrap"><div class="kick rv">09 · Деньги</div>
+<h2 class="rv d1">Движение денежных средств</h2>
+<div class="sub rv d1">Расчётный счёт, сч. 51 — август 2026</div>
+<div class="kpi" style="margin-bottom:20px">
+<div class="card rv"><div class="v">2,69 <small>млн</small></div><div class="l">Остаток на начало</div></div>
+<div class="card rv d1"><div class="v up">+672,73 <small>млн</small></div><div class="l">Поступления</div></div>
+<div class="card rv d2"><div class="v neg">−656,38 <small>млн</small></div><div class="l">Списания</div></div>
+<div class="card rv d3"><div class="v">19,04 <small>млн</small></div><div class="l">Остаток на конец</div></div></div>
+<div class="split">
+<div class="tw"><table><tr><th style="color:var(--green)">Ключевые поступления</th><th class="num">млн ₽</th></tr>
+<tr><td>кор. счёт 55</td><td class="num">509,75</td></tr><tr><td>кор. счёт 57</td><td class="num">153,30</td></tr><tr><td>кор. счёт 67</td><td class="num">9,00</td></tr><tr><td>кор. счёт 91</td><td class="num">0,40</td></tr><tr><td>кор. счёт 60</td><td class="num">0,29</td></tr><tr><td>кор. счёт 76</td><td class="num">0,00</td></tr></table></div>
+<div class="tw"><table><tr><th style="color:var(--red)">Ключевые списания</th><th class="num">млн ₽</th></tr>
+<tr><td>кор. счёт 55</td><td class="num">490,41</td></tr><tr><td>кор. счёт 60</td><td class="num">78,79</td></tr><tr><td>кор. счёт 57</td><td class="num">56,14</td></tr><tr><td>кор. счёт 70</td><td class="num">12,49</td></tr><tr><td>кор. счёт 75</td><td class="num">10,00</td></tr><tr><td>кор. счёт 68</td><td class="num">7,87</td></tr></table></div></div>
+<div class="note rv"><b>Справочно:</b> проценты по депозитам за месяц — 396 337 ₽;
+зарезервировано на аренду — 0 ₽;
+долг по кредитной линии — 27 545 367 ₽;
+остаток в кассе на конец месяца — — ₽.
+<span style="color:var(--mute)">Гонорары ИП хирургов входят в оплаты поставщикам по сч. 60 и отдельной строкой не суммируются.</span></div>
+</div></section><section class="dark" id="s10"><div class="wrap"><div class="kick rv">10 · Дальше</div>
+<h2 class="rv d1">Точки внимания и фокус следующего месяца</h2><div class="foc"><div class="fcard rv d1"><div class="fn">01</div><h3>Сверка после перехода на новую управленку</h3><p>Закрыть расхождения по стыковым дням и подтвердить, что ни один платёж не посчитан дважды.</p></div><div class="fcard rv d2"><div class="fn">02</div><h3>Контроль сметы нового корпуса</h3><p>Ремонт финансируется кредитной линией; долг — 27 545 367 ₽. Держать график ввода.</p></div><div class="fcard rv d0"><div class="fn">03</div><h3>Депозитная дисциплина</h3><p>Overnight-размещение свободных остатков дало 396 337 ₽ за месяц — сохранить режим.</p></div><div class="fcard rv d1"><div class="fn">04</div><h3>Планирование следующего месяца</h3><p>Сверить план по выручке с фактической загрузкой операционных дней.</p></div></div></div></section><footer><div class="wrap"><span>ООО «ОМЕГА» · Отчёт за август 2026</span>
+<span>Источники: анализ сч. 51 · отчёт по выручке · обороты сч. 60</span></div></footer>
+<script>
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(el){
+  const t=parseFloat(el.dataset.cnt),d=parseInt(el.dataset.dec||0),s=el.dataset.suf||'',p=el.dataset.pre||'';
+  const fmt=v=>p+v.toFixed(d).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0')+s;
+  if(reduced){el.textContent=fmt(t);return}
+  const t0=performance.now();
+  (function tick(now){const k=Math.min((now-t0)/1300,1),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(t*e); if(k<1)requestAnimationFrame(tick)})(t0);
+}
+const io=new IntersectionObserver(es=>{es.forEach(e=>{
+  if(!e.isIntersecting)return; const el=e.target; el.classList.add('on');
+  el.querySelectorAll('.bar').forEach(b=>b.style.height=b.dataset.h+'%');
+  el.querySelectorAll('.dail div').forEach(b=>b.style.height=b.dataset.h+'%');
+  el.querySelectorAll('[data-w]').forEach(b=>b.style.width=b.dataset.w+'%');
+  el.querySelectorAll('.dseg').forEach(s=>s.style.strokeDasharray=s.getAttribute('stroke-dasharray'));
+  el.querySelectorAll('[data-cnt]').forEach(c=>{if(!c.dataset.done){c.dataset.done=1;countUp(c)}});
+  io.unobserve(el);});},{threshold:.2});
+document.querySelectorAll('.rv,.chart,.stackbar,.hero .strip,#wfC').forEach(el=>io.observe(el));
+// тап по столбцу дня — подпись, сама прячется
+let tapT=null;
+document.querySelectorAll('.dail div').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.dail div.act').forEach(x=>x.classList.remove('act'));
+  b.classList.add('act'); clearTimeout(tapT); tapT=setTimeout(()=>b.classList.remove('act'),2200);
+}));
+const nav=document.getElementById('nav');
+if(nav){const nio=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  nav.querySelectorAll('a').forEach(a=>a.classList.toggle('act',a.getAttribute('href')==='#'+e.target.id));}});},{threshold:.4});
+  document.querySelectorAll('section[id],header[id]').forEach(s=>nio.observe(s));}
+</script></body></html>
