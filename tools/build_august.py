@@ -205,7 +205,17 @@ def main():
     cf = cashflow()
 
     half = lambda x: {"total": round(x, 2), "mal": round(x / 2, 2), "pog": round(x / 2, 2)}
-    suppliers = exp["totals"]["grand"]
+    # то, что оплачено за счёт кредитной линии, в расходы учредителей не входит:
+    # стройка финансируется заёмными, а не выручкой (та же логика в июне и июле)
+    credit_funded = a.get("credit_funded", 0.0)
+    suppliers = exp["totals"]["grand"] - credit_funded
+    for item in exp["management"]:
+        if item["name"] == "Ремонт нового корпуса":
+            item["amount"] = round(item["amount"] - credit_funded, 2)
+    exp["management"] = [i for i in exp["management"] if i["amount"]]
+    exp["totals"]["management"] = round(exp["totals"]["management"] - credit_funded, 2)
+    exp["totals"]["grand"] = round(exp["totals"]["grand"] - credit_funded, 2)
+    exp["credit_funded"] = credit_funded
     costs = {
         "payroll_taxes": half(a["payroll_taxes"] + a["social_69"]),
         "salary": half(a["salary_total"]),
@@ -245,6 +255,7 @@ def main():
             "dividends": {"mal": a["dividends_gross"] / 2, "pog": a["dividends_gross"] / 2},
             "deposit_share": {"mal": a["deposit_interest"] / 2, "pog": a["deposit_interest"] / 2},
             "credit_debt": a["credit_line_debt"],
+            "credit_funded": credit_funded,
             "cash_on_hand": a["cash_on_hand_31_08"],
             "deposit_interest": a["deposit_interest"],
         },
