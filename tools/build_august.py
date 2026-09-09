@@ -371,7 +371,12 @@ def main():
         cf["turnover_debit"] = round(cf["turnover_debit"] + adj, 2)
         cf["turnover_credit"] = round(cf["turnover_credit"] + adj, 2)
 
-    half = lambda x: {"total": round(x, 2), "mal": round(x / 2, 2), "pog": round(x / 2, 2)}
+    def half(x):
+        """Делим пополам без потери копейки: остаток от округления идёт Погосяну."""
+        total = round(x, 2)
+        mal = round(total / 2, 2)
+        return {"total": total, "mal": mal, "pog": round(total - mal, 2)}
+
     personal = {k: dict(v) for k, v in (a.get("founder_personal_costs") or {}).items()}
     op = operational_costs()                 # материалы, списанные на свои операции
     for k, v in op.items():
