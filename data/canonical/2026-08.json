@@ -328,12 +328,17 @@
    }
   },
   "totals": {
-   "cash": 24293400,
-   "card": 41764940,
    "bank_ind": 0.0,
    "refund": 0.0,
    "total": 95806484.0,
-   "undivided_first_decade": 29748144.0
+   "cash": 31243030.0,
+   "card": 64563454.0,
+   "split": {
+    "first_cash": 6949630.0,
+    "first_card": 22798514.0,
+    "second_cash": 24293400,
+    "second_card": 41764940
+   }
   },
   "month_cash_basis": 95806484.0,
   "acquiring_fee": {},

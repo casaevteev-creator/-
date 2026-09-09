@@ -158,11 +158,19 @@ def build(canon, out_path):
     s.line("В том числе по каналам поступления", bold=True)
     tot = canon["revenue"]["totals"]
     ch_first = s.row
+    sp = tot.get("split")
     if tot.get("undivided_first_decade"):
         s.line("    Первая декада, старая управленка", {"total": tot["undivided_first_decade"]},
                "способа оплаты в выгрузке старой программы нет")
-    s.line("    Наличными", {"total": tot["cash"]}, "новая управленка, 11–31.08")
-    s.line("    Безналичными (эквайринг)", {"total": tot["card"]}, "новая управленка, 11–31.08")
+        s.line("    Наличными", {"total": tot["cash"]}, "новая управленка, 11–31.08")
+        s.line("    Безналичными (эквайринг)", {"total": tot["card"]}, "новая управленка, 11–31.08")
+    else:
+        s.line("    Наличными", {"total": tot["cash"]},
+               (f"01–10.08: {sp['first_cash']:,.0f}".replace(",", " ")
+                + f"; 11–31.08: {sp['second_cash']:,.0f}".replace(",", " ")) if sp else "")
+        s.line("    Безналичными (эквайринг)", {"total": tot["card"]},
+               (f"01–10.08: {sp['first_card']:,.0f}".replace(",", " ")
+                + f"; 11–31.08: {sp['second_card']:,.0f}".replace(",", " ")) if sp else "")
     if tot.get("bank_ind"):
         s.line("    Оплаты физлиц на расчётный счёт", {"total": tot["bank_ind"]})
     if tot.get("refund"):
