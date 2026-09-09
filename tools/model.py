@@ -150,6 +150,11 @@ def compute(c):
     for f in FOUNDERS:
         own = _n(by_group[f]["total"])
         share_costs = sum(_line(costs, k, f) for k in cost_keys)
+        # личные расходы учредителя (анализы) каждый несёт полностью: к делению 50/50
+        # добавляется половина разницы, поэтому в сумме по двоим поправка равна нулю
+        pers = man.get("personal_costs") or {}
+        personal = _n(pers.get(f)) - sum(_n(pers.get(x)) for x in FOUNDERS) / 2
+        share_costs += personal
         half_other = _n(by_group["other"]["total"]) / 2
         half_cosm = _n(by_group["cosm"]["total"]) / 2
         half_misc = _n(by_group["misc"]["total"]) / 2
@@ -168,6 +173,8 @@ def compute(c):
             "half_misc": half_misc,
             "costs": share_costs,
             "costs_detail": {k: _line(costs, k, f) for k in cost_keys},
+            "personal_costs": _n(pers.get(f)),
+            "personal_adjust": personal,
             "income": income,
             "deposit_share": deposit_share,
             "prev_balance": prev_bal,

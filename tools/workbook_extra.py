@@ -27,6 +27,9 @@ JULY = {"Выручка": 108126415.72, "Налоги с ФОТ": 6370709.49, "�
 
 def add_sheets(path, canon, model_out):
     wb = openpyxl.load_workbook(path)
+    for name in list(wb.sheetnames):          # повторный запуск не должен плодить копии
+        if name[:2] in ("11", "12", "13"):
+            del wb[name]
 
     # ------------------------------------------------ 11 Классификация расходов
     turn = read_turnover(SRC / "1С-Обороты-счета-60-август-2026.xlsx")
@@ -132,14 +135,28 @@ def add_sheets(path, canon, model_out):
                  "платежи с врачом напрямую, авансы — через пациента")
     _header(ws, ["Источник", "Сумма", "Комментарий"], [42, 20, 60], row=top)
     r = top + 1
+    al = canon["revenue"]["totals"]["allocation"]
+    rf = canon["revenue"]["totals"]["refund"]
     for label, value, note in [
-        ("01–10.08, старая управленка", 29748144.0, "«Отчет по врачам (УК)», колонка «Фактическая оплата»"),
-        ("11–31.08, новая управленка", 66058340.0, "отчёт «Оплаты», виды оплаты «Наличными» и «Безналичными»"),
-        ("ИТОГО ВЫРУЧКА", 95806484.0, "деньги, поступившие за месяц"),
+        ("01–10.08, старая управленка", al["first"],
+         "реестр «Оплаты от пациента» без двух документов, помеченных на удаление; "
+         "сходится с «Ежедневным отчётом по кассам»"),
+        ("11–31.08, новая управленка", al["second"],
+         "отчёт «Оплаты», виды оплаты «Наличными» и «Безналичными», уже за вычетом возвратов"),
+        ("Возвраты пациентам, 01–10.08", -rf,
+         "колонка «Возврат денег» «Ежедневного отчёта по кассам»"),
+        ("ИТОГО ВЫРУЧКА", al["first"] + al["second"] - rf, "деньги, поступившие за месяц"),
         ("", None, ""),
-        ("из них привязано к врачу напрямую", 46412341.0, "документы «Оказание услуг» — врач указан в документе"),
-        ("авансы, разнесённые через пациента", 14598500.0, "оплата картой и кассовые ордера"),
-        ("авансы без совпадения по пациенту", 5078499.0, "разнесены пропорционально; пациентов нет в реестре услуг августа"),
+        ("01–10.08: платежи с указанным специалистом", al["first"] - al["first_unresolved"],
+         "колонка «Специалист» реестра платежей"),
+        ("01–10.08: без специалиста", al["first_unresolved"],
+         "разнесены по врачам того же пациента, остаток — пропорционально"),
+        ("11–31.08: привязано к врачу напрямую", al["second_direct"],
+         "документы «Оказание услуг» — врач указан в документе"),
+        ("11–31.08: авансы, разнесённые через пациента", al["second_by_patient"],
+         "оплата картой и кассовые ордера"),
+        ("11–31.08: авансы без совпадения по пациенту", al["second_proportional"],
+         "разнесены пропорционально; пациентов нет в реестре услуг августа"),
     ]:
         r = _row(ws, r, [label, value, note], money_cols=(2,),
                  bold=label.startswith("ИТОГО"), fill=TOT_FILL if label.startswith("ИТОГО") else None)
@@ -148,11 +165,16 @@ def add_sheets(path, canon, model_out):
     r += 1
     from model import GROUP_RU, GROUPS
     total = model_out["revenue"]["total"]
+    split = canon["revenue"]["totals"]["by_group_split"]
     for g in GROUPS:
         v = model_out["revenue"]["by_group"][g]
-        r = _row(ws, r, [GROUP_RU[g], None, None, v, v / total], money_cols=(2, 3, 4))
+        s1 = split[g]["first"] - split[g]["refund"]   # возвраты — первой декады
+        s2 = split[g]["second"]
+        r = _row(ws, r, [GROUP_RU[g], s1, s2, v, v / total], money_cols=(2, 3, 4))
         ws.cell(row=r - 1, column=5).number_format = "0.0%"
-    _row(ws, r, ["ИТОГО", None, None, total, 1.0], money_cols=(2, 3, 4), bold=True, fill=TOT_FILL)
+    _row(ws, r, ["ИТОГО", sum(split[g]["first"] - split[g]["refund"] for g in GROUPS),
+                 sum(split[g]["second"] for g in GROUPS), total, 1.0],
+         money_cols=(2, 3, 4), bold=True, fill=TOT_FILL)
     ws.cell(row=r, column=5).number_format = "0.0%"
 
     wb.save(path)

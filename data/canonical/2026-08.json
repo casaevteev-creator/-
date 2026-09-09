@@ -51,7 +51,7 @@
     "date": "2026-08-05",
     "cash": {},
     "card": {},
-    "total": 2728594.0,
+    "total": 2698594.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -78,7 +78,7 @@
     "date": "2026-08-08",
     "cash": {},
     "card": {},
-    "total": 3852280.0,
+    "total": 3846700.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -309,8 +309,8 @@
     "cash": 0.0,
     "card": 0.0,
     "bank_ind": 0.0,
-    "refund": 0.0,
-    "total": 77250611.63
+    "refund": 370000.0,
+    "total": 76845979.75
    },
    "misc": {
     "cash": 0.0,
@@ -324,30 +324,66 @@
     "card": 0.0,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 2960140.06
+    "total": 2959191.93
    }
   },
   "totals": {
-   "refund": 0.0,
+   "refund": 370000.0,
    "cash": 34981900.0,
    "card": 61654454.0,
-   "bank_ind": 1071080.0,
-   "total": 97707434.0,
+   "bank_ind": 1035500.0,
+   "total": 97301853.99,
    "split": {
     "first_cash": 10688500.0,
     "first_card": 19889514.0,
-    "first_bank": 1071080.0,
+    "first_bank": 1035500.0,
     "second_cash": 24293400,
     "second_card": 41764940
    },
    "services": 94366672.0,
-   "advances": 3340762.0,
+   "refund_note": "первая декада — «Ежедневный отчёт по кассам»; вторая уже нетто в реестре «Оплаты»",
+   "allocation": {
+    "first": 31613514.0,
+    "second": 66058340.0,
+    "first_unresolved": 709500.0,
+    "second_direct": 46401840,
+    "second_by_patient": 14588000.0,
+    "second_proportional": 5068500
+   },
+   "by_group_split": {
+    "mal": {
+     "first": 0.0,
+     "second": 4180781.46,
+     "refund": 0.0
+    },
+    "pog": {
+     "first": 0.0,
+     "second": 13054662.21,
+     "refund": 0.0
+    },
+    "other": {
+     "first": 30609933.64,
+     "second": 46606046.11,
+     "refund": 370000.0
+    },
+    "misc": {
+     "first": 0.0,
+     "second": 261238.64,
+     "refund": 0.0
+    },
+    "cosm": {
+     "first": 1003580.36,
+     "second": 1955611.58,
+     "refund": 0.0
+    }
+   },
+   "advances": 2935181.99,
    "services_split": {
     "first": 29476382.0,
     "second": 64890290.0
    }
   },
-  "month_cash_basis": 97707434.0,
+  "month_cash_basis": 97301853.99,
   "acquiring_fee": {},
   "acquiring_fee_total": 373487.16,
   "kkt_diff_total": null
@@ -1458,6 +1494,10 @@
   "credit_line_limit": 30000000.0,
   "credit_line_available": 2454633.0,
   "cash_on_hand": null,
-  "deposit_interest": 396337.24
+  "deposit_interest": 396337.24,
+  "personal_costs": {
+   "mal": 30620.0,
+   "pog": 12248.0
+  }
  }
 }

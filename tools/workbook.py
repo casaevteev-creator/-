@@ -334,6 +334,13 @@ def build(c, r, path):
     for k, label in cost_labels.items():
         a, b = f["mal"]["costs_detail"].get(k, 0), f["pog"]["costs_detail"].get(k, 0)
         rr = _row(ws, rr, ["", f"      {label}", -a, -b, -(a + b), ""], money_cols=(3, 4, 5))
+    pa, pb = f["mal"].get("personal_adjust", 0.0), f["pog"].get("personal_adjust", 0.0)
+    if pa or pb:
+        rr = _row(ws, rr, ["", "      личные анализы (сверх деления 50/50)", -pa, -pb, -(pa + pb),
+                           "лист «Расходы врачей»: Маланичев {}, Погосян {}".format(
+                               f"{f['mal']['personal_costs']:,.0f}".replace(",", " "),
+                               f"{f['pog']['personal_costs']:,.0f}".replace(",", " "))],
+                  money_cols=(3, 4, 5))
     rr = _row(ws, rr, ["7", "ДОХОД ЗА МЕСЯЦ", f["mal"]["income"], f["pog"]["income"],
                        r["founders_total_income"], "сумма шагов выше"],
               money_cols=(3, 4, 5), bold=True, fill=TOT_FILL)

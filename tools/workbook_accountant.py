@@ -262,6 +262,16 @@ def build(canon, out_path):
     s.line("6. Минус доля расходов",
            {"total": f"=-C{s.at['exp']}", "mal": f"=-D{s.at['exp']}", "pog": f"=-E{s.at['exp']}"},
            "итог блока «Расходы», пополам", color=RED)
+    pers = man.get("personal_costs") or {}
+    if pers.get("mal") or pers.get("pog"):
+        half = (pers.get("mal", 0.0) + pers.get("pog", 0.0)) / 2
+        s.line("7. Личные анализы: каждый несёт свои",
+               {"total": 0.0,
+                "mal": round(half - pers.get("mal", 0.0), 2),
+                "pog": round(half - pers.get("pog", 0.0), 2)},
+               "лист «Расходы врачей»: Маланичев {}, Погосян {}".format(
+                   f"{pers.get('mal', 0):,.0f}".replace(",", " "),
+                   f"{pers.get('pog', 0):,.0f}".replace(",", " ")), color=RED)
     inc_last = s.row - 1
     s.result("ДОХОД ЗА МЕСЯЦ",
              {"total": f"=SUM(C{inc_first}:C{inc_last})",

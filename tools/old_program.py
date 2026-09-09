@@ -102,3 +102,43 @@ def parse_patient_payments(path):
             "total": total, "card": card, "bank": bank, "cash": round(total - card - bank, 2),
         })
     return rows
+
+
+def parse_daily_cash(path):
+    """«Ежедневный отчет по кассам» — единственный источник возвратов первой декады.
+
+    Шапка двухэтажная: строка «Касса | Период | Пациент | … | Специалист | Вид услуги»
+    и над ней «Денежные средства» с колонками ПОЛУЧЕНО / касса / Б/нал / кред.карта /
+    Возврат денег. Строки без даты в колонке «Период» — итоги по кассе.
+    """
+    ws = open_fixed(path).worksheets[0]
+    hrow = _header_row(ws, "ПОЛУЧЕНО", limit=20)
+    if not hrow:
+        raise ValueError("это не «Ежедневный отчет по кассам»: нет колонки «ПОЛУЧЕНО»")
+    cols = {str(ws.cell(row=hrow, column=c).value).strip(): c
+            for c in range(1, ws.max_column + 1) if ws.cell(row=hrow, column=c).value}
+
+    def g(r, name):
+        c = cols.get(name)
+        return ws.cell(row=r, column=c).value if c else None
+
+    rows, totals = [], {}
+    for r in range(hrow + 1, ws.max_row + 1):
+        period = g(r, "Период")
+        label = str(period).strip() if period is not None else ""
+        got = _num(g(r, "ПОЛУЧЕНО")) or 0.0
+        back = _num(g(r, "Возврат денег")) or 0.0
+        if label and not label[0].isdigit():          # строка-итог по кассе или «Итог»
+            totals[label] = {"got": got, "refund": back,
+                             "cash": _num(g(r, "В ТОМ ЧИСЛЕ: касса")) or 0.0,
+                             "bank": _num(g(r, "В ТОМ ЧИСЛЕ: Б/нал")) or 0.0,
+                             "card": _num(g(r, "В ТОМ ЧИСЛЕ: кред.карта")) or 0.0,
+                             "services": _num(g(r, "Оказано услуг с учетом скидки")) or 0.0}
+            continue
+        d = _date(label)
+        if d is None or not (got or back):
+            continue
+        rows.append({"date": d, "patient": g(r, "Пациент"),
+                     "doctor": str(g(r, "Специалист") or "").strip(),
+                     "service": g(r, "Вид услуги"), "got": got, "refund": back})
+    return rows, totals

@@ -10,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from june_source import parse_expenses  # noqa: E402
 from new_program import (allocate_advances, enrich, open_fixed, parse_finresult,  # noqa: E402
                          parse_payments, parse_services, report_group, _num)
-from old_program import parse_doctor_report, parse_patient_payments  # noqa: E402
+from old_program import (parse_daily_cash, parse_doctor_report,  # noqa: E402
+                         parse_patient_payments)
 from vendors import load_notes, read_turnover  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,10 +30,12 @@ def norm(s):
 
 
 # --------------------------------------------------------------------------- выручка
-def revenue(first_decade_card=None):
+def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0):
     old = [r for r in parse_doctor_report(SRC / "Старая-Отчет-по-врачам-УК-01.08-10.09.2026.xlsx")
            if r["date"] and r["date"].year == 2026 and r["date"].month == 8 and r["date"] < SWITCH]
-    dec1 = parse_patient_payments(SRC / "Старая-Оплаты-от-пациента-01-10.08.2026.xlsx")
+    drop = {str(n).strip().lstrip("0") for n in deleted_docs}
+    dec1 = [p for p in parse_patient_payments(SRC / "Старая-Оплаты-от-пациента-01-10.08.2026.xlsx")
+            if str(p["number"]).strip().lstrip("0") not in drop]
     cells = parse_finresult(SRC / "Новая-Финрезультат-10-31.08.2026.xlsx")
     dom = defaultdict(lambda: defaultdict(float))
     for c in cells:
@@ -85,6 +88,18 @@ def revenue(first_decade_card=None):
     base = sum(first.values())
     for k in list(first):
         first[k] += unresolved * first[k] / base
+
+    # возвраты первой декады: в реестре платежей их нет, они есть только
+    # в «Ежедневном отчёте по кассам» — колонка «Возврат денег»
+    back = defaultdict(float)
+    if refund_first:
+        drows, dtot = parse_daily_cash(SRC / "Старая-Ежедневный-отчет-по-кассам-01-10.08.2026.xlsx")
+        for r in drows:
+            if r["refund"]:
+                back[group_doctor(r["doctor"]) if r["doctor"] else "other"] += r["refund"]
+        seen = round(sum(back.values()), 2)
+        if abs(seen - refund_first) > 0.01:
+            raise ValueError(f"возвраты первой декады: в отчёте {seen}, в manual {refund_first}")
     # реализация первой декады — оказанные услуги, для справки об авансах
     dec1_services = round(sum(r["revenue"] for r in old), 2)
     dec1_channels = {"total": round(sum(p["total"] for p in dec1), 2),
@@ -110,11 +125,13 @@ def revenue(first_decade_card=None):
     for k in list(second):                      # авансы без совпадения по клиенту — пропорционально
         second[k] += rest * second[k] / base
 
-    by_group = {g: {"cash": 0.0, "card": 0.0, "bank_ind": 0.0, "refund": 0.0,
-                    "total": round(first.get(g, 0.0) + second.get(g, 0.0), 2)} for g in GROUPS}
+    by_group = {g: {"cash": 0.0, "card": 0.0, "bank_ind": 0.0,
+                    "refund": round(back.get(g, 0.0), 2),
+                    "total": round(first.get(g, 0.0) + second.get(g, 0.0) - back.get(g, 0.0), 2)}
+                for g in GROUPS}
     cash2 = round(sum(p["amount"] for p in pays if p["way"] == "Наличными"), 2)
     card2 = round(sum(p["amount"] for p in pays if p["way"] == "Безналичными"), 2)
-    totals = {"refund": 0.0,
+    totals = {"refund": round(sum(back.values()), 2),
               "cash": round(dec1_channels["cash"] + cash2, 2),
               "card": round(dec1_channels["card"] + card2, 2),
               "bank_ind": dec1_channels["bank"],
@@ -125,6 +142,30 @@ def revenue(first_decade_card=None):
     # авансы = деньги минус оказанные услуги: часть выручки ещё не отработана
     services2 = round(sum(c["sale"] for c in cells), 2)
     totals["services"] = round(dec1_services + services2, 2)
+    totals["refund_note"] = "первая декада — «Ежедневный отчёт по кассам»; вторая уже нетто в реестре «Оплаты»"
+    totals["allocation"] = {
+        "first": round(sum(first.values()), 2),
+        "second": round(sum(second.values()), 2),
+        "first_unresolved": round(unresolved, 2),
+        "second_direct": round(sum(p["amount"] for p in pays if p["doctor"]), 2),
+        "second_by_patient": round(sum(allocated.values()), 2),
+        "second_proportional": round(rest, 2),
+    }
+    totals["by_group_split"] = {g: {"first": round(first.get(g, 0.0), 2),
+                                    "second": round(second.get(g, 0.0), 2),
+                                    "refund": round(back.get(g, 0.0), 2)} for g in GROUPS}
+    totals["allocation"] = {
+        "first": round(sum(first.values()), 2),
+        "second": round(sum(second.values()), 2),
+        "first_unresolved": round(unresolved, 2),
+        "second_direct": round(sum(p["amount"] for p in pays if p["doctor"]), 2),
+        "second_by_patient": round(sum(allocated.values()), 2),
+        "second_proportional": round(rest, 2),
+    }
+    totals["by_group_split"] = {g: {"first": round(first.get(g, 0.0), 2),
+                                    "second": round(second.get(g, 0.0), 2),
+                                    "refund": round(back.get(g, 0.0), 2)} for g in GROUPS}
+
     totals["advances"] = round(totals["total"] - totals["services"], 2)
     totals["services_split"] = {"first": dec1_services, "second": services2}
 
@@ -246,7 +287,9 @@ def cashflow():
 def main():
     manual = json.loads((ROOT / "data" / "manual_2026-08.json").read_text(encoding="utf-8"))
     a = manual["august_2026"]
-    by_group, totals, daily = revenue(a.get("first_decade_card"))
+    by_group, totals, daily = revenue(a.get("first_decade_card"),
+                                      a.get("deleted_docs_old", ()),
+                                      a.get("refund_first_decade", 0.0))
     exp = expenses(a.get("vendor_adjustments"))
     cf = cashflow()
     adj = sum((a.get("vendor_adjustments") or {}).values())
@@ -316,6 +359,7 @@ def main():
             "credit_line_available": a.get("credit_line_available"),
             "cash_on_hand": a["cash_on_hand_31_08"],
             "deposit_interest": a["deposit_interest"],
+            "personal_costs": a.get("founder_personal_costs") or {},
         },
     }
     out = ROOT / "data" / "canonical" / "2026-08.json"
