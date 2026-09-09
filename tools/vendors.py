@@ -25,19 +25,31 @@ CORR = {"08": 9, "10": 10, "19": 11, "20": 12, "26": 13, "41": 14, "76": 17}
 
 
 def read_turnover(path):
+    """Контрагенты из «Оборотов счета 60».
+
+    Уровни отчёта различаются отступом первой колонки: 0 — счёт и «Итого»,
+    2 — подразделение, 4 — контрагент. Подразделений может быть несколько
+    (в августе платёж Квалитету с кредитной линии попал в отдельное «<...>»),
+    поэтому один контрагент встречается дважды и суммируется.
+    """
     ws = open_fixed(path).worksheets[0]
     out = {}
-    for r in range(11, ws.max_row + 1):
-        name = ws.cell(row=r, column=1).value
+    for r in range(9, ws.max_row + 1):
+        cell = ws.cell(row=r, column=1)
+        name = cell.value
         if not name:
             continue
-        n = " ".join(str(name).split())
-        if n.lower().startswith("итого"):
+        indent = int((cell.alignment.indent if cell.alignment else 0) or 0)
+        if indent < 4:                      # счёт, подразделение, «Итого»
             continue
+        n = " ".join(str(name).split())
         pay = _num(ws.cell(row=r, column=PAY_COL).value) or 0.0
         if not pay:
             continue
-        out[n] = (pay, {k: (_num(ws.cell(row=r, column=c).value) or 0.0) for k, c in CORR.items()})
+        prev_pay, prev_corr = out.get(n, (0.0, {k: 0.0 for k in CORR}))
+        corr = {k: prev_corr[k] + (_num(ws.cell(row=r, column=c).value) or 0.0)
+                for k, c in CORR.items()}
+        out[n] = (round(prev_pay + pay, 2), corr)
     return out
 
 

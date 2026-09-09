@@ -30,7 +30,7 @@ def norm(s):
 
 
 # --------------------------------------------------------------------------- выручка
-def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0):
+def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_second=()):
     old = [r for r in parse_doctor_report(SRC / "Старая-Отчет-по-врачам-УК-01.08-10.09.2026.xlsx")
            if r["date"] and r["date"].year == 2026 and r["date"].month == 8 and r["date"] < SWITCH]
     drop = {str(n).strip().lstrip("0") for n in deleted_docs}
@@ -100,6 +100,8 @@ def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0):
         seen = round(sum(back.values()), 2)
         if abs(seen - refund_first) > 0.01:
             raise ValueError(f"возвраты первой декады: в отчёте {seen}, в manual {refund_first}")
+    for item in refunds_second:              # возвраты 11–31.08 из реестра старой управленки
+        back[item["group"]] += item["amount"]
     # реализация первой декады — оказанные услуги, для справки об авансах
     dec1_services = round(sum(r["revenue"] for r in old), 2)
     dec1_channels = {"total": round(sum(p["total"] for p in dec1), 2),
@@ -241,19 +243,7 @@ def expenses(adjustments=None):
 
 
 # --------------------------------------------------------------------------- ДДС
-def cashflow():
-    ws = open_fixed(SRC / "1С-Анализ-счета-51-август-2026.xlsx").worksheets[0]
-    hdr = [str(ws.cell(row=6, column=c).value or "") for c in range(1, ws.max_column + 1)]
-    row = next(r for r in range(7, ws.max_row + 1)
-               if str(ws.cell(row=r, column=1).value or "").strip() == "51")
-    val = {}
-    for i, h in enumerate(hdr, start=1):
-        v = _num(ws.cell(row=row, column=i).value)
-        if v:
-            val.setdefault(h, []).append(v)
-    dt_names = ["55", "57", "60", "67", "76", "91"]
-    kt_names = ["55", "57", "60", "62", "68", "69", "70", "75", "76", "91"]
-    labels = {
+CF_LABELS = {
         "55": ("Возврат средств с депозитов", "Размещение на депозиты"),
         "57": ("Инкассация и эквайринг", "Переводы между счетами"),
         "60": ("Возвраты от поставщиков", "Оплаты поставщикам и подрядчикам"),
@@ -262,7 +252,49 @@ def cashflow():
         "68": ("", "Налоги"), "69": ("", "Страховые взносы"),
         "70": ("", "Зарплата"), "75": ("", "Выплата дивидендов"),
         "76": ("Прочее", "Алименты"), "91": ("Проценты по депозитам", "Услуги банка"),
-    }
+}
+
+
+def _cashflow_analysis(ws):
+    """«Анализ счета 51»: Счет | Кор. Счет | Дебет | Кредит, иерархия по счетам банка.
+
+    Обороты по корр. счетам стоят только в листьях, поэтому суммируются один раз.
+    """
+    dt, kt = defaultdict(float), defaultdict(float)
+    opening = closing = None
+    for r in range(7, ws.max_row + 1):
+        corr = str(ws.cell(row=r, column=2).value or "").strip()
+        d = _num(ws.cell(row=r, column=3).value) or 0.0
+        k = _num(ws.cell(row=r, column=4).value) or 0.0
+        if corr == "Начальное сальдо" and str(ws.cell(row=r, column=1).value or "").strip() == "51":
+            opening = d
+        elif corr == "Конечное сальдо":
+            closing = d                      # последний по файлу — итоговый
+        elif corr[:1].isdigit():
+            dt[corr] += d
+            kt[corr] += k
+    flows = []
+    for corr, v in sorted(dt.items()):
+        if v:
+            flows.append({"label": CF_LABELS.get(corr, (corr, corr))[0] or f"Счёт {corr}",
+                          "debit": round(v, 2), "credit": None, "note": f"кор. счёт {corr}"})
+    for corr, v in sorted(kt.items()):
+        if v:
+            flows.append({"label": CF_LABELS.get(corr, (corr, corr))[1] or f"Счёт {corr}",
+                          "debit": None, "credit": round(v, 2), "note": f"кор. счёт {corr}"})
+    return {"opening": opening, "closing": closing,
+            "turnover_debit": round(sum(dt.values()), 2),
+            "turnover_credit": round(sum(kt.values()), 2), "flows": flows}
+
+
+def cashflow():
+    ws = open_fixed(SRC / "1С-Анализ-счета-51-август-2026.xlsx").worksheets[0]
+    if str(ws.cell(row=6, column=2).value or "").strip() == "Кор. Счет":
+        return _cashflow_analysis(ws)
+    hdr = [str(ws.cell(row=6, column=c).value or "") for c in range(1, ws.max_column + 1)]
+    row = next(r for r in range(7, ws.max_row + 1)
+               if str(ws.cell(row=r, column=1).value or "").strip() == "51")
+    labels = CF_LABELS
     flows = []
     idx_dt = hdr.index("Оборот Дт")
     for i, h in enumerate(hdr):
@@ -289,7 +321,8 @@ def main():
     a = manual["august_2026"]
     by_group, totals, daily = revenue(a.get("first_decade_card"),
                                       a.get("deleted_docs_old", ()),
-                                      a.get("refund_first_decade", 0.0))
+                                      a.get("refund_first_decade", 0.0),
+                                      a.get("refunds_second_half", ()))
     exp = expenses(a.get("vendor_adjustments"))
     cf = cashflow()
     adj = sum((a.get("vendor_adjustments") or {}).values())
