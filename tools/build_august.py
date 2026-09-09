@@ -277,6 +277,27 @@ def operational_costs():
     return {k: round(v, 2) for k, v in out.items()}
 
 
+def bank_bridge():
+    """Счёт 57: сколько денег реально дошло до расчётного счёта.
+
+    Бухгалтерия считает выручку именно так — инкассация плюс эквайринг, —
+    поэтому её цифра отличается от пробитой в управленке.
+    """
+    ws = open_fixed(SRC / "1С-Обороты-счета-57-август-2026.xlsx").worksheets[0]
+    hdr = [str(ws.cell(row=6, column=c).value or "") for c in range(1, ws.max_column + 1)]
+    row = next(r for r in range(7, ws.max_row + 1)
+               if str(ws.cell(row=r, column=1).value or "").strip() == "Итого")
+    kt = hdr.index("Оборот Кт")
+    def col(name, side):
+        return next((_num(ws.cell(row=row, column=i + 1).value) or 0.0
+                     for i, h in enumerate(hdr) if h == name and ((i < kt) == (side == "Дт"))), 0.0)
+    inkas, to57, from57, fee = col("50", "Дт"), col("51", "Дт"), col("51", "Кт"), col("91", "Кт")
+    net = round(from57 - to57, 2)
+    return {"net_57": net, "inkas": inkas, "acquiring_net": round(net - inkas, 2),
+            "fee": fee, "acq_gross": round(net - inkas + fee, 2),
+            "transfers": to57, "from57": from57}
+
+
 # --------------------------------------------------------------------------- ДДС
 CF_LABELS = {
         "55": ("Возврат средств с депозитов", "Размещение на депозиты"),
@@ -424,6 +445,7 @@ def main():
         "revenue": {"daily": daily, "by_group": by_group, "totals": totals,
                     "month_cash_basis": totals["total"], "acquiring_fee": {},
                     "acquiring_fee_total": a["acquiring_fee"], "kkt_diff_total": None},
+        "bank_bridge": bank_bridge(),
         "history": hist,
         "expenses": exp,
         "cashflow": cf,

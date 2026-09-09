@@ -388,6 +388,15 @@
   "acquiring_fee_total": 373487.16,
   "kkt_diff_total": null
  },
+ "bank_bridge": {
+  "net_57": 97353224.14,
+  "inkas": 35370000,
+  "acquiring_net": 61983224.14,
+  "fee": 373487.16,
+  "acq_gross": 62356711.3,
+  "transfers": 56143119,
+  "from57": 153496343.14
+ },
  "history": {
   "2025": {
    "1": 65706942.0,
