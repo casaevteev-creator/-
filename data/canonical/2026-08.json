@@ -33,7 +33,7 @@
     "date": "2026-08-03",
     "cash": {},
     "card": {},
-    "total": 4277000.0,
+    "total": 3907000.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -309,8 +309,8 @@
     "cash": 0.0,
     "card": 0.0,
     "bank_ind": 0.0,
-    "refund": 720000.0,
-    "total": 76495979.75
+    "refund": 350000.0,
+    "total": 76495706.82
    },
    "misc": {
     "cash": 0.0,
@@ -324,18 +324,18 @@
     "card": 0.0,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 2959191.93
+    "total": 2959464.86
    }
   },
   "totals": {
-   "refund": 720000.0,
+   "refund": 350000.0,
    "cash": 34981900.0,
-   "card": 61654454.0,
+   "card": 61284454.0,
    "bank_ind": 1035500.0,
    "total": 96951853.99,
    "split": {
     "first_cash": 10688500.0,
-    "first_card": 19889514.0,
+    "first_card": 19519514.0,
     "first_bank": 1035500.0,
     "second_cash": 24293400,
     "second_card": 41764940
@@ -343,7 +343,7 @@
    "services": 94366672.0,
    "refund_note": "первая декада — «Ежедневный отчёт по кассам»; вторая уже нетто в реестре «Оплаты»",
    "allocation": {
-    "first": 31613514.0,
+    "first": 31243514.0,
     "second": 66058340.0,
     "first_unresolved": 709500.0,
     "second_direct": 46401840,
@@ -362,9 +362,9 @@
      "refund": 0.0
     },
     "other": {
-     "first": 30609933.64,
+     "first": 30239660.71,
      "second": 46606046.11,
-     "refund": 720000.0
+     "refund": 350000.0
     },
     "misc": {
      "first": 0.0,
@@ -372,7 +372,7 @@
      "refund": 0.0
     },
     "cosm": {
-     "first": 1003580.36,
+     "first": 1003853.29,
      "second": 1955611.58,
      "refund": 0.0
     }

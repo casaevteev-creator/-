@@ -30,10 +30,12 @@ def norm(s):
 
 
 # --------------------------------------------------------------------------- выручка
-def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_second=()):
+def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_second=(),
+            wash_docs=()):
     old = [r for r in parse_doctor_report(SRC / "Старая-Отчет-по-врачам-УК-01.08-10.09.2026.xlsx")
            if r["date"] and r["date"].year == 2026 and r["date"].month == 8 and r["date"] < SWITCH]
-    drop = {str(n).strip().lstrip("0") for n in deleted_docs}
+    # удалённые документы и свёрнутые пары «возврат + оплата того же дня»
+    drop = {str(n).strip().lstrip("0") for n in tuple(deleted_docs) + tuple(wash_docs)}
     dec1 = [p for p in parse_patient_payments(SRC / "Старая-Оплаты-от-пациента-01-10.08.2026.xlsx")
             if str(p["number"]).strip().lstrip("0") not in drop]
     cells = parse_finresult(SRC / "Новая-Финрезультат-10-31.08.2026.xlsx")
@@ -322,7 +324,8 @@ def main():
     by_group, totals, daily = revenue(a.get("first_decade_card"),
                                       a.get("deleted_docs_old", ()),
                                       a.get("refund_first_decade", 0.0),
-                                      a.get("refunds_second_half", ()))
+                                      a.get("refunds_second_half", ()),
+                                      a.get("wash_docs_old", ()))
     exp = expenses(a.get("vendor_adjustments"))
     cf = cashflow()
     adj = sum((a.get("vendor_adjustments") or {}).values())
