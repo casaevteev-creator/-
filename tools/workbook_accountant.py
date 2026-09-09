@@ -244,6 +244,7 @@ def build(canon, out_path):
                "в расходы учредителей не входит — стройка идёт на заёмные", color=BRONZE)
     personal_all = sum(r["founders"][x]["personal_costs"] for x in ("mal", "pog"))
     if personal_all:
+        s.at["personal"] = s.row
         s.line("Справочно: из них личные расходы врачей", {"total": personal_all},
                "пополам не делятся, отнесены каждому свои — см. шаг 7", color=BRONZE)
 
@@ -270,10 +271,10 @@ def build(canon, out_path):
     fnd = r["founders"]
     items = sorted({k for x in ("mal", "pog") for k in fnd[x].get("personal_items", {})})
     if items:
-        pa = round(sum(fnd[x]["personal_costs"] for x in ("mal", "pog")), 2)
+        pr = s.at["personal"]
         s.line("6. Минус ½ общих расходов",
-               {"total": f"=-(C{s.at['exp']}-{pa})",
-                "mal": f"=-(D{s.at['exp']}-{pa / 2})", "pog": f"=-(E{s.at['exp']}-{pa / 2})"},
+               {"total": f"=-(C{s.at['exp']}-C{pr})",
+                "mal": f"=-(D{s.at['exp']}-C{pr}/2)", "pog": f"=-(E{s.at['exp']}-C{pr}/2)"},
                "итог блока «Расходы» без личных, пополам", color=RED)
         s.line("7. Минус личные расходы (каждый свои)",
                {"total": -(fnd["mal"]["personal_costs"] + fnd["pog"]["personal_costs"]),

@@ -204,6 +204,7 @@ def expenses(adjustments=None):
     last.discard("прочее")
 
     med, mgmt, vendors, unclear = defaultdict(float), defaultdict(float), [], {}
+    bank = 0.0                     # комиссии банков, ошибочно проведённые через счёт 60
     for name, (pay, corr) in turn.items():
         low = norm(name)
         note = notes[low]["article"] if low in notes else prev.get(low, "")
@@ -232,7 +233,12 @@ def expenses(adjustments=None):
         else:
             bucket, article = "mgmt", "Прочие управленческие"
             unclear[name] = pay
-        (med if bucket == "med" else mgmt)[article] += pay
+        if norm(article) == "услуги банка":
+            # это банковская комиссия, ей место на счёте 91: в расчёте учредителей
+            # она идёт строкой «услуги банка», а не в поставщиках
+            bank += pay
+        else:
+            (med if bucket == "med" else mgmt)[article] += pay
         vendors.append({"name": name, "amount": round(pay, 2), "note": note or article})
 
     to_list = lambda d: [{"name": k, "amount": round(v, 2)}
@@ -240,11 +246,35 @@ def expenses(adjustments=None):
     return {
         "vendors": vendors,
         "medical": to_list(med), "management": to_list(mgmt),
+        "bank_on_60": round(bank, 2),
         "totals": {"medical": round(sum(med.values()), 2),
                    "management": round(sum(mgmt.values()), 2),
                    "grand": round(sum(med.values()) + sum(mgmt.values()), 2)},
         "unclear": {k: round(v, 2) for k, v in unclear.items()},
     }
+
+
+def operational_costs():
+    """«Всего затраты» из «Финансового результата» — материалы, списанные на операции.
+
+    Отчёт построен по специализациям, врач может встречаться в нескольких: суммируем.
+    Период 10–31.08: в первой декаде у учредителей своих операций не было.
+    """
+    ws = open_fixed(SRC / "Новая-Финрезультат-10-31.08.2026.xlsx").worksheets[0]
+    out = {"mal": 0.0, "pog": 0.0}
+    for r in range(6, ws.max_row + 1):
+        cell = ws.cell(row=r, column=1)
+        label = str(cell.value or "").strip()
+        if not label or label.lower().startswith("итог"):
+            continue
+        if int((cell.alignment.indent if cell.alignment else 0) or 0) == 0:
+            continue                          # строка специализации
+        cost = _num(ws.cell(row=r, column=8).value) or 0.0
+        if "Маланичев" in label:
+            out["mal"] += cost
+        elif "Погосян" in label:
+            out["pog"] += cost
+    return {k: round(v, 2) for k, v in out.items()}
 
 
 # --------------------------------------------------------------------------- ДДС
@@ -342,6 +372,11 @@ def main():
         cf["turnover_credit"] = round(cf["turnover_credit"] + adj, 2)
 
     half = lambda x: {"total": round(x, 2), "mal": round(x / 2, 2), "pog": round(x / 2, 2)}
+    personal = {k: dict(v) for k, v in (a.get("founder_personal_costs") or {}).items()}
+    op = operational_costs()                 # материалы, списанные на свои операции
+    for k, v in op.items():
+        if v:
+            personal.setdefault(k, {})["Материалы за операции"] = round(v, 2)
     # то, что оплачено за счёт кредитной линии, в расходы учредителей не входит:
     # стройка финансируется заёмными, а не выручкой (та же логика в июне и июле)
     credit_funded = a.get("credit_funded", 0.0)
@@ -357,7 +392,7 @@ def main():
         "payroll_taxes": half(a["payroll_taxes"] + a["social_69"]),
         "salary": half(a["salary_total"]),
         "cash_expenses": half(0.0),
-        "bank_common": half(a["bank_services"]),
+        "bank_common": half(a["bank_services"] + exp.get("bank_on_60", 0.0)),
         "bank_acquiring": half(a["acquiring_fee"]),
         "alimony": half(a["alimony"]),
         "credit_interest": half(a["credit_interest"]),
@@ -403,7 +438,7 @@ def main():
             "credit_line_available": a.get("credit_line_available"),
             "cash_on_hand": a["cash_on_hand_31_08"],
             "deposit_interest": a["deposit_interest"],
-            "personal_costs": a.get("founder_personal_costs") or {},
+            "personal_costs": personal,
         },
     }
     out = ROOT / "data" / "canonical" / "2026-08.json"

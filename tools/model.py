@@ -243,7 +243,8 @@ def _checks(c, out):
         _n(c["expenses"]["totals"].get("grand")))
     add("Расходы 60: сумма по контрагентам = итог по счёту",
         sum(v["amount"] for v in c["expenses"]["vendors"]),
-        _n(c["expenses"]["totals"].get("grand")) + _n(c["manual"].get("credit_funded")),
+        _n(c["expenses"]["totals"].get("grand")) + _n(c["manual"].get("credit_funded"))
+        + _n(c["expenses"].get("bank_on_60")),
         "из итога исключено оплаченное за счёт кредитной линии"
         if c["manual"].get("credit_funded") else "")
     add("ДДС: сальдо нач. + приход − расход = сальдо кон.",
