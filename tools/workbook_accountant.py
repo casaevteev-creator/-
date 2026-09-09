@@ -168,15 +168,17 @@ def build(canon, out_path):
         s.line("    Наличными", {"total": tot["cash"]},
                (f"01–10.08: {sp['first_cash']:,.0f}".replace(",", " ")
                 + f"; 11–31.08: {sp['second_cash']:,.0f}".replace(",", " ")) if sp else "")
-        online = (f"; из них онлайн-оплаты через сайт {sp['first_online']:,.0f}".replace(",", " ")
+        num = lambda v: f"{v:,.0f}".replace(",", " ")
+        online = (f", из них онлайн-оплаты через сайт {num(sp['first_online'])}"
                   if sp and sp.get("first_online") else "")
-        s.line("    Безналичными (карты и онлайн-оплаты)", {"total": tot["card"]},
-               (f"01–10.08: {sp['first_card']:,.0f}".replace(",", " ") + online
-                + f"; 11–31.08: {sp['second_card']:,.0f}".replace(",", " ")) if sp else "")
+        back = (f"; за вычетом возвратов пациентам {num(tot['refund'])}"
+                if tot.get("refund") else "")
+        s.line("    Безналичными (карты и онлайн-оплаты)",
+               {"total": tot["card"] - tot.get("refund", 0.0)},
+               (f"01–10.08: {num(sp['first_card'])}" + online
+                + f"; 11–31.08: {num(sp['second_card'])}" + back) if sp else "")
     if tot.get("bank_ind"):
         s.line("    Оплаты физлиц на расчётный счёт", {"total": tot["bank_ind"]})
-    if tot.get("refund"):
-        s.line("    Возвраты пациентам", {"total": -tot["refund"]}, color=RED)
     s.total("Итого по каналам", {"total": f"=SUM(C{ch_first}:C{s.row-1})"},
             "должно совпасть с итогом выручки выше")
     if tot.get("advances"):
@@ -240,6 +242,10 @@ def build(canon, out_path):
     if man.get("credit_funded"):
         s.line("Справочно: ремонт за счёт кредитной линии", {"total": man["credit_funded"]},
                "в расходы учредителей не входит — стройка идёт на заёмные", color=BRONZE)
+    personal_all = sum(r["founders"][x]["personal_costs"] for x in ("mal", "pog"))
+    if personal_all:
+        s.line("Справочно: из них личные расходы врачей", {"total": personal_all},
+               "пополам не делятся, отнесены каждому свои — см. шаг 7", color=BRONZE)
 
     # ---------------------------------------------------------------- 4. доход
     s.section("4. РАСЧЁТ ДОХОДА УЧРЕДИТЕЛЕЙ", "методика 50/50")
@@ -261,23 +267,31 @@ def build(canon, out_path):
         s.line("5. Половина процентов по депозитам",
                {"total": dep, "mal": f"=C{s.row}/2", "pog": f"=C{s.row}/2"},
                "начислены банком на остатки")
-    pers = man.get("personal_costs") or {}
-    if pers.get("mal") or pers.get("pog"):
-        half = (pers.get("mal", 0.0) + pers.get("pog", 0.0)) / 2
-        adj = {k: round(half - pers.get(k, 0.0), 2) for k in ("mal", "pog")}
-        note = ("итог блока «Расходы» пополам, плюс личные анализы каждого "
-                "(Маланичев {}, Погосян {} — переносится половина разницы)").format(
-                    f"{pers.get('mal', 0):,.0f}".replace(",", " "),
-                    f"{pers.get('pog', 0):,.0f}".replace(",", " "))
-        s.line("6. Минус доля расходов",
-               {"total": f"=-C{s.at['exp']}",
-                "mal": f"=-D{s.at['exp']}{adj['mal']:+.2f}",
-                "pog": f"=-E{s.at['exp']}{adj['pog']:+.2f}"}, note, color=RED)
+    fnd = r["founders"]
+    items = sorted({k for x in ("mal", "pog") for k in fnd[x].get("personal_items", {})})
+    if items:
+        pa = round(sum(fnd[x]["personal_costs"] for x in ("mal", "pog")), 2)
+        s.line("6. Минус ½ общих расходов",
+               {"total": f"=-(C{s.at['exp']}-{pa})",
+                "mal": f"=-(D{s.at['exp']}-{pa / 2})", "pog": f"=-(E{s.at['exp']}-{pa / 2})"},
+               "итог блока «Расходы» без личных, пополам", color=RED)
+        s.line("7. Минус личные расходы (каждый свои)",
+               {"total": -(fnd["mal"]["personal_costs"] + fnd["pog"]["personal_costs"]),
+                "mal": -fnd["mal"]["personal_costs"], "pog": -fnd["pog"]["personal_costs"]},
+               "заказано лично под врача, пополам не делится", color=RED)
+        for name in items:
+            s.line(f"        {name}",
+                   {"total": -(fnd["mal"]["personal_items"].get(name, 0.0)
+                               + fnd["pog"]["personal_items"].get(name, 0.0)),
+                    "mal": -fnd["mal"]["personal_items"].get(name, 0.0),
+                    "pog": -fnd["pog"]["personal_items"].get(name, 0.0)},
+                   color="807A70")
+        inc_last = s.row - 1 - len(items)
     else:
         s.line("6. Минус доля расходов",
                {"total": f"=-C{s.at['exp']}", "mal": f"=-D{s.at['exp']}", "pog": f"=-E{s.at['exp']}"},
                "итог блока «Расходы», пополам", color=RED)
-    inc_last = s.row - 1
+        inc_last = s.row - 1
     s.result("ДОХОД ЗА МЕСЯЦ",
              {"total": f"=SUM(C{inc_first}:C{inc_last})",
               "mal": f"=SUM(D{inc_first}:D{inc_last})", "pog": f"=SUM(E{inc_first}:E{inc_last})"},

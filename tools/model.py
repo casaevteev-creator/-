@@ -149,12 +149,14 @@ def compute(c):
     founders = {}
     for f in FOUNDERS:
         own = _n(by_group[f]["total"])
-        share_costs = sum(_line(costs, k, f) for k in cost_keys)
-        # личные расходы учредителя (анализы) каждый несёт полностью: к делению 50/50
-        # добавляется половина разницы, поэтому в сумме по двоим поправка равна нулю
+        # личные расходы каждый несёт сам: их вынимают из общего котла, делят
+        # пополам остаток, а личные возвращают владельцу целиком
         pers = man.get("personal_costs") or {}
-        personal = _n(pers.get(f)) - sum(_n(pers.get(x)) for x in FOUNDERS) / 2
-        share_costs += personal
+        items = {x: (pers.get(x) or {}) for x in FOUNDERS}
+        own_personal = sum(_n(v) for v in items[f].values())
+        all_personal = sum(_n(v) for x in FOUNDERS for v in items[x].values())
+        common = sum(_line(costs, k, f) for k in cost_keys) - all_personal / 2
+        share_costs = common + own_personal
         half_other = _n(by_group["other"]["total"]) / 2
         half_cosm = _n(by_group["cosm"]["total"]) / 2
         half_misc = _n(by_group["misc"]["total"]) / 2
@@ -172,9 +174,10 @@ def compute(c):
             "half_cosm": half_cosm,
             "half_misc": half_misc,
             "costs": share_costs,
+            "costs_common": common,
             "costs_detail": {k: _line(costs, k, f) for k in cost_keys},
-            "personal_costs": _n(pers.get(f)),
-            "personal_adjust": personal,
+            "personal_items": {k: _n(v) for k, v in items[f].items()},
+            "personal_costs": own_personal,
             "income": income,
             "deposit_share": deposit_share,
             "prev_balance": prev_bal,

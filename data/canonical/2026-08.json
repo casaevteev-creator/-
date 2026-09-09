@@ -1505,8 +1505,12 @@
   "cash_on_hand": null,
   "deposit_interest": 396337.24,
   "personal_costs": {
-   "mal": 30620.0,
-   "pog": 12248.0
+   "mal": {
+    "Анализы": 30620.0
+   },
+   "pog": {
+    "Анализы": 12248.0
+   }
   }
  }
 }

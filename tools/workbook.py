@@ -104,9 +104,8 @@ def _figures(c, r):
         ("KPI", "Остаток на р/с на конец месяца", r["cashflow"]["closing"], "₽",
          "конечное сальдо счёта 51", src_bank),
         ("Структура", "Касса (наличные)", rv["cash"], "₽", "строка «касса» сводного блока выручки", src_bank),
-        ("Структура", "Эквайринг (карты и онлайн-оплаты)", rv["card"], "₽",
-         "оборот сч. 57.03: розница и интернет-эквайринг", src_bank),
-        ("Структура", "Возвраты пациентам", -rv["refund"], "₽", "строка «возврат пациенту ч/з банк и кассу»", src_bank),
+        ("Структура", "Эквайринг (карты и онлайн-оплаты)", rv["card"] - rv["refund"], "₽",
+         "оборот сч. 57.03: розница и интернет-эквайринг, за вычетом возвратов", src_bank),
         ("Структура", "Комиссия эквайринга", rv["acquiring_fee"], "₽",
          "сумма комиссий по группам врачей", f"{src_rev}, справочный блок «услуги Банка в Отчет»"),
         ("Расходы", "Медицинские расходы + ИП", ex["medical_total"], "₽",
@@ -242,11 +241,11 @@ def build(c, r, path):
     chan = any(bg[g][k] for g in GROUPS for k in ("cash", "card", "bank_ind"))
     sep = bool(t.get("bank_ind"))
     top = _title(ws, "Структура выручки",
-                 "Итог = касса + эквайринг + оплаты физлиц на р/с − возвраты" if sep
-                 else "Итог = касса + эквайринг (карты и онлайн-оплаты) − возвраты")
+                 "Итог = касса + эквайринг + оплаты физлиц на р/с, за вычетом возвратов" if sep
+                 else "Итог = касса + эквайринг (карты и онлайн-оплаты), за вычетом возвратов")
     chan_head = (["Касса", "Эквайринг"] + (["Оплаты на р/с"] if sep else [])) if chan else []
-    head = ["Группа"] + chan_head + ["Возвраты", "Итого", "Доля", "Комиссия эквайринга"]
-    widths = [24] + [16] * len(chan_head) + [14, 18, 10, 20]
+    head = ["Группа"] + chan_head + ["Итого", "Доля", "Комиссия эквайринга"]
+    widths = [24] + [16] * len(chan_head) + [18, 10, 20]
     _header(ws, head, widths, row=top)
     money = tuple(range(2, len(head) - 1)) + (len(head),)
     pct_col = len(head) - 1
@@ -255,12 +254,12 @@ def build(c, r, path):
         b = bg[g]
         vals = ([b["cash"], b["card"]] + ([b["bank_ind"]] if sep else [])) if chan else []
         rr = _row(ws, rr, [GROUP_RU[g]] + vals
-                  + [-b["refund"], b["total"], r["revenue"]["share"][g] / 100,
+                  + [b["total"], r["revenue"]["share"][g] / 100,
                      (c["revenue"].get("acquiring_fee") or {}).get(g)], money_cols=money)
         ws.cell(row=rr - 1, column=pct_col).number_format = "0.0%"
     vals = ([t["cash"], t["card"]] + ([t["bank_ind"]] if sep else [])) if chan else []
     rr = _row(ws, rr, ["ИТОГО"] + vals
-              + [-t["refund"], t["total"], 1.0, c["revenue"].get("acquiring_fee_total")],
+              + [t["total"], 1.0, c["revenue"].get("acquiring_fee_total")],
               money_cols=money, bold=True, fill=TOT_FILL)
     ws.cell(row=rr - 1, column=pct_col).number_format = "0.0%"
 
@@ -273,11 +272,13 @@ def build(c, r, path):
         sp = t.get("split") or {}
         online = (f" (в т.ч. онлайн-оплаты через сайт {sp['first_online']:,.0f} ₽)".replace(",", " ")
                   if sp.get("first_online") else "")
+        back = (f", за вычетом возвратов пациентам {t['refund']:,.0f} ₽".replace(",", " ")
+                if t.get("refund") else "")
         for label, value, note in (
                 ("Наличными", t["cash"], "касса клиники"),
-                ("Безналичными", t["card"], "карты и онлайн-оплаты" + online),
+                ("Безналичными", t["card"] - t.get("refund", 0.0),
+                 "карты и онлайн-оплаты" + online + back),
                 ("Оплаты физлиц на р/с", t["bank_ind"] if sep else None, ""),
-                ("Возвраты пациентам", -t["refund"], "вычитаются из выручки"),
         ):
             if value is None:
                 continue
@@ -362,25 +363,37 @@ def build(c, r, path):
         "credit_interest": "проценты по кредитной линии", "adjust": "дополнительные корректировки",
         "suppliers_bank": "поставщики (счёт 60) + Халва",
     }
-    pers_note = ("½ всех расходов месяца; личные анализы (Маланичев {}, Погосян {}) "
-                 "каждый несёт полностью — переносится половина разницы").format(
-                     f"{f['mal'].get('personal_costs', 0):,.0f}".replace(",", " "),
-                     f"{f['pog'].get('personal_costs', 0):,.0f}".replace(",", " ")) \
-        if (f["mal"].get("personal_costs") or f["pog"].get("personal_costs")) else "½ всех расходов месяца"
-    rr = _row(ws, rr, ["6", "− Доля расходов, в том числе:", -f["mal"]["costs"], -f["pog"]["costs"],
-                       -(f["mal"]["costs"] + f["pog"]["costs"]), pers_note],
+    rr = _row(ws, rr, ["6", "− ½ общих расходов, в том числе:",
+                       -f["mal"]["costs_common"], -f["pog"]["costs_common"],
+                       -(f["mal"]["costs_common"] + f["pog"]["costs_common"]),
+                       "все расходы месяца без личных, пополам"],
               money_cols=(3, 4, 5), bold=True)
     for k, label in cost_labels.items():
         a, b = f["mal"]["costs_detail"].get(k, 0), f["pog"]["costs_detail"].get(k, 0)
         rr = _row(ws, rr, ["", f"      {label}", -a, -b, -(a + b), ""], money_cols=(3, 4, 5))
 
-    rr = _row(ws, rr, ["7", "ДОХОД ЗА МЕСЯЦ", f["mal"]["income"], f["pog"]["income"],
+    items = sorted({k for x in ("mal", "pog") for k in f[x].get("personal_items", {})})
+    if items:
+        back = (f["mal"]["personal_costs"] + f["pog"]["personal_costs"]) / 2
+        rr = _row(ws, rr, ["", "      минус личные расходы врачей (вынесены в шаг 7)",
+                           back, back, back * 2, "чтобы не делить их пополам"],
+                  money_cols=(3, 4, 5))
+        rr = _row(ws, rr, ["7", "− Личные расходы (каждый свои), в том числе:",
+                           -f["mal"]["personal_costs"], -f["pog"]["personal_costs"],
+                           -(f["mal"]["personal_costs"] + f["pog"]["personal_costs"]),
+                           "заказано лично под врача, пополам не делится"],
+                  money_cols=(3, 4, 5), bold=True)
+        for name in items:
+            a = f["mal"]["personal_items"].get(name, 0.0)
+            b = f["pog"]["personal_items"].get(name, 0.0)
+            rr = _row(ws, rr, ["", f"      {name}", -a, -b, -(a + b), ""], money_cols=(3, 4, 5))
+    rr = _row(ws, rr, ["8" if items else "7", "ДОХОД ЗА МЕСЯЦ", f["mal"]["income"], f["pog"]["income"],
                        r["founders_total_income"], "сумма шагов выше"],
               money_cols=(3, 4, 5), bold=True, fill=TOT_FILL)
-    rr = _row(ws, rr, ["8", "+ Остаток с прошлого месяца", f["mal"]["prev_balance"], f["pog"]["prev_balance"],
+    rr = _row(ws, rr, ["9" if items else "8", "+ Остаток с прошлого месяца", f["mal"]["prev_balance"], f["pog"]["prev_balance"],
                        f["mal"]["prev_balance"] + f["pog"]["prev_balance"], "ручной ввод бухгалтерии"],
               money_cols=(3, 4, 5))
-    step = 9
+    step = 10 if items else 9
     for label, key, note in (("− Выплачены дивиденды", "dividends", "ручной ввод бухгалтерии"),
                              ("− Удержано в резерв (аренда)", "reserve", "ручной ввод бухгалтерии"),
                              ("+ Возврат остатка резерва", "reserve_return", "ручной ввод бухгалтерии")):
