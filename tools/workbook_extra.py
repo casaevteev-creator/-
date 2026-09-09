@@ -25,6 +25,10 @@ JULY = {"Выручка": 108126415.72, "Налоги с ФОТ": 6370709.49, "�
         "Поставщики (счёт 60)": 53416727.72}
 
 
+def _n(v):
+    return v if isinstance(v, (int, float)) else 0.0
+
+
 def add_sheets(path, canon, model_out):
     wb = openpyxl.load_workbook(path)
     for name in list(wb.sheetnames):          # повторный запуск не должен плодить копии
@@ -104,8 +108,10 @@ def add_sheets(path, canon, model_out):
     je = sum(v for k, v in JULY.items() if k != "Выручка")
     ae = sum(v for k, v in aug.items() if k != "Выручка")
     r = _row(ws, r, ["ИТОГО РАСХОДЫ", je, ae, ae - je], money_cols=(2, 3, 4), bold=True, fill=SUB_FILL)
-    r = _row(ws, r, ["ДОХОД (выручка − расходы)", JULY["Выручка"] - je, aug["Выручка"] - ae,
-                     (aug["Выручка"] - ae) - (JULY["Выручка"] - je)],
+    dep_j, dep_a = 442883.07, _n(canon["manual"].get("deposit_interest"))
+    r = _row(ws, r, ["+ Проценты по депозитам", dep_j, dep_a, dep_a - dep_j], money_cols=(2, 3, 4))
+    inc_j, inc_a = JULY["Выручка"] - je + dep_j, aug["Выручка"] - ae + dep_a
+    r = _row(ws, r, ["ДОХОД УЧРЕДИТЕЛЕЙ", inc_j, inc_a, inc_a - inc_j],
              money_cols=(2, 3, 4), bold=True, fill=TOT_FILL)
     r += 1
     ws.cell(row=r, column=1, value="Внутри поставщиков").font = Font(bold=True)
@@ -119,7 +125,7 @@ def add_sheets(path, canon, model_out):
     mgmt = {i["name"]: i["amount"] for i in model_out["expenses"]["management"]}
     sup_a = {"Гонорары ИП хирургов": med.get("Гонорары ИП хирургов", 0.0),
              "Аренда Самокатная 1 стр.1": mgmt.get("Аренда Самокатная 1 стр1", 0.0),
-             "Коммунальные услуги": mgmt.get("Коммуналка", 0.0),
+             "Коммунальные услуги": mgmt.get("Коммуналка", 0.0),   # в августе 0: см. примечание ниже
              "Досудебный спор": mgmt.get("Урегулирование досудебного спора", 0.0)}
     sup_a["Прочие поставщики"] = canon["costs"]["suppliers_bank"]["total"] - sum(sup_a.values())
     for k in sup_j:

@@ -406,7 +406,12 @@ def main():
                                     "bank_acquiring", "alimony", "credit_interest", "adjust",
                                     "suppliers_bank")), 2) for k in ("total", "mal", "pog")}
 
-    hist = json.loads((ROOT / "data" / "history.json").read_text(encoding="utf-8"))
+    hist_path = ROOT / "data" / "history.json"
+    hist = json.loads(hist_path.read_text(encoding="utf-8"))
+    # свой месяц берём из расчёта, а не из файла: иначе график динамики
+    # остаётся на старой цифре после любой правки выручки
+    hist.setdefault("2026", {})["8"] = totals["total"]
+    hist_path.write_text(json.dumps(hist, ensure_ascii=False, indent=1), encoding="utf-8")
     canon = {
         "meta": {"company": "ООО «ОМЕГА»", "brand": "Форма", "year": 2026, "month": 8,
                  "month_ru": "Август", "period": "Август 2026",
@@ -432,6 +437,7 @@ def main():
             "credit_interest_paid": a.get("credit_interest"),
             "internet_acquiring": a.get("internet_acquiring_1c"),
             "bank_services_on_60": a.get("bank_services_on_60"),
+            "landlord_advances": a.get("landlord_advances") or {},
             "credit_funded": credit_funded,
             "vendor_adjustments": a.get("vendor_adjustments"),
             "credit_line_limit": a.get("credit_line_limit"),
@@ -439,6 +445,8 @@ def main():
             "cash_on_hand": a["cash_on_hand_31_08"],
             "deposit_interest": a["deposit_interest"],
             "personal_costs": personal,
+            "dividends_ndfl": a.get("dividends_ndfl"),
+            "social_69": a.get("social_69"),
         },
     }
     out = ROOT / "data" / "canonical" / "2026-08.json"

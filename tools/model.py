@@ -247,6 +247,14 @@ def _checks(c, out):
         + _n(c["expenses"].get("bank_on_60")),
         "из итога исключено оплаченное за счёт кредитной линии"
         if c["manual"].get("credit_funded") else "")
+    m = c["manual"]
+    taxes = next((_n(f.get("credit")) for f in c["cashflow"]["flows"]
+                  if f["label"] == "Налоги"), None)
+    ndfl, social = _n(m.get("dividends_ndfl")), _n(m.get("social_69"))
+    if taxes and ndfl:
+        add("Налоги по ДДС = налоги с ФОТ + НДФЛ с дивидендов",
+            taxes, _line(c["costs"], "payroll_taxes") - social + ndfl,
+            "НДФЛ с дивидендов в расходы учредителей не входит")
     add("ДДС: сальдо нач. + приход − расход = сальдо кон.",
         _n(c["cashflow"]["opening"]) + _n(c["cashflow"]["turnover_debit"])
         - _n(c["cashflow"]["turnover_credit"]), _n(c["cashflow"]["closing"]))
