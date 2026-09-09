@@ -221,17 +221,19 @@ def build(canon, out_path):
            {"total": costs["suppliers_bank"]["total"],
             "mal": f"=C{sup_row}/2", "pog": f"=C{sup_row}/2"},
            "без оплаченного за счёт кредитной линии", bold=True)
+    LIMIT = 100000
     for block, items in (("медицинские и гонорары", r["expenses"]["medical"]),
                          ("управленческие", r["expenses"]["management"])):
-        shown = [i for i in items if i["amount"] >= 300000]
+        shown = [i for i in items if i["amount"] >= LIMIT]
         if not shown:
             continue
         s.line(f"        в том числе {block}:", color="807A70")
         for item in shown:
             s.line("            " + item["name"], {"total": item["amount"]})
-        rest = sum(i["amount"] for i in items if i["amount"] < 300000)
-        if rest:
-            s.line("            прочие статьи блока", {"total": rest})
+        small = [i for i in items if i["amount"] < LIMIT]
+        if small:
+            s.line(f"            прочие статьи, {len(small)} шт", {"total": sum(i["amount"] for i in small)},
+                   "полный список — лист «Статьи расходов»", color="807A70")
     exp_last = s.row - 1
     s.at["exp_end"] = exp_last
     row = s.row
@@ -373,6 +375,32 @@ def build(canon, out_path):
              "в т.ч. за счёт кредитной линии — см. справочную строку основного листа")
     ws2.freeze_panes = "B5"
     ws2.sheet_view.showGridLines = False
+
+    # ---------------------------------------------------------------- статьи
+    ws4 = wb.create_sheet("Статьи расходов")
+    s4 = Sheet(ws4)
+    for col, w in ((1, 3), (2, 46), (3, 18), (4, 12), (5, 40)):
+        ws4.column_dimensions[L(col)].width = w
+    s4.title("Все статьи расходов по счёту 60",
+             "Полная расшифровка блока «Расходы» основного листа, без сворачивания")
+    s4.head({"label": "Статья", "total": "Сумма", "mal": "Доля", "pog": "Блок"})
+    grand = canon["expenses"]["totals"]["grand"] or 1
+    first4 = None
+    for block, items in (("медицинские", canon["expenses"]["medical"]),
+                         ("управленческие", canon["expenses"]["management"])):
+        s4.line(f"{block.capitalize()} — итого", {"total": sum(i["amount"] for i in items)}, bold=True)
+        for item in items:
+            first4 = first4 or s4.row
+            s4._cell(2, "    " + item["name"])
+            s4._cell(3, item["amount"], money=True)
+            s4._cell(4, item["amount"] / grand)
+            ws4.cell(row=s4.row, column=4).number_format = "0.0%"
+            s4._cell(5, block, size=9, color="807A70")
+            s4.row += 1
+    s4.total("ИТОГО ПО СЧЁТУ 60", {"total": grand},
+             "совпадает со строкой «Поставщики и подрядчики» основного листа")
+    ws4.freeze_panes = "B5"
+    ws4.sheet_view.showGridLines = False
 
     # ---------------------------------------------------------------- по дням
     daily = canon["revenue"].get("daily") or []
