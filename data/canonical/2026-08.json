@@ -1441,9 +1441,9 @@
    "pog": 19363.33
   },
   "credit_interest": {
-   "total": 0.0,
-   "mal": 0.0,
-   "pog": 0.0
+   "total": 204388.93,
+   "mal": 102194.46,
+   "pog": 102194.46
   },
   "adjust": {
    "total": 0.0,
@@ -1461,9 +1461,9 @@
    "pog": 19909811.5
   },
   "total": {
-   "total": 88974077.07,
-   "mal": 44487038.53,
-   "pog": 44487038.53
+   "total": 89178466.0,
+   "mal": 44589232.99,
+   "pog": 44589232.99
   }
  },
  "founders_reference": {
@@ -1493,6 +1493,10 @@
    "pog": 198168.62
   },
   "credit_debt": 27545367.0,
+  "credit_debt_open": 16545367.0,
+  "credit_drawn": 11000000.0,
+  "credit_interest_paid": 204388.93,
+  "internet_acquiring": 3284000.0,
   "credit_funded": 11000000.0,
   "vendor_adjustments": {},
   "credit_line_limit": 30000000.0,
