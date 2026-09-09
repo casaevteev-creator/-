@@ -15,7 +15,7 @@
     "date": "2026-08-01",
     "cash": {},
     "card": {},
-    "total": 1197075.0,
+    "total": 4365745.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -24,7 +24,7 @@
     "date": "2026-08-02",
     "cash": {},
     "card": {},
-    "total": 4598500.0,
+    "total": 2545000.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -33,7 +33,7 @@
     "date": "2026-08-03",
     "cash": {},
     "card": {},
-    "total": 4484200.0,
+    "total": 4277000.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -42,7 +42,7 @@
     "date": "2026-08-04",
     "cash": {},
     "card": {},
-    "total": 4073500.0,
+    "total": 4552200.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -51,7 +51,7 @@
     "date": "2026-08-05",
     "cash": {},
     "card": {},
-    "total": 3208094.0,
+    "total": 2728594.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -60,7 +60,7 @@
     "date": "2026-08-06",
     "cash": {},
     "card": {},
-    "total": 2403200.0,
+    "total": 1615200.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -69,7 +69,7 @@
     "date": "2026-08-07",
     "cash": {},
     "card": {},
-    "total": 2301500.0,
+    "total": 3019500.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -78,7 +78,7 @@
     "date": "2026-08-08",
     "cash": {},
     "card": {},
-    "total": 1938000.0,
+    "total": 3852280.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -87,7 +87,7 @@
     "date": "2026-08-09",
     "cash": {},
     "card": {},
-    "total": 3858000.0,
+    "total": 1491000.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -96,7 +96,7 @@
     "date": "2026-08-10",
     "cash": {},
     "card": {},
-    "total": 1686075.0,
+    "total": 3202575.0,
     "kkt": null,
     "kkt_diff": null
    },
@@ -310,37 +310,38 @@
     "card": 0.0,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 75249046.11
+    "total": 77250611.63
    },
    "misc": {
     "cash": 0.0,
     "card": 0.0,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 271238.64
+    "total": 261238.64
    },
    "cosm": {
     "cash": 0.0,
     "card": 0.0,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 3050755.58
+    "total": 2960140.06
    }
   },
   "totals": {
-   "bank_ind": 0.0,
    "refund": 0.0,
-   "total": 95806484.0,
-   "cash": 31243030.0,
-   "card": 64563454.0,
+   "cash": 34981900.0,
+   "card": 61654454.0,
+   "bank_ind": 1071080.0,
+   "total": 97707434.0,
    "split": {
-    "first_cash": 6949630.0,
-    "first_card": 22798514.0,
+    "first_cash": 10688500.0,
+    "first_card": 19889514.0,
+    "first_bank": 1071080.0,
     "second_cash": 24293400,
     "second_card": 41764940
    }
   },
-  "month_cash_basis": 95806484.0,
+  "month_cash_basis": 97707434.0,
   "acquiring_fee": {},
   "acquiring_fee_total": 373487.16,
   "kkt_diff_total": null
@@ -367,7 +368,7 @@
    "5": 79719174.69,
    "6": 84057781.89,
    "7": 108126415.72,
-   "8": 95806484.0
+   "8": 97707434.0
   }
  },
  "expenses": {

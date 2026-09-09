@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from june_source import parse_expenses  # noqa: E402
 from new_program import (allocate_advances, enrich, open_fixed, parse_finresult,  # noqa: E402
                          parse_payments, parse_services, report_group, _num)
-from old_program import parse_doctor_report  # noqa: E402
+from old_program import parse_doctor_report, parse_patient_payments  # noqa: E402
 from vendors import load_notes, read_turnover  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -32,6 +32,7 @@ def norm(s):
 def revenue(first_decade_card=None):
     old = [r for r in parse_doctor_report(SRC / "Старая-Отчет-по-врачам-УК-01.08-10.09.2026.xlsx")
            if r["date"] and r["date"].year == 2026 and r["date"].month == 8 and r["date"] < SWITCH]
+    dec1 = parse_patient_payments(SRC / "Старая-Оплаты-от-пациента-01-10.08.2026.xlsx")
     cells = parse_finresult(SRC / "Новая-Финрезультат-10-31.08.2026.xlsx")
     dom = defaultdict(lambda: defaultdict(float))
     for c in cells:
@@ -55,9 +56,39 @@ def revenue(first_decade_card=None):
             return "misc"
         return "other"
 
-    first = defaultdict(float)
+    # первая декада считается по реестру платежей: это деньги, а не оказанные услуги.
+    # платежи без специалиста разносим по врачам того же пациента, остаток — пропорционально
+    by_patient = defaultdict(lambda: defaultdict(float))
     for r in old:
-        first[group_old(r)] += r["paid"]
+        if r["doctor"] and r["revenue"] > 0:
+            by_patient[norm(r["patient"])][str(r["doctor"]).strip()] += r["revenue"]
+
+    def group_doctor(doctor):
+        if "Маланичев" in doctor:
+            return "mal"
+        if "Погосян" in doctor:
+            return "pog"
+        return "cosm" if (doctor.split() and doctor.split()[0] in cosmetologists) else "other"
+
+    first, unresolved = defaultdict(float), 0.0
+    for p in dec1:
+        if p["doctor"]:
+            first[group_doctor(p["doctor"])] += p["total"]
+            continue
+        docs = by_patient.get(norm(p["patient"]))
+        if not docs:
+            unresolved += p["total"]
+            continue
+        tot = sum(docs.values())
+        for d, v in docs.items():
+            first[group_doctor(d)] += p["total"] * v / tot
+    base = sum(first.values())
+    for k in list(first):
+        first[k] += unresolved * first[k] / base
+    dec1_channels = {"total": round(sum(p["total"] for p in dec1), 2),
+                     "card": round(sum(p["card"] for p in dec1), 2),
+                     "bank": round(sum(p["bank"] for p in dec1), 2),
+                     "cash": round(sum(p["cash"] for p in dec1), 2)}
 
     pays = [p for p in enrich(parse_payments(SRC / "Новая-Оплаты-с-врачом-01-31.08.2026.xlsx"),
                               parse_services(SRC / "Новая-Услуги-реестр-01-31.08.2026.xlsx"))
@@ -81,24 +112,18 @@ def revenue(first_decade_card=None):
                     "total": round(first.get(g, 0.0) + second.get(g, 0.0), 2)} for g in GROUPS}
     cash2 = round(sum(p["amount"] for p in pays if p["way"] == "Наличными"), 2)
     card2 = round(sum(p["amount"] for p in pays if p["way"] == "Безналичными"), 2)
-    dec1 = round(sum(first.values()), 2)
-    totals = {"bank_ind": 0.0, "refund": 0.0,
-              "total": round(sum(v["total"] for v in by_group.values()), 2)}
-    if first_decade_card is not None:
-        # эквайринг первой декады известен из бухгалтерии (оборот 62 -> 57),
-        # касса первой декады — остаток от её выручки
-        totals["cash"] = round(dec1 - first_decade_card + cash2, 2)
-        totals["card"] = round(first_decade_card + card2, 2)
-        totals["split"] = {"first_cash": round(dec1 - first_decade_card, 2),
-                           "first_card": round(first_decade_card, 2),
-                           "second_cash": cash2, "second_card": card2}
-    else:
-        totals["cash"], totals["card"] = cash2, card2
-        totals["undivided_first_decade"] = dec1
+    totals = {"refund": 0.0,
+              "cash": round(dec1_channels["cash"] + cash2, 2),
+              "card": round(dec1_channels["card"] + card2, 2),
+              "bank_ind": dec1_channels["bank"],
+              "total": round(sum(v["total"] for v in by_group.values()), 2),
+              "split": {"first_cash": dec1_channels["cash"], "first_card": dec1_channels["card"],
+                        "first_bank": dec1_channels["bank"],
+                        "second_cash": cash2, "second_card": card2}}
 
     daily = defaultdict(float)
-    for r in old:
-        daily[r["date"]] += r["paid"]
+    for p in dec1:
+        daily[p["dt"].date()] += p["total"]
     for p in pays:
         daily[p["dt"].date()] += p["amount"]
     days = [{"day": d.day, "date": d.isoformat(), "cash": {}, "card": {},

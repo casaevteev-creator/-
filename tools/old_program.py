@@ -61,3 +61,44 @@ def parse_doctor_report(path):
             "revenue": rev, "paid": paid,
         })
     return rows
+
+
+def parse_patient_payments(path):
+    """«Оплаты от пациента» старой программы — реестр платежей с видом оплаты.
+
+    Колонки: Дата, Номер, Пациент, Специалист, Бух учет, Касса, Сумма руб,
+    Оплата плат. картой, Оплата без. нал. Наличные — остаток от суммы.
+    """
+    import re as _re
+    ws = open_fixed(path).worksheets[0]
+    hdr = {str(ws.cell(row=1, column=c).value or "").strip(): c
+           for c in range(1, ws.max_column + 1)}
+    need = ("Дата", "Сумма руб", "Оплата плат. картой", "Оплата без. нал.")
+    if not all(k in hdr for k in need):
+        raise ValueError("это не «Оплаты от пациента»: нет колонок " +
+                         ", ".join(k for k in need if k not in hdr))
+
+    def dt(v):
+        if isinstance(v, datetime.datetime):
+            return v
+        m = _re.match(r"(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})",
+                      str(v).strip()) if v is not None else None
+        return (datetime.datetime(int(m[3]), int(m[2]), int(m[1]),
+                                  int(m[4]), int(m[5]), int(m[6])) if m else None)
+
+    rows = []
+    for r in range(2, ws.max_row + 1):
+        d = dt(ws.cell(row=r, column=hdr["Дата"]).value)
+        if not d:
+            continue
+        total = _num(ws.cell(row=r, column=hdr["Сумма руб"]).value) or 0.0
+        card = _num(ws.cell(row=r, column=hdr["Оплата плат. картой"]).value) or 0.0
+        bank = _num(ws.cell(row=r, column=hdr["Оплата без. нал."]).value) or 0.0
+        rows.append({
+            "dt": d, "number": ws.cell(row=r, column=hdr.get("Номер", 1)).value,
+            "patient": ws.cell(row=r, column=hdr.get("Пациент", 1)).value,
+            "doctor": str(ws.cell(row=r, column=hdr.get("Специалист", 1)).value or "").strip(),
+            "kassa": ws.cell(row=r, column=hdr.get("Касса", 1)).value,
+            "total": total, "card": card, "bank": bank, "cash": round(total - card - bank, 2),
+        })
+    return rows
