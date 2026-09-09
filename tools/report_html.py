@@ -478,8 +478,8 @@ def render(r, narrative=None):
 {f'<div class="orow"><span>Отложено на аренду (депозит)</span><span class="n neg">−{mln(d["reserve"])}</span></div>' if d.get('reserve') else ''}
 {f'<div class="orow"><span>Возврат остатка резерва</span><span class="n">+{mln(d["reserve_return"])}</span></div>' if d.get('reserve_return') else ''}
 <div class="opay"><span class="t">К выплате на {last_day}</span><span class="n">{mln(d['payout'])} млн ₽</span></div></div>""")
-    A(f"""</div><p class="onote rv">Суммы в млн ₽. Доля расходов: ½ общих затрат плюс персональные —
-эквайринг и операционные расходы своих пациентов. Полная расшифровка каждой строки — в Excel-приложении, лист «07 Учредители».</p>
+    A(f"""</div><p class="onote rv">Суммы в млн ₽. Доля расходов: ½ всех расходов месяца плюс
+личные анализы учредителя. Полная расшифровка каждой строки — в Excel-приложении, лист «07 Учредители».</p>
 </div></section>""")
 
     # ---------------------------------------------------------------- ДДС

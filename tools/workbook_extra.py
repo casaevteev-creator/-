@@ -21,7 +21,7 @@ SRC = ROOT / "data" / "source" / "2026-08"
 
 JULY = {"Выручка": 108126415.72, "Налоги с ФОТ": 6370709.49, "Зарплата": 12148685.72,
         "Расходы по кассе": 1170.0, "Услуги банка (общие)": 399308.17,
-        "Эквайринг (персонально)": 41563.80, "Алименты": 23201.61, "% по кредиту": 151764.47,
+        "Эквайринг": 41563.80, "Алименты": 23201.61, "% по кредиту": 151764.47,
         "Поставщики (счёт 60)": 53416727.72}
 
 
@@ -95,7 +95,7 @@ def add_sheets(path, canon, model_out):
            "Зарплата": canon["costs"]["salary"]["total"],
            "Расходы по кассе": canon["costs"]["cash_expenses"]["total"],
            "Услуги банка (общие)": canon["costs"]["bank_common"]["total"],
-           "Эквайринг (персонально)": canon["costs"]["bank_acquiring"]["total"],
+           "Эквайринг": canon["costs"]["bank_acquiring"]["total"],
            "Алименты": canon["costs"]["alimony"]["total"],
            "% по кредиту": canon["costs"]["credit_interest"]["total"],
            "Поставщики (счёт 60)": canon["costs"]["suppliers_bank"]["total"]}
