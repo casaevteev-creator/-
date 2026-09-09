@@ -20,7 +20,7 @@ import model  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, GREEN, BRONZE, TINT, LINE, RED = "1C1B18", "2E5E4E", "8A7350", "F1EFEA", "D9D4C9", "A3423B"
-MONEY = "# ##0.00;-# ##0.00;—"
+MONEY = "#,##0.00;-#,##0.00;—"
 THIN = Side(style="thin", color=LINE)
 BOX = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 COLS = {"label": 2, "total": 3, "mal": 4, "pog": 5, "other": 6, "misc": 7, "cosm": 8, "note": 9}

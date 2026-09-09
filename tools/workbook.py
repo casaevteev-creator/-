@@ -23,8 +23,8 @@ SUB_FILL = PatternFill("solid", fgColor=TINT)
 TOT_FILL = PatternFill("solid", fgColor="EDF1EE")
 THIN = Side(style="thin", color=LINE)
 BOX = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
-MONEY = "# ##0.00"
-MONEY0 = "# ##0"
+MONEY = "#,##0.00;-#,##0.00;—"
+MONEY0 = "#,##0"
 PCT = "+0.0%;-0.0%"
 
 
