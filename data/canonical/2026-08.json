@@ -309,8 +309,8 @@
     "cash": 0.0,
     "card": 0.0,
     "bank_ind": 0.0,
-    "refund": 350000.0,
-    "total": 76495706.82
+    "refund": 360000.0,
+    "total": 76485706.82
    },
    "misc": {
     "cash": 0.0,
@@ -328,15 +328,15 @@
    }
   },
   "totals": {
-   "refund": 350000.0,
+   "refund": 360000.0,
    "cash": 34981900.0,
-   "card": 61284454.0,
-   "bank_ind": 1035500.0,
-   "total": 96951853.99,
+   "card": 62319954.0,
+   "bank_ind": 0.0,
+   "total": 96941853.99,
    "split": {
     "first_cash": 10688500.0,
-    "first_card": 19519514.0,
-    "first_bank": 1035500.0,
+    "first_card": 20555014.0,
+    "first_online": 1035500.0,
     "second_cash": 24293400,
     "second_card": 41764940
    },
@@ -364,7 +364,7 @@
     "other": {
      "first": 30239660.71,
      "second": 46606046.11,
-     "refund": 350000.0
+     "refund": 360000.0
     },
     "misc": {
      "first": 0.0,
@@ -377,13 +377,13 @@
      "refund": 0.0
     }
    },
-   "advances": 2585181.99,
+   "advances": 2575181.99,
    "services_split": {
     "first": 29476382.0,
     "second": 64890290.0
    }
   },
-  "month_cash_basis": 96951853.99,
+  "month_cash_basis": 96941853.99,
   "acquiring_fee": {},
   "acquiring_fee_total": 373487.16,
   "kkt_diff_total": null

@@ -375,8 +375,9 @@ def render(r, narrative=None):
     rows = "".join(f'<tr><td><span class="dot" style="background:{colors[g]}"></span>{GROUP_RU[g]}</td>'
                    f'<td class="num">{rub(rev["by_group"][g])}</td>'
                    f'<td class="num">{pct(rev["share"][g],1,sign=False)}</td></tr>' for g in order)
-    ch_rows = [("Эквайринг (оплата картами)", rev["card"]), ("Касса (наличные)", rev["cash"]),
-               ("Оплата на р/с (физлица)", rev["bank_ind"])]
+    ch_rows = [("Эквайринг (карты и онлайн-оплаты)", rev["card"]), ("Касса (наличные)", rev["cash"])]
+    if rev["bank_ind"]:
+        ch_rows.append(("Оплата на р/с (физлица)", rev["bank_ind"]))
     A(f"""<section id="s4" style="padding-top:0"><div class="wrap"><div class="kick rv">04 · Выручка</div>
 <h2 class="rv d1">Структура выручки</h2>
 <div class="sub rv d1">{rub(rev['total'])} ₽ — по направлениям и каналам оплаты</div>

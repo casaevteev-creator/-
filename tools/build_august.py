@@ -135,13 +135,16 @@ def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_s
                 for g in GROUPS}
     cash2 = round(sum(p["amount"] for p in pays if p["way"] == "Наличными"), 2)
     card2 = round(sum(p["amount"] for p in pays if p["way"] == "Безналичными"), 2)
+    # «Оплата без. нал.» старой управленки — это интернет-эквайринг (счёт 62.01),
+    # тот же безналичный канал, что и карты, поэтому идёт одной строкой
     totals = {"refund": round(sum(back.values()), 2),
               "cash": round(dec1_channels["cash"] + cash2, 2),
-              "card": round(dec1_channels["card"] + card2, 2),
-              "bank_ind": dec1_channels["bank"],
+              "card": round(dec1_channels["card"] + dec1_channels["bank"] + card2, 2),
+              "bank_ind": 0.0,
               "total": round(sum(v["total"] for v in by_group.values()), 2),
-              "split": {"first_cash": dec1_channels["cash"], "first_card": dec1_channels["card"],
-                        "first_bank": dec1_channels["bank"],
+              "split": {"first_cash": dec1_channels["cash"],
+                        "first_card": round(dec1_channels["card"] + dec1_channels["bank"], 2),
+                        "first_online": dec1_channels["bank"],
                         "second_cash": cash2, "second_card": card2}}
     # авансы = деньги минус оказанные услуги: часть выручки ещё не отработана
     services2 = round(sum(c["sale"] for c in cells), 2)

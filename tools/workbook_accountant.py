@@ -168,8 +168,10 @@ def build(canon, out_path):
         s.line("    Наличными", {"total": tot["cash"]},
                (f"01–10.08: {sp['first_cash']:,.0f}".replace(",", " ")
                 + f"; 11–31.08: {sp['second_cash']:,.0f}".replace(",", " ")) if sp else "")
-        s.line("    Безналичными (эквайринг)", {"total": tot["card"]},
-               (f"01–10.08: {sp['first_card']:,.0f}".replace(",", " ")
+        online = (f"; из них онлайн-оплаты через сайт {sp['first_online']:,.0f}".replace(",", " ")
+                  if sp and sp.get("first_online") else "")
+        s.line("    Безналичными (карты и онлайн-оплаты)", {"total": tot["card"]},
+               (f"01–10.08: {sp['first_card']:,.0f}".replace(",", " ") + online
                 + f"; 11–31.08: {sp['second_card']:,.0f}".replace(",", " ")) if sp else "")
     if tot.get("bank_ind"):
         s.line("    Оплаты физлиц на расчётный счёт", {"total": tot["bank_ind"]})
@@ -259,19 +261,22 @@ def build(canon, out_path):
         s.line("5. Половина процентов по депозитам",
                {"total": dep, "mal": f"=C{s.row}/2", "pog": f"=C{s.row}/2"},
                "начислены банком на остатки")
-    s.line("6. Минус доля расходов",
-           {"total": f"=-C{s.at['exp']}", "mal": f"=-D{s.at['exp']}", "pog": f"=-E{s.at['exp']}"},
-           "итог блока «Расходы», пополам", color=RED)
     pers = man.get("personal_costs") or {}
     if pers.get("mal") or pers.get("pog"):
         half = (pers.get("mal", 0.0) + pers.get("pog", 0.0)) / 2
-        s.line("7. Личные анализы: каждый несёт свои",
-               {"total": 0.0,
-                "mal": round(half - pers.get("mal", 0.0), 2),
-                "pog": round(half - pers.get("pog", 0.0), 2)},
-               "лист «Расходы врачей»: Маланичев {}, Погосян {}".format(
-                   f"{pers.get('mal', 0):,.0f}".replace(",", " "),
-                   f"{pers.get('pog', 0):,.0f}".replace(",", " ")), color=RED)
+        adj = {k: round(half - pers.get(k, 0.0), 2) for k in ("mal", "pog")}
+        note = ("итог блока «Расходы» пополам, плюс личные анализы каждого "
+                "(Маланичев {}, Погосян {} — переносится половина разницы)").format(
+                    f"{pers.get('mal', 0):,.0f}".replace(",", " "),
+                    f"{pers.get('pog', 0):,.0f}".replace(",", " "))
+        s.line("6. Минус доля расходов",
+               {"total": f"=-C{s.at['exp']}",
+                "mal": f"=-D{s.at['exp']}{adj['mal']:+.2f}",
+                "pog": f"=-E{s.at['exp']}{adj['pog']:+.2f}"}, note, color=RED)
+    else:
+        s.line("6. Минус доля расходов",
+               {"total": f"=-C{s.at['exp']}", "mal": f"=-D{s.at['exp']}", "pog": f"=-E{s.at['exp']}"},
+               "итог блока «Расходы», пополам", color=RED)
     inc_last = s.row - 1
     s.result("ДОХОД ЗА МЕСЯЦ",
              {"total": f"=SUM(C{inc_first}:C{inc_last})",
