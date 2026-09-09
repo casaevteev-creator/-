@@ -339,6 +339,12 @@
     "first_bank": 1071080.0,
     "second_cash": 24293400,
     "second_card": 41764940
+   },
+   "services": 94366672.0,
+   "advances": 3340762.0,
+   "services_split": {
+    "first": 29476382.0,
+    "second": 64890290.0
    }
   },
   "month_cash_basis": 97707434.0,

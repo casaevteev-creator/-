@@ -177,6 +177,18 @@ def build(canon, out_path):
         s.line("    Возвраты пациентам", {"total": -tot["refund"]}, color=RED)
     s.total("Итого по каналам", {"total": f"=SUM(C{ch_first}:C{s.row-1})"},
             "должно совпасть с итогом выручки выше")
+    if tot.get("advances"):
+        sv = tot.get("services_split") or {}
+        s.blank()
+        s.line("Справочно: оказано услуг за месяц", {"total": tot["services"]},
+               (f"01–10.08: {sv.get('first',0):,.0f}".replace(",", " ")
+                + f"; 11–31.08: {sv.get('second',0):,.0f}".replace(",", " ")) if sv else "",
+               color=BRONZE)
+        pct = f"{tot['advances'] / tot['total'] * 100:.1f}".replace(".", ",")
+        s.line("Справочно: авансы под будущие операции",
+               {"total": tot["advances"]},
+               "выручка минус оказанные услуги: деньги получены, операция ещё впереди — "
+               f"{pct}% выручки месяца", color=BRONZE)
 
     # ---------------------------------------------------------------- 3. расходы
     s.section("3. РАСХОДЫ (оплаченные)", "делятся между учредителями 50/50")

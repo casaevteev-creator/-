@@ -85,6 +85,8 @@ def revenue(first_decade_card=None):
     base = sum(first.values())
     for k in list(first):
         first[k] += unresolved * first[k] / base
+    # реализация первой декады — оказанные услуги, для справки об авансах
+    dec1_services = round(sum(r["revenue"] for r in old), 2)
     dec1_channels = {"total": round(sum(p["total"] for p in dec1), 2),
                      "card": round(sum(p["card"] for p in dec1), 2),
                      "bank": round(sum(p["bank"] for p in dec1), 2),
@@ -120,6 +122,11 @@ def revenue(first_decade_card=None):
               "split": {"first_cash": dec1_channels["cash"], "first_card": dec1_channels["card"],
                         "first_bank": dec1_channels["bank"],
                         "second_cash": cash2, "second_card": card2}}
+    # авансы = деньги минус оказанные услуги: часть выручки ещё не отработана
+    services2 = round(sum(c["sale"] for c in cells), 2)
+    totals["services"] = round(dec1_services + services2, 2)
+    totals["advances"] = round(totals["total"] - totals["services"], 2)
+    totals["services_split"] = {"first": dec1_services, "second": services2}
 
     daily = defaultdict(float)
     for p in dec1:
