@@ -393,6 +393,7 @@ def main():
             "credit_drawn": a.get("credit_drawn_august"),
             "credit_interest_paid": a.get("credit_interest"),
             "internet_acquiring": a.get("internet_acquiring_1c"),
+            "bank_services_on_60": a.get("bank_services_on_60"),
             "credit_funded": credit_funded,
             "vendor_adjustments": a.get("vendor_adjustments"),
             "credit_line_limit": a.get("credit_line_limit"),
