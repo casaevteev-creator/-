@@ -182,14 +182,13 @@ def build(rows, credit, blocks, adjust, out):
     ws2 = wb.create_sheet("Статьи")
     _title(ws2, "Статьи расходов",
            "Сумма статьи — SUMIF по листу «Контрагенты». База для доли переключается в C4.")
-    ws2.cell(row=4, column=2, value="Доля считается от:").font = Font(size=10, color=GREY)
-    b = ws2.cell(row=4, column=3, value="расходов учредителей")
-    b.font = Font(bold=True, size=10, color=BRONZE)
-    b.fill = PICKF
-    dvb = DataValidation(type="list", formula1='"расходов учредителей,суммы по контрагентам"',
-                         showDropDown=False)
-    ws2.add_data_validation(dvb)
-    dvb.add("C4")
+    ws2.cell(row=4, column=2, value="Доля считается от суммы по контрагентам:").font = Font(size=10, color=GREY)
+    c = ws2.cell(row=4, column=3, value=f"=Контрагенты!$C${last + 1}")
+    c.number_format = MONEY
+    c.font = Font(bold=True, size=10, color=BRONZE)
+    ws2.cell(row=4, column=4,
+             value="ручные поправки в базу не входят — они не разнесены по статьям").font = \
+        Font(size=9, color=GREY)
     _head(ws2, 6, ["Статья", "Блок", "Сумма", "Доля", "Контрагентов"], [40, 20, 18, 10, 14])
     r2 = 7
     tot_rows = []
@@ -209,7 +208,7 @@ def build(rows, credit, blocks, adjust, out):
             c = ws2.cell(row=r2, column=4, value=f'=SUMIF({art_src},B{r2}&"",{amt})')
             c.number_format = MONEY
             c.font = Font(size=10, color=INK)
-            c = ws2.cell(row=r2, column=5, value=f"=IF($C$3=0,0,D{r2}/$C$3)")
+            c = ws2.cell(row=r2, column=5, value=f"=IF($C$4=0,0,D{r2}/$C$4)")
             c.number_format = "0.0%"
             c.font = Font(size=9, color=GREY)
             c = ws2.cell(row=r2, column=6, value=f'=COUNTIF({art_src},B{r2}&"")')
@@ -222,7 +221,7 @@ def build(rows, credit, blocks, adjust, out):
         c = ws2.cell(row=r2, column=4, value=f"=SUM(D{start}:D{r2 - 1})")
         c.number_format = MONEY
         c.font = Font(bold=True, size=10, color=INK)
-        c = ws2.cell(row=r2, column=5, value=f"=IF($C$3=0,0,D{r2}/$C$3)")
+        c = ws2.cell(row=r2, column=5, value=f"=IF($C$4=0,0,D{r2}/$C$4)")
         c.number_format = "0.0%"
         c.font = Font(bold=True, size=9, color=BRONZE)
         for col in range(2, 7):
@@ -234,7 +233,10 @@ def build(rows, credit, blocks, adjust, out):
     c.value = "=" + "+".join(f"D{x}" for x in tot_rows)
     c.number_format = MONEY
     c.font = Font(bold=True, size=11, color=INK)
-    ws2.cell(row=r2, column=6, value="должно совпасть с суммой по контрагентам").font = Font(size=9, color=GREY)
+    c = ws2.cell(row=r2, column=5, value=f"=IF($C$4=0,0,D{r2}/$C$4)")
+    c.number_format = "0.0%"
+    c.font = Font(bold=True, size=11, color=BRONZE)
+    ws2.cell(row=r2, column=6, value="сходится с суммой по контрагентам, доля 100,0 %").font = Font(size=9, color=GREY)
     ws2.freeze_panes = "B7"
 
     # ---------------------------------------------------------------- свод
@@ -323,11 +325,6 @@ def build(rows, credit, blocks, adjust, out):
         c.font = Font(size=10, color=GREY)
         ws3.cell(row=rr, column=5, value="за суммой, в расходы не входит").font = Font(size=9, color=GREY)
     ws3.freeze_panes = "B9"
-
-    ws2.cell(row=3, column=3, value=(
-        f'=IF($C$4="суммы по контрагентам",Контрагенты!$C${last + 1},Свод!$C${founders})'))
-    ws2.cell(row=3, column=3).font = Font(size=8, color="EFEAE2")
-    ws2.cell(row=3, column=3).number_format = MONEY
 
     wb.move_sheet("Свод", offset=-1)
     wb.save(out)
