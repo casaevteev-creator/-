@@ -136,44 +136,114 @@ def build(canon, out):
             ws2.cell(row=r2, column=col).fill = TOT
         r2 += 2
 
+    # ---------------------------------------------------------------- служебное
+    # список для выпадающего меню: блоки, потом статьи. На отдельном листе,
+    # потому что в названиях статей есть запятые — во встроенный список их нельзя
+    wsl = wb.create_sheet("Списки")
+    picks = BLOCKS + arts
+    for i, v in enumerate(picks, start=1):
+        wsl.cell(row=i, column=1, value=v)
+    wsl.column_dimensions["A"].width = 40
+    wsl.sheet_state = "hidden"
+
+    # счётчик строк выборки на листе контрагентов: 1, 2, 3… у подходящих, пусто у прочих
+    c = ws.cell(row=4, column=7, value="№ в выборке →")
+    c.font = Font(size=9, color=GREY)
+    c.alignment = Alignment(horizontal="center")
+    ws.column_dimensions["G"].width = 13
+    ws.cell(row=first - 1, column=7, value=0).font = Font(size=9, color="EFEAE2")  # затравка, не видна
+    for r in range(first, last + 1):
+        c = ws.cell(row=r, column=7,
+                    value=f'=IF(OR($D{r}=Свод!$C$5,$E{r}=Свод!$C$5),MAX($G${first - 1}:$G{r - 1})+1,"")')
+        c.font = Font(size=9, color=GREY)
+        c.alignment = Alignment(horizontal="center")
+
     # ---------------------------------------------------------------- свод
     ws3 = wb.create_sheet("Свод")
-    _title(ws3, "Свод по блокам", "Каждая строка — SUMIF по листу «Контрагенты» "
-                                  "напрямую, минуя статьи: две независимые проверки.")
-    _head(ws3, 5, ["Блок", "Сумма", "Контрагентов", "Комментарий"], [30, 20, 14, 52])
+    _title(ws3, "Свод и выборка",
+           "Сверху итоги по блокам. Ниже выберите блок или статью в выпадающем списке — "
+           "под ним развернётся список контрагентов, которые в неё входят.")
     blk_src = f"Контрагенты!$E${first}:$E${last}"
+    art_src = f"Контрагенты!$D${first}:$D${last}"
     notes = {
         BLOCKS[0]: "медикаменты, импланты, расходка, гонорары ИП хирургов",
         BLOCKS[1]: "аренда, маркетинг, IT, хозяйственные",
         BLOCKS[2]: "комиссии банков, проведённые через счёт 60 — ошибка проводки",
-        BLOCKS[3]: "ремонт Самокатная 1 стр.12, оплачен заёмными — в расходы учредителей не входит",
+        BLOCKS[3]: "оплачено заёмными, в расходы учредителей не входит",
     }
-    r3 = 6
+
+    # ---- выборка
+    ws3.cell(row=5, column=2, value="Блок или статья:").font = Font(bold=True, size=11, color=INK)
+    pick = ws3.cell(row=5, column=3, value=BLOCKS[0])
+    pick.font = Font(bold=True, size=12, color=BRONZE)
+    pick.fill = PatternFill("solid", fgColor="FFF6E6")
+    pick.border = Border(bottom=Side(style="medium", color=BRONZE))
+    dv = DataValidation(type="list", formula1=f"=Списки!$A$1:$A${len(picks)}", showDropDown=False)
+    ws3.add_data_validation(dv)
+    dv.add("C5")
+
+    ws3.cell(row=6, column=2, value="Сумма:").font = Font(size=10, color=GREY)
+    c = ws3.cell(row=6, column=3,
+                 value=f'=SUMIF({blk_src},$C$5,{amt})+SUMIF({art_src},$C$5,{amt})')
+    c.number_format = MONEY
+    c.font = Font(bold=True, size=12, color=INK)
+    ws3.cell(row=6, column=4, value="Контрагентов:").font = Font(size=10, color=GREY)
+    c = ws3.cell(row=6, column=5,
+                 value=f'=COUNTIF({blk_src},$C$5)+COUNTIF({art_src},$C$5)')
+    c.font = Font(bold=True, size=12, color=INK)
+
+    _head(ws3, 8, ["Контрагент", "Оплачено", "Статья", "Блок"], [46, 18, 34, 24])
+    key = f"Контрагенты!$G${first}:$G${last}"
+    for i in range(70):
+        r = 9 + i
+        for col, src_col in ((2, "B"), (3, "C"), (4, "D"), (5, "E")):
+            c = ws3.cell(row=r, column=col, value=(
+                f'=IFERROR(INDEX(Контрагенты!${src_col}${first}:${src_col}${last},'
+                f'MATCH({i + 1},{key},0)),"")'))
+            c.font = Font(size=10, color=INK if col < 4 else GREY)
+            c.border = Border(bottom=THIN)
+            if col == 3:
+                c.number_format = MONEY
+    r = 9 + 70
+    ws3.cell(row=r, column=2, value="ИТОГО ПО ВЫБОРКЕ").font = Font(bold=True, size=10, color=INK)
+    c = ws3.cell(row=r, column=3, value=f"=SUM(C9:C{r - 1})")
+    c.number_format = MONEY
+    c.font = Font(bold=True, size=10, color=INK)
+    ws3.cell(row=r, column=4, value="должно совпасть с суммой выше").font = Font(size=9, color=GREY)
+    for col in range(2, 6):
+        ws3.cell(row=r, column=col).fill = TOT
+
+    # ---- итоги по блокам, ниже выборки
+    r += 2
+    ws3.cell(row=r, column=2, value="Итоги по блокам").font = Font(bold=True, size=11, color=INK)
+    r += 1
+    _head(ws3, r, ["Блок", "Сумма", "Контрагентов", "Комментарий"], [46, 18, 34, 24])
+    r += 1
+    tot_first = r
     for blk in BLOCKS:
-        ws3.cell(row=r3, column=2, value=blk).font = Font(size=10, color=INK)
-        c = ws3.cell(row=r3, column=3, value=f'=SUMIF({blk_src},B{r3}&"",{amt})')
+        ws3.cell(row=r, column=2, value=blk).font = Font(size=10, color=INK)
+        c = ws3.cell(row=r, column=3, value=f'=SUMIF({blk_src},B{r},{amt})')
         c.number_format = MONEY
         c.font = Font(size=10, color=INK)
-        c = ws3.cell(row=r3, column=4, value=f'=COUNTIF({blk_src},B{r3}&"")')
+        c = ws3.cell(row=r, column=4, value=f'=COUNTIF({blk_src},B{r})')
         c.font = Font(size=9, color=GREY)
-        ws3.cell(row=r3, column=5, value=notes[blk]).font = Font(size=9, color=GREY)
+        ws3.cell(row=r, column=5, value=notes[blk]).font = Font(size=9, color=GREY)
         for col in range(2, 6):
-            ws3.cell(row=r3, column=col).border = Border(bottom=THIN)
-        r3 += 1
-    ws3.cell(row=r3, column=2, value="ИТОГО ПО СЧЁТУ 60").font = Font(bold=True, size=10, color=INK)
-    c = ws3.cell(row=r3, column=3, value=f"=SUM(C6:C{r3 - 1})")
+            ws3.cell(row=r, column=col).border = Border(bottom=THIN)
+        r += 1
+    ws3.cell(row=r, column=2, value="ИТОГО ПО СЧЁТУ 60").font = Font(bold=True, size=10, color=INK)
+    c = ws3.cell(row=r, column=3, value=f"=SUM(C{tot_first}:C{r - 1})")
     c.number_format = MONEY
     c.font = Font(bold=True, size=10, color=INK)
     for col in range(2, 6):
-        ws3.cell(row=r3, column=col).fill = TOT
-    r3 += 2
-    ws3.cell(row=r3, column=2, value="В расходы учредителей").font = Font(bold=True, size=11, color=INK)
-    c = ws3.cell(row=r3, column=3, value="=C6+C7")
+        ws3.cell(row=r, column=col).fill = TOT
+    r += 2
+    ws3.cell(row=r, column=2, value="В расходы учредителей").font = Font(bold=True, size=11, color=INK)
+    c = ws3.cell(row=r, column=3, value=f"=C{tot_first}+C{tot_first + 1}")
     c.number_format = MONEY
-    c.font = Font(bold=True, size=11, color=BRONZE)
-    ws3.cell(row=r3, column=5,
-             value="медицинские + управленческие; банковские комиссии идут отдельной "
-                   "строкой расходов, кредитные — не входят вовсе").font = Font(size=9, color=GREY)
+    c.font = Font(bold=True, size=12, color=BRONZE)
+    ws3.cell(row=r, column=5,
+             value="медицинские + управленческие").font = Font(size=9, color=GREY)
 
     wb.save(out)
     return out
