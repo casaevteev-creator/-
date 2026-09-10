@@ -154,6 +154,14 @@ def build(canon, out_path):
              {"total": "=SUM(D{0}:H{0})".format(s.row), "mal": g["mal"], "pog": g["pog"],
               "other": g["other"], "misc": g["misc"], "cosm": g["cosm"]},
              "по группам врачей", key="rev")
+    bg = canon["revenue"]["by_group"]
+    if any(bg[k]["cash"] or bg[k]["card"] for k in bg):
+        for label, key, note in (
+                ("        наличными", "cash", "касса клиники"),
+                ("        безналичными", "card", "карты и онлайн-оплаты, за вычетом возвратов")):
+            s.line(label, {"total": "=SUM(D{0}:H{0})".format(s.row),
+                           **{k: bg[k][key] for k in ("mal", "pog", "other", "misc", "cosm")}},
+                   note, color="807A70")
     s.blank()
     s.line("В том числе по каналам поступления", bold=True)
     tot = canon["revenue"]["totals"]
@@ -169,14 +177,18 @@ def build(canon, out_path):
                (f"01–10.08: {sp['first_cash']:,.0f}".replace(",", " ")
                 + f"; 11–31.08: {sp['second_cash']:,.0f}".replace(",", " ")) if sp else "")
         num = lambda v: f"{v:,.0f}".replace(",", " ")
-        online = (f", из них онлайн-оплаты через сайт {num(sp['first_online'])}"
-                  if sp and sp.get("first_online") else "")
-        back = (f"; за вычетом возвратов пациентам {num(tot['refund'])}"
+        back = (f", за вычетом возвратов пациентам {num(tot['refund'])}"
                 if tot.get("refund") else "")
+        if man.get("revenue_basis") == "bank":
+            note = (f"эквайринг, зачисленный банком на расчётный счёт: {num(tot['card'])}"
+                    + back + " — комиссия банка уже удержана")
+        else:
+            online = (f", из них онлайн-оплаты через сайт {num(sp['first_online'])}"
+                      if sp and sp.get("first_online") else "")
+            note = ((f"01–10.08: {num(sp['first_card'])}" + online
+                     + f"; 11–31.08: {num(sp['second_card'])}" + back) if sp else "")
         s.line("    Безналичными (карты и онлайн-оплаты)",
-               {"total": tot["card"] - tot.get("refund", 0.0)},
-               (f"01–10.08: {num(sp['first_card'])}" + online
-                + f"; 11–31.08: {num(sp['second_card'])}" + back) if sp else "")
+               {"total": tot["card"] - tot.get("refund", 0.0)}, note)
     if tot.get("bank_ind"):
         s.line("    Оплаты физлиц на расчётный счёт", {"total": tot["bank_ind"]})
     s.total("Итого по каналам", {"total": f"=SUM(C{ch_first}:C{s.row-1})"},
@@ -340,7 +352,9 @@ def build(canon, out_path):
              "счёт 67, контрагент «Филиал „Центральный“ Банка ВТБ»; в июле было 151 764,47"),
             ("Проценты по депозитам за месяц", man.get("deposit_interest"), ""),
             ("Остаток наличных в кассе", man.get("cash_on_hand"), "не проставлен"),
-            ("Комиссия эквайринга", canon["revenue"].get("acquiring_fee_total"), ""),
+            ("Комиссия эквайринга, удержана банком", man.get("acquiring_fee_withheld"),
+             "в расходы не ставится: безнал в выручке взят уже за вычетом комиссии"
+             if man.get("revenue_basis") == "bank" else ""),
             ("Онлайн-оплаты через сайт (интернет-эквайринг)", man.get("internet_acquiring"),
              "счёт 62.01; отдельной строкой не добавляется — уже внутри безналичных поступлений"),
             ("Авансы арендодателям на конец месяца",

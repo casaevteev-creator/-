@@ -292,47 +292,48 @@
   ],
   "by_group": {
    "mal": {
-    "cash": 0.0,
-    "card": 0.0,
+    "cash": 41946.83,
+    "card": 4187954.96,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 4180781.46
+    "total": 4229901.79
    },
    "pog": {
-    "cash": 0.0,
-    "card": 0.0,
+    "cash": 3838920.69,
+    "card": 9200629.37,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 13054662.21
+    "total": 13039550.06
    },
    "other": {
-    "cash": 0.0,
-    "card": 0.0,
+    "cash": 30259592.24,
+    "card": 45750675.75,
     "bank_ind": 0.0,
     "refund": 360000.0,
-    "total": 76485706.82
+    "total": 76010267.99
    },
    "misc": {
-    "cash": 0.0,
-    "card": 0.0,
+    "cash": 55303.87,
+    "card": 206610.12,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 261238.64
+    "total": 261913.99
    },
    "cosm": {
-    "cash": 0.0,
-    "card": 0.0,
+    "cash": 786136.38,
+    "card": 2172472.94,
     "bank_ind": 0.0,
     "refund": 0.0,
-    "total": 2959464.86
+    "total": 2958609.32
    }
   },
   "totals": {
-   "refund": 360000.0,
+   "refund": 465000.0,
    "cash": 34981900.0,
-   "card": 62319954.0,
+   "card": 61983343.14,
+   "bank_adjust": -441610.85,
    "bank_ind": 0.0,
-   "total": 96941853.99,
+   "total": 96500243.15,
    "split": {
     "first_cash": 10688500.0,
     "first_card": 20555014.0,
@@ -353,37 +354,37 @@
    "by_group_split": {
     "mal": {
      "first": 0.0,
-     "second": 4180781.46,
+     "second": 4259965.12,
      "refund": 0.0
     },
     "pog": {
      "first": 0.0,
-     "second": 13054662.21,
+     "second": 13105596.99,
      "refund": 0.0
     },
     "other": {
-     "first": 30239660.71,
-     "second": 46606046.11,
+     "first": 30239866.39,
+     "second": 46458823.88,
      "refund": 360000.0
     },
     "misc": {
      "first": 0.0,
-     "second": 261238.64,
+     "second": 263397.16,
      "refund": 0.0
     },
     "cosm": {
-     "first": 1003853.29,
-     "second": 1955611.58,
+     "first": 1003647.61,
+     "second": 1970556.86,
      "refund": 0.0
     }
    },
-   "advances": 2575181.99,
+   "advances": 2133571.15,
    "services_split": {
     "first": 29476382.0,
     "second": 64890290.0
    }
   },
-  "month_cash_basis": 96941853.99,
+  "month_cash_basis": 96500243.15,
   "acquiring_fee": {},
   "acquiring_fee_total": 373487.16,
   "kkt_diff_total": null
@@ -419,7 +420,7 @@
    "5": 79719174.69,
    "6": 84057781.89,
    "7": 108126415.72,
-   "8": 96941853.99
+   "8": 96500243.15
   }
  },
  "expenses": {
@@ -1444,9 +1445,9 @@
    "pog": 71204.81
   },
   "bank_acquiring": {
-   "total": 373487.16,
-   "mal": 186743.58,
-   "pog": 186743.58
+   "total": 0.0,
+   "mal": 0.0,
+   "pog": 0.0
   },
   "alimony": {
    "total": 38726.66,
@@ -1474,9 +1475,9 @@
    "pog": 19909811.5
   },
   "total": {
-   "total": 89178466.0,
-   "mal": 44589232.99,
-   "pog": 44589233.01
+   "total": 88804978.84,
+   "mal": 44402489.41,
+   "pog": 44402489.43
   }
  },
  "founders_reference": {
@@ -1515,6 +1516,8 @@
    "ПАРИТЕТ ООО": 22217843.31,
    "Никифоров С.А.": 8977500.0
   },
+  "revenue_basis": "bank",
+  "acquiring_fee_withheld": 373487.16,
   "credit_funded": 11000000.0,
   "vendor_adjustments": {},
   "credit_line_limit": 30000000.0,

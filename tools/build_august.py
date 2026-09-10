@@ -31,7 +31,7 @@ def norm(s):
 
 # --------------------------------------------------------------------------- выручка
 def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_second=(),
-            wash_docs=()):
+            wash_docs=(), acquiring_credited=None, refunds_all=0.0):
     old = [r for r in parse_doctor_report(SRC / "Старая-Отчет-по-врачам-УК-01.08-10.09.2026.xlsx")
            if r["date"] and r["date"].year == 2026 and r["date"].month == 8 and r["date"] < SWITCH]
     # удалённые документы и свёрнутые пары «возврат + оплата того же дня»
@@ -75,21 +75,32 @@ def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_s
             return "pog"
         return "cosm" if (doctor.split() and doctor.split()[0] in cosmetologists) else "other"
 
-    first, unresolved = defaultdict(float), 0.0
+    # по каждой группе ведём два канала: наличные и безналичные
+    # (карта и оплата на р/с — это один безналичный поток, см. METHODOLOGY)
+    first = defaultdict(lambda: {"cash": 0.0, "card": 0.0})
+    unresolved = {"cash": 0.0, "card": 0.0}
     for p in dec1:
+        chan = {"cash": p["cash"], "card": p["card"] + p["bank"]}
         if p["doctor"]:
-            first[group_doctor(p["doctor"])] += p["total"]
+            g = first[group_doctor(p["doctor"])]
+            for k, v in chan.items():
+                g[k] += v
             continue
         docs = by_patient.get(norm(p["patient"]))
         if not docs:
-            unresolved += p["total"]
+            for k, v in chan.items():
+                unresolved[k] += v
             continue
         tot = sum(docs.values())
         for d, v in docs.items():
-            first[group_doctor(d)] += p["total"] * v / tot
-    base = sum(first.values())
-    for k in list(first):
-        first[k] += unresolved * first[k] / base
+            g = first[group_doctor(d)]
+            for k, x in chan.items():
+                g[k] += x * v / tot
+    for k in ("cash", "card"):                # остаток — пропорционально своему каналу
+        base = sum(g[k] for g in first.values())
+        if base:
+            for g in first.values():
+                g[k] += unresolved[k] * g[k] / base
 
     # возвраты первой декады: в реестре платежей их нет, они есть только
     # в «Ежедневном отчёте по кассам» — колонка «Возврат денег»
@@ -118,28 +129,51 @@ def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_s
            if s["dt"] and s["dt"].year == 2026 and s["dt"].month == 8]
     allocated, unmatched = allocate_advances(pays, srv)
 
-    second = defaultdict(float)
+    second = defaultdict(lambda: {"cash": 0.0, "card": 0.0})
+    chan = lambda p: "cash" if p["way"] == "Наличными" else "card"
     for p in pays:
         if p["doctor"]:
-            second[GRP[report_group(main_spec.get(p["doctor"], "Хирургия"), p["doctor"])]] += p["amount"]
-    for d, v in allocated.items():
-        second[GRP[report_group(main_spec.get(d, "Хирургия"), d)]] += v
-    rest = sum(p["amount"] for p in unmatched)
-    base = sum(second.values())
-    for k in list(second):                      # авансы без совпадения по клиенту — пропорционально
-        second[k] += rest * second[k] / base
+            second[GRP[report_group(main_spec.get(p["doctor"], "Хирургия"), p["doctor"])]][chan(p)] \
+                += p["amount"]
+    for d, v in allocated.items():              # авансы разнесены по пациенту: канал платежа известен
+        for way, amount in v.items():
+            second[GRP[report_group(main_spec.get(d, "Хирургия"), d)]][way] += amount
+    rest = {"cash": sum(p["amount"] for p in unmatched if chan(p) == "cash"),
+            "card": sum(p["amount"] for p in unmatched if chan(p) == "card")}
+    for k in ("cash", "card"):
+        base = sum(g[k] for g in second.values())
+        if base:
+            for g in second.values():
+                g[k] += rest[k] * g[k] / base
 
-    by_group = {g: {"cash": 0.0, "card": 0.0, "bank_ind": 0.0,
+    # возвраты — безналичные: и по карте, и списанием с расчётного счёта
+    grp = {g: {"cash": round(first[g]["cash"] + second[g]["cash"], 2),
+               "card": round(first[g]["card"] + second[g]["card"] - back.get(g, 0.0), 2)}
+           for g in GROUPS}
+    # бухгалтерский способ: безнал берётся не пробитым, а зачисленным на счёт.
+    # разницу (комиссия эквайринга и стык месяца) раскидываем по группам
+    # пропорционально их безналичному обороту
+    bank_adj = 0.0
+    if acquiring_credited:
+        target = round(acquiring_credited - refunds_all, 2)
+        base = sum(g["card"] for g in grp.values())
+        bank_adj = round(target - base, 2)
+        for g in grp.values():
+            g["card"] = round(g["card"] + bank_adj * g["card"] / base, 2)
+    by_group = {g: {**grp[g], "bank_ind": 0.0,
                     "refund": round(back.get(g, 0.0), 2),
-                    "total": round(first.get(g, 0.0) + second.get(g, 0.0) - back.get(g, 0.0), 2)}
+                    "total": round(grp[g]["cash"] + grp[g]["card"], 2)}
                 for g in GROUPS}
     cash2 = round(sum(p["amount"] for p in pays if p["way"] == "Наличными"), 2)
     card2 = round(sum(p["amount"] for p in pays if p["way"] == "Безналичными"), 2)
     # «Оплата без. нал.» старой управленки — это интернет-эквайринг (счёт 62.01),
     # тот же безналичный канал, что и карты, поэтому идёт одной строкой
-    totals = {"refund": round(sum(back.values()), 2),
+    card_total = (acquiring_credited if acquiring_credited
+                  else round(dec1_channels["card"] + dec1_channels["bank"] + card2, 2))
+    totals = {"refund": round(refunds_all if acquiring_credited else sum(back.values()), 2),
               "cash": round(dec1_channels["cash"] + cash2, 2),
-              "card": round(dec1_channels["card"] + dec1_channels["bank"] + card2, 2),
+              "card": card_total,
+              "bank_adjust": bank_adj,
               "bank_ind": 0.0,
               "total": round(sum(v["total"] for v in by_group.values()), 2),
               "split": {"first_cash": dec1_channels["cash"],
@@ -151,26 +185,26 @@ def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_s
     totals["services"] = round(dec1_services + services2, 2)
     totals["refund_note"] = "первая декада — «Ежедневный отчёт по кассам»; вторая уже нетто в реестре «Оплаты»"
     totals["allocation"] = {
-        "first": round(sum(first.values()), 2),
-        "second": round(sum(second.values()), 2),
-        "first_unresolved": round(unresolved, 2),
+        "first": round(sum(sum(g.values()) for g in first.values()), 2),
+        "second": round(sum(sum(g.values()) for g in second.values()), 2),
+        "first_unresolved": round(sum(unresolved.values()), 2),
         "second_direct": round(sum(p["amount"] for p in pays if p["doctor"]), 2),
-        "second_by_patient": round(sum(allocated.values()), 2),
-        "second_proportional": round(rest, 2),
+        "second_by_patient": round(sum(sum(v.values()) for v in allocated.values()), 2),
+        "second_proportional": round(sum(rest.values()), 2),
     }
-    totals["by_group_split"] = {g: {"first": round(first.get(g, 0.0), 2),
-                                    "second": round(second.get(g, 0.0), 2),
+    totals["by_group_split"] = {g: {"first": round(sum(first[g].values()), 2),
+                                    "second": round(sum(second[g].values()), 2),
                                     "refund": round(back.get(g, 0.0), 2)} for g in GROUPS}
     totals["allocation"] = {
-        "first": round(sum(first.values()), 2),
-        "second": round(sum(second.values()), 2),
-        "first_unresolved": round(unresolved, 2),
+        "first": round(sum(sum(g.values()) for g in first.values()), 2),
+        "second": round(sum(sum(g.values()) for g in second.values()), 2),
+        "first_unresolved": round(sum(unresolved.values()), 2),
         "second_direct": round(sum(p["amount"] for p in pays if p["doctor"]), 2),
-        "second_by_patient": round(sum(allocated.values()), 2),
-        "second_proportional": round(rest, 2),
+        "second_by_patient": round(sum(sum(v.values()) for v in allocated.values()), 2),
+        "second_proportional": round(sum(rest.values()), 2),
     }
-    totals["by_group_split"] = {g: {"first": round(first.get(g, 0.0), 2),
-                                    "second": round(second.get(g, 0.0), 2),
+    totals["by_group_split"] = {g: {"first": round(sum(first[g].values()), 2),
+                                    "second": round(sum(second[g].values()), 2),
                                     "refund": round(back.get(g, 0.0), 2)} for g in GROUPS}
 
     totals["advances"] = round(totals["total"] - totals["services"], 2)
@@ -385,7 +419,9 @@ def main():
                                       a.get("deleted_docs_old", ()),
                                       a.get("refund_first_decade", 0.0),
                                       a.get("refunds_second_half", ()),
-                                      a.get("wash_docs_old", ()))
+                                      a.get("wash_docs_old", ()),
+                                      a.get("acquiring_credited"),
+                                      a.get("refunds_total", 0.0))
     exp = expenses(a.get("vendor_adjustments"))
     cf = cashflow()
     adj = sum((a.get("vendor_adjustments") or {}).values())
@@ -425,7 +461,9 @@ def main():
         "salary": half(a["salary_total"]),
         "cash_expenses": half(0.0),
         "bank_common": half(a["bank_services"] + exp.get("bank_on_60", 0.0)),
-        "bank_acquiring": half(a["acquiring_fee"]),
+        # при бухгалтерском способе безнал берётся уже за вычетом комиссии,
+        # поэтому в расходах её быть не должно — иначе двойной счёт
+        "bank_acquiring": half(0.0 if a.get("revenue_basis") == "bank" else a["acquiring_fee"]),
         "alimony": half(a["alimony"]),
         "credit_interest": half(a["credit_interest"]),
         "adjust": half(0.0),
@@ -471,6 +509,8 @@ def main():
             "internet_acquiring": a.get("internet_acquiring_1c"),
             "bank_services_on_60": a.get("bank_services_on_60"),
             "landlord_advances": a.get("landlord_advances") or {},
+            "revenue_basis": a.get("revenue_basis"),
+            "acquiring_fee_withheld": a["acquiring_fee"],
             "credit_funded": credit_funded,
             "vendor_adjustments": a.get("vendor_adjustments"),
             "credit_line_limit": a.get("credit_line_limit"),

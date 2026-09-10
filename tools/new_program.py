@@ -105,7 +105,9 @@ def allocate_advances(payments, services):
         if s.get("amount"):
             by_client[_norm(s["client"])][str(s.get("doctor") or "").strip()] += s["amount"] * sign
 
-    allocated, unmatched = defaultdict(float), []
+    # разнесённое держим в разрезе канала оплаты: наличные / безналичные
+    allocated = defaultdict(lambda: {"cash": 0.0, "card": 0.0})
+    unmatched = []
     for p in payments:
         if p.get("doctor"):
             continue
@@ -114,9 +116,10 @@ def allocate_advances(payments, services):
         if not total:
             unmatched.append(p)
             continue
+        way = "cash" if p.get("way") == "Наличными" else "card"
         for d, v in doctors.items():
-            allocated[d] += p["amount"] * v / total
-    return dict(allocated), unmatched
+            allocated[d][way] += p["amount"] * v / total
+    return {d: dict(v) for d, v in allocated.items()}, unmatched
 
 
 def parse_services(path):
