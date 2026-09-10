@@ -97,7 +97,18 @@ def build(canon, out):
     # ---------------------------------------------------------------- статьи
     ws2 = wb.create_sheet("Статьи")
     _title(ws2, "Статьи расходов", "Сумма каждой статьи — SUMIF по листу «Контрагенты». "
-                                   "Формулу видно в ячейке.")
+                                   "База для доли переключается в ячейке C4.")
+    ws2.cell(row=4, column=2, value="Доля считается от:").font = Font(size=10, color=GREY)
+    b = ws2.cell(row=4, column=3, value="расходов учредителей")
+    b.font = Font(bold=True, size=10, color=BRONZE)
+    b.fill = PatternFill("solid", fgColor="FFF6E6")
+    ws2.cell(row=4, column=4, value="=$C$3").font = Font(size=10, color=GREY)
+    ws2.cell(row=4, column=4).number_format = MONEY
+    dv_base = DataValidation(type="list",
+                             formula1='"расходов учредителей,итога по счёту 60"',
+                             showDropDown=False)
+    ws2.add_data_validation(dv_base)
+    dv_base.add("C4")
     _head(ws2, 5, ["Статья", "Блок", "Сумма", "Доля", "Контрагентов"], [40, 24, 18, 10, 14])
     src = f"Контрагенты!$D${first}:$D${last}"
     amt = f"Контрагенты!$C${first}:$C${last}"
@@ -118,7 +129,7 @@ def build(canon, out):
             c = ws2.cell(row=r2, column=4, value=f'=SUMIF({src},B{r2}&"",{amt})')
             c.number_format = MONEY
             c.font = Font(size=10, color=INK)
-            c = ws2.cell(row=r2, column=5, value=f"=D{r2}/Контрагенты!$C${last + 1}")
+            c = ws2.cell(row=r2, column=5, value=f"=IF($C$3=0,0,D{r2}/$C$3)")
             c.number_format = "0.0%"
             c.font = Font(size=9, color=GREY)
             c = ws2.cell(row=r2, column=6, value=f'=COUNTIF({src},B{r2}&"")')
@@ -132,6 +143,9 @@ def build(canon, out):
         c = ws2.cell(row=r2, column=4, value=f"=SUM(D{start}:D{r2 - 1})")
         c.number_format = MONEY
         c.font = Font(bold=True, size=10, color=INK)
+        c = ws2.cell(row=r2, column=5, value=f"=IF($C$3=0,0,D{r2}/$C$3)")
+        c.number_format = "0.0%"
+        c.font = Font(bold=True, size=9, color=BRONZE)
         for col in range(2, 7):
             ws2.cell(row=r2, column=col).fill = TOT
         r2 += 2
@@ -238,12 +252,19 @@ def build(canon, out):
     for col in range(2, 6):
         ws3.cell(row=r, column=col).fill = TOT
     r += 2
+    founders_row = r
     ws3.cell(row=r, column=2, value="В расходы учредителей").font = Font(bold=True, size=11, color=INK)
     c = ws3.cell(row=r, column=3, value=f"=C{tot_first}+C{tot_first + 1}")
     c.number_format = MONEY
     c.font = Font(bold=True, size=12, color=BRONZE)
     ws3.cell(row=r, column=5,
              value="медицинские + управленческие").font = Font(size=9, color=GREY)
+
+    # база для доли: скрытая ячейка C3, зависит от переключателя в C4
+    ws2.cell(row=3, column=3, value=(
+        f'=IF($C$4="итога по счёту 60",Контрагенты!$C${last + 1},Свод!$C${founders_row})'))
+    ws2.cell(row=3, column=3).font = Font(size=8, color="EFEAE2")
+    ws2.cell(row=3, column=3).number_format = MONEY
 
     wb.save(out)
     return out
