@@ -66,7 +66,7 @@ def build(canon, out):
     ws.title = "Контрагенты"
     _title(ws, "Контрагенты счёта 60 — что к какой статье относится",
            "Меняете статью или блок в этой таблице — суммы на листах «Статьи» и «Свод» "
-           "пересчитываются сами. Столбцы «Статья» и «Блок» — выпадающие списки.")
+           "пересчитываются сами. Столбцы «Блок» — выпадающий список.")
     _head(ws, 5, ["Контрагент", "Оплачено", "Статья", "Блок"], [46, 18, 34, 24])
     first = 6
     for i, v in enumerate(rows):
@@ -90,8 +90,6 @@ def build(canon, out):
         ws.cell(row=r, column=col).fill = TOT
 
     arts = sorted(med | mgmt | {"Услуги банка", credit_article})
-    dv_a = DataValidation(type="list", formula1='"' + ",".join(a[:40] for a in arts)[:250] + '"',
-                          allow_blank=True, showDropDown=False)
     dv_b = DataValidation(type="list", formula1='"' + ",".join(BLOCKS) + '"', showDropDown=False)
     ws.add_data_validation(dv_b)
     dv_b.add(f"E{first}:E{last}")
@@ -137,7 +135,6 @@ def build(canon, out):
         for col in range(2, 7):
             ws2.cell(row=r2, column=col).fill = TOT
         r2 += 2
-    ws2.add_data_validation(dv_a)
 
     # ---------------------------------------------------------------- свод
     ws3 = wb.create_sheet("Свод")
