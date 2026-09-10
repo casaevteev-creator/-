@@ -181,6 +181,12 @@ def revenue(first_decade_card=None, deleted_docs=(), refund_first=0.0, refunds_s
         daily[p["dt"].date()] += p["total"]
     for p in pays:
         daily[p["dt"].date()] += p["amount"]
+    for item in refunds_second:               # возврат уменьшает свой день, а не месяц целиком
+        daily[datetime.date.fromisoformat(item["date"])] -= item["amount"]
+    if refund_first:
+        for row in drows:
+            if row["refund"]:
+                daily[row["date"]] -= row["refund"]
     days = [{"day": d.day, "date": d.isoformat(), "cash": {}, "card": {},
              "total": round(v, 2), "kkt": None, "kkt_diff": None}
             for d, v in sorted(daily.items())]

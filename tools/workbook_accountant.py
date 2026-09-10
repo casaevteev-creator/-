@@ -216,39 +216,43 @@ def build(canon, out_path):
         row = s.row
         s.line(label, {"total": v.get("total", 0.0),
                        "mal": f"=C{row}/2", "pog": f"=C{row}/2"}, note)
-    sup_row = s.row
-    s.line("Поставщики и подрядчики (счёт 60)",
-           {"total": costs["suppliers_bank"]["total"],
-            "mal": f"=C{sup_row}/2", "pog": f"=C{sup_row}/2"},
-           "без оплаченного за счёт кредитной линии", bold=True)
-    for block, items in (("медицинские и гонорары", r["expenses"]["medical"]),
-                         ("управленческие", r["expenses"]["management"])):
-        if not items:
-            continue
-        s.line(f"        в том числе {block}:", color="807A70")
-        for item in items:                       # все статьи, без «прочих»
-            s.line("            " + item["name"], {"total": item["amount"]})
-    exp_last = s.row - 1
-    s.at["exp_end"] = exp_last
-    row = s.row
-    tot_row = s.row
-    s.result("ИТОГО РАСХОДЫ ЗА МЕСЯЦ", {"total": f"=SUM(C{exp_first}:C{sup_row})"},
-             "строки «в том числе» в сумму не входят")
     fnd = r["founders"]
     items = sorted({k for x in ("mal", "pog") for k in fnd[x].get("personal_items", {})})
+    sup_row = s.row
+    s.line("Поставщики и подрядчики (счёт 60)", {"total": costs["suppliers_bank"]["total"]},
+           "без оплаченного за счёт кредитной линии", bold=True)
+    for block, blk in (("медицинские и гонорары", r["expenses"]["medical"]),
+                       ("управленческие", r["expenses"]["management"])):
+        if not blk:
+            continue
+        s.line(f"        в том числе {block}:", color="807A70")
+        for item in blk:                          # все статьи, без «прочих»
+            s.line("            " + item["name"], {"total": item["amount"]})
     if items:
-        per_row = s.row
-        s.line("Минус личные расходы врачей",
-               {"total": -sum(fnd[x]["personal_costs"] for x in ("mal", "pog"))},
-               "заказано лично под врача — делить пополам нельзя", color=RED)
-        com_row = s.row
-        s.line("ОБЩИЕ РАСХОДЫ (делятся 50/50)",
-               {"total": f"=C{tot_row}+C{per_row}",
-                "mal": f"=C{com_row}/2", "pog": f"=C{com_row}/2"}, bold=True)
-        s.line("Личные расходы, каждому свои",
+        for who, key in (("Маланичева", "mal"), ("Погосяна", "pog")):
+            s.line(f"        − личные расходы {who}, они внутри счёта 60",
+                   {"total": -fnd[key]["personal_costs"]},
+                   "заказано лично под врача — пополам не делится", color=RED)
+        net_row = s.row
+        s.line("Поставщики к делению пополам",
+               {"total": f"=C{sup_row}+C{net_row - 2}+C{net_row - 1}",
+                "mal": f"=C{net_row}/2", "pog": f"=C{net_row}/2"}, bold=True)
+    else:
+        net_row = sup_row
+        ws.cell(row=sup_row, column=4, value=f"=C{sup_row}/2")
+        ws.cell(row=sup_row, column=5, value=f"=C{sup_row}/2")
+    s.at["exp_end"] = s.row - 1
+    com_row = s.row
+    s.result("ИТОГО РАСХОДЫ К ДЕЛЕНИЮ ПОПОЛАМ",
+             {"total": f"=SUM(C{exp_first}:C{sup_row - 1})+C{net_row}",
+              "mal": f"=C{com_row}/2", "pog": f"=C{com_row}/2"},
+             "строки «в том числе» в сумму не входят")
+    if items:
+        s.line("+ Личные расходы, каждому свои",
                {"total": f"=D{s.row}+E{s.row}",
                 "mal": fnd["mal"]["personal_costs"], "pog": fnd["pog"]["personal_costs"]},
-               "из листа «Расходы врачей» и «Финансового результата»")
+               "те самые суммы, что вычтены из счёта 60 выше")
+        per_row = s.row - 1
         for name in items:
             s.line(f"        {name}",
                    {"total": f"=D{s.row}+E{s.row}",
@@ -256,12 +260,10 @@ def build(canon, out_path):
                     "pog": fnd["pog"]["personal_items"].get(name, 0.0)}, color="807A70")
         s.result("ДОЛЯ РАСХОДОВ КАЖДОГО",
                  {"total": f"=D{s.row}+E{s.row}",
-                  "mal": f"=D{com_row}+D{com_row + 1}", "pog": f"=E{com_row}+E{com_row + 1}"},
-                 "общие пополам плюс свои личные", key="exp")
+                  "mal": f"=D{com_row}+D{per_row}", "pog": f"=E{com_row}+E{per_row}"},
+                 "к делению пополам плюс свои личные", key="exp")
     else:
-        s.at["exp"] = tot_row
-        ws.cell(row=tot_row, column=4, value=f"=C{tot_row}/2")
-        ws.cell(row=tot_row, column=5, value=f"=C{tot_row}/2")
+        s.at["exp"] = com_row
     if man.get("credit_funded"):
         s.line("Справочно: ремонт за счёт кредитной линии", {"total": man["credit_funded"]},
                "в расходы учредителей не входит — стройка идёт на заёмные", color=BRONZE)
@@ -391,12 +393,12 @@ def build(canon, out_path):
             ("        эквайринг зачислен", b["acquiring_net"], "банк перечислил за вычетом комиссии"),
             ("+ Комиссия эквайринга, удержана банком", b["fee"],
              "счёт 57 → 91: пробито больше, чем зачислено"),
-            ("= Пробито по банку", b["net_57"] + b["fee"], "инкассация + эквайринг до комиссии"),
+            ("Пробито по банку", b["net_57"] + b["fee"], "инкассация + эквайринг до комиссии"),
             ("− Инкассация больше пробитой налички", -(b["inkas"] - t5["cash"]),
              f"сдали {num5(b['inkas'])} при кассе {num5(t5['cash'])} — вместе с остатком кассы с июля"),
             ("− Эквайринг конца июля, зачисленный в августе", -(b["acq_gross"] - t5["card"]),
              f"по банку {num5(b['acq_gross'])} против {num5(t5['card'])} по картам"),
-            ("= Поступления от пациентов за август",
+            ("Поступления от пациентов за август",
              b["net_57"] + b["fee"] - (b["inkas"] - t5["cash"]) - (b["acq_gross"] - t5["card"]),
              "до возвратов"),
             ("− Возвраты пациентам", -t5["refund"],
@@ -405,7 +407,7 @@ def build(canon, out_path):
         for label, v, note in rows5:
             s5.line(label, {"total": v}, note,
                     color=RED if v < 0 else "000000",
-                    bold=label.startswith("=") or label.startswith("Поступило"))
+                    bold=label.startswith(("Пробито", "Поступ")))
         s5.total("ВЫРУЧКА В ОТЧЁТЕ", {"total": t5["total"]}, "сходится до копейки")
         ws5.freeze_panes = "B5"
         ws5.sheet_view.showGridLines = False
