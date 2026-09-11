@@ -241,6 +241,33 @@ function pullPrevBalance(){
     fillParams(); saveParams();
   }
 }
+const EXPORT_ASSETS = __EXPORT__;
+/* Отчёт уходит учредителям отдельным файлом: цифры месяца в нём заморожены,
+   разбор по клику работает, интернет и учётные записи не нужны. */
+function exportReport(){
+  renderDash();
+  const acc = {};
+  for (const k in st.acc) acc[k] = {total: st.acc[k].total};
+  const frozen = {c: calc(), params: st.params, psrc: st.psrc, taksk: st.taksk,
+    groups: st.groups, vendors: st.vendors, acc, month: st.month, hist,
+    book: {vendors: book.vendors, articles: book.articles, credit: book.credit, founders: book.founders}};
+  const data = JSON.stringify(frozen).split("<\/").join("<\\/");
+  const per = monthName(st.month);
+  const html = '<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>Отчёт учредителям · ' + per + '</title>'
+    + '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">'
+    + '<style>' + EXPORT_ASSETS.css
+    + '\nbody{background:var(--bg)}#dash{position:static;height:auto;overflow:visible;background:var(--bg)}'
+    + '\n.dclose{display:none}\n</style></head><body>'
+    + '<div id="dash">' + $("dashBody").innerHTML + '</div>'
+    + EXPORT_ASSETS.panel
+    + '<script>window.FROZEN=' + data + ';<\/script>'
+    + '<script>' + EXPORT_ASSETS.js + '<\/script></body></html>';
+  offer("Отчёт учредителям — " + per + ".html", new Blob([html], {type:"text/html;charset=utf-8"}));
+  toast("Файл готов. Его можно отправить в мессенджере — откроется у кого угодно.");
+}
 /* ============================ события ============================ */
 function wire(){
   $("pick").addEventListener("click", () => $("file").click());
@@ -304,6 +331,7 @@ function wire(){
 
   $("closeMonth").addEventListener("click", () => isClosed() ? reopenMonth() : closeMonth());
   $("carryPers").addEventListener("click", carryPersonal);
+  $("exportRep").addEventListener("click", exportReport);
   $("printRep").addEventListener("click", () => { renderDash(); $("dash").hidden = false; setTimeout(() => window.print(), 120); });
   const cl = $("copyLink");
   if (cl) cl.addEventListener("click", async () => {

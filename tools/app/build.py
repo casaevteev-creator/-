@@ -1,3 +1,4 @@
+import re
 import openpyxl, json
 F="/root/.claude/uploads/ac5b8ad0-f2cc-56ed-bd75-26d657f80f0f/55319b99-________________2026.xlsx"
 ws=openpyxl.load_workbook(F,data_only=True)["Контрагенты"]
@@ -29,5 +30,16 @@ for y,mm in H.items():
         HIST[f"{y}-{int(m):02d}"]={"rev":round(float(v),2)}
 html=html.replace("__EXAMPLE__", json.dumps(EX,ensure_ascii=False,separators=(',',':')))
 html=html.replace("__HIST__", json.dumps(HIST,ensure_ascii=False,separators=(',',':')))
+
+# ---- материалы для самодостаточного отчёта учредителям
+def blocks(txt, tag):
+    return re.findall(r'<'+tag+r'[^>]*>(.*?)</'+tag+r'>', txt, re.S)
+css = "\n".join(blocks(open('app/part%d.html'%i,encoding='utf-8').read(), 'style')[0]
+                 for i in (1,6,7,8))
+p7 = open('app/part7.html',encoding='utf-8').read()
+panel = re.search(r'(<div id="xp".*?</div>\s*</div>\s*</div>)', p7, re.S).group(1)
+drill = blocks(p7, 'script')[0]
+assets = {"css":css, "panel":panel, "js":open('app/export_head.js',encoding='utf-8').read()+"\n"+drill}
+html=html.replace("__EXPORT__", json.dumps(assets, ensure_ascii=False))
 open('/home/user/-/out/upravlenka.html','w',encoding='utf-8').write(html)
 print("собрано, символов:",len(html))
