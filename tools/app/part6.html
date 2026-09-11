@@ -236,16 +236,16 @@ function renderDash(){
   const tk = st.taksk;
   let chan = "", daily = "";
   if (tk){
-    const rowsC = [["Наличными", tk.cash], ["Безналичными", tk.card], ["Зачёт ранее внесённого аванса", tk.adv]]
-      .filter(r => r[1] > 0);
+    const rowsC = [["Наличными", tk.cash, "tk:cash"], ["Безналичными", tk.card, "tk:card"],
+      ["Зачёт ранее внесённого аванса", tk.adv, "tk:adv"]].filter(r => r[1] > 0);
     chan = `<div class="tw" style="margin-top:18px"><table>
       <tr><th>Канал поступления</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
-      ${rowsC.map(r => `<tr><td>${esc(r[0])}</td><td class="num">${fmt0(r[1])}</td>
+      ${rowsC.map(r => `<tr class="xn" data-x="${r[2]}"><td>${esc(r[0])}</td><td class="num">${fmt0(r[1])}</td>
         <td class="num">${pct(tk.sum ? r[1] / tk.sum : 0)}</td></tr>`).join("")}
       ${tk.refund > 0 ? `<tr><td>Возвраты по чекам</td><td class="num" style="color:var(--red)">−${fmt0(tk.refund)}</td><td class="num"></td></tr>` : ""}
-      <tr class="tot"><td>Живые деньги — нал плюс безнал</td><td class="num">${fmt0(tk.live)}</td>
+      <tr class="tot xn" data-x="tk:live"><td>Живые деньги — нал плюс безнал</td><td class="num">${fmt0(tk.live)}</td>
         <td class="num">${pct(tk.sum ? tk.live / tk.sum : 0)}</td></tr>
-      <tr><td>Пробито по чекам всего</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
+      <tr class="xn" data-x="tk:sum"><td>Пробито по чекам всего</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
     </table></div>
     <p class="sb" style="margin:12px 0 0;font-size:16px">Чеков за месяц — ${tk.checks}.
     ${tk.adv > 0 ? "Зачёт аванса — " + pct(tk.sum ? tk.adv / tk.sum : 0) + " от пробитого: это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
@@ -262,7 +262,7 @@ function renderDash(){
         <div class="sb">млн ₽ в день · наличные и безнал по чекам, без зачёта аванса · наведите на столбец</div>
         <div class="chartbox">
           <div class="dail">${dd.map(k => `<i style="height:${(tk.byDay[k]/peak*100).toFixed(1)}%;opacity:${(0.55 + 0.45*tk.byDay[k]/peak).toFixed(2)}"
-            data-v="${dayN(k)} ${per.split(" ")[0]} · ${MLN(tk.byDay[k])} млн ₽"></i>`).join("")}</div>
+            data-x="day:${k}" data-v="${dayN(k)} ${per.split(" ")[0]} · ${MLN(tk.byDay[k])} млн ₽"></i>`).join("")}</div>
           <div class="dx">${dd.map((k,i) => `<span>${(dayN(k) % 5 === 0 || i === 0) ? dayN(k) : ""}</span>`).join("")}</div>
         </div>
         <div class="dnote"><b>Средний день — ${MLN(avg)} млн ₽.</b>
@@ -295,7 +295,8 @@ function renderDash(){
       <div class="mbars">${months.slice(0, lastM + 1).map((_, i) => `<div class="mg">
         ${prevY[i] ? `<div class="mb prev" style="height:${(prevY[i]/peakM*100).toFixed(1)}%"></div>` : ""}
         <div class="mb ${i + 1 === mo && yr === +(st.month.slice(0,4)) ? "now" : "cur"}"
-             style="height:${(cur[i]/peakM*100).toFixed(1)}%">
+             ${cur[i] ? 'data-x="mon:' + yr + "-" + String(i+1).padStart(2,"0") + '"' : ""}
+             style="height:${(cur[i]/peakM*100).toFixed(1)}%;cursor:${cur[i] ? "pointer" : "default"}">
           ${cur[i] ? `<span class="bv">${MLN(cur[i])}</span>` : ""}</div>
       </div>`).join("")}</div>
       <div class="mx">${months.slice(0, lastM + 1).map(m => `<span>${m}</span>`).join("")}</div>
@@ -330,12 +331,12 @@ function renderDash(){
   const who = (nm, own, cost, inc, pay, prev, div, f) => `<div class="ocard">
     <h3>${nm}</h3>
     <div class="orow xn" data-x="grp:${f}"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
-    <div class="orow"><span>Половина общей выручки</span><span class="n">${fmt0(R2((c.otherNet + G.cosm + G.misc) / 2))}</span></div>
-    <div class="orow"><span>Половина процентов по депозитам</span><span class="n">${fmt0(p.dep/2)}</span></div>
+    <div class="orow xn" data-x="halfcommon"><span>Половина общей выручки</span><span class="n">${fmt0(R2((c.otherNet + G.cosm + G.misc) / 2))}</span></div>
+    <div class="orow xn" data-x="half:dep"><span>Половина процентов по депозитам</span><span class="n">${fmt0(p.dep/2)}</span></div>
     <div class="orow xn" data-x="cost:${f}"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
     <div class="oinc xn" data-x="inc:${f}"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
-    <div class="orow"><span>Остаток с прошлого месяца</span><span class="n">${fmt0(prev)}</span></div>
-    <div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−${fmt0(div)}</span></div>
+    <div class="orow xn" data-x="p:prev${f === "mal" ? "M" : "P"}"><span>Остаток с прошлого месяца</span><span class="n">${fmt0(prev)}</span></div>
+    <div class="orow xn" data-x="p:div${f === "mal" ? "M" : "P"}"><span>Выплачены дивиденды</span><span class="n neg">−${fmt0(div)}</span></div>
     <div class="opay xn" data-x="pay:${f}"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
   </div>`;
   const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
@@ -375,16 +376,16 @@ function renderDash(){
         <div class="l">Выручка за месяц</div><div class="d ${dRev.cls}">${dRev.txt || "после возвратов пациентам"}</div></div>
       <div class="kc"><div class="v xn" data-x="base60">${MLN(c.base60)} <small>млн ₽</small></div>
         <div class="l">Оплаты поставщикам · сч. 60</div><div class="d ${dCost.cls}">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки${dCost.txt ? " · " + dCost.txt : ""}</div></div>
-      <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="fot">${MLN(fot)} <small>млн ₽</small></div>
         <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
       <div class="kc"><div class="v xn" data-x="med">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
         <div class="l">Медицинские расходы</div><div class="d">${pct(mSh)} счёта 60</div></div>
       <div class="kc"><div class="v xn" data-x="upr">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
         <div class="l">Управленческие расходы</div><div class="d">${pct(uSh)} счёта 60</div></div>
       ${bank51 != null
-        ? `<div class="kc"><div class="v">${MLN(bank51)} <small>млн ₽</small></div>
+        ? `<div class="kc"><div class="v xn" data-x="bank51">${MLN(bank51)} <small>млн ₽</small></div>
              <div class="l">Остаток на р/с на конец месяца</div><div class="d">на начало было ${MLN(st.acc["51"].total.openDt - st.acc["51"].total.openKt)}</div></div>`
-        : `<div class="kc"><div class="v">${MLN(p.dep)} <small>млн ₽</small></div>
+        : `<div class="kc"><div class="v xn" data-x="p:dep">${MLN(p.dep)} <small>млн ₽</small></div>
              <div class="l">Проценты по депозитам</div><div class="d">начислены банком на остатки</div></div>`}
     </div>
   </div></section>
@@ -440,6 +441,8 @@ function renderDash(){
   </div></section>
 
   ${dyn}
+
+  ${cfoSection(c)}
 
   <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
   let sn = 0;

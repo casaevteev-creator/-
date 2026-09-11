@@ -117,6 +117,35 @@ function gridOf(ws){
   }
   return {rows, levels};
 }
+/* период выгрузки: каждая из них пишет его по-своему */
+const MON_RU = ["январ","феврал","март","апрел","ма","июн","июл","август","сентябр","октябр","ноябр","декабр"];
+function monthKeyFromName(name, year){
+  const n = S(name).toLowerCase();
+  let best = -1;
+  MON_RU.forEach((m, i) => { if (n.indexOf(m) === 0 && (best < 0 || m.length > MON_RU[best].length)) best = i; });
+  return best < 0 ? "" : year + "-" + String(best + 1).padStart(2, "0");
+}
+function periodFromTitle(t){                       // «Обороты счета 60 за Август 2026 г.»
+  const m = /за\s+([А-Яа-яЁё]+)\s+(\d{4})/.exec(S(t));
+  return m ? {from:monthKeyFromName(m[1], m[2]), to:monthKeyFromName(m[1], m[2])} : null;
+}
+function periodFromRange(t){                       // «с 01.07.2026 … по 31.07.2026» или «01.08.2026 - 10.09.2026»
+  const d = S(t).match(/(\d{2})\.(\d{2})\.(\d{4})/g);
+  if (!d || d.length < 2) return null;
+  const key = x => { const q = /(\d{2})\.(\d{2})\.(\d{4})/.exec(x); return q[3] + "-" + q[2]; };
+  return {from:key(d[0]), to:key(d[d.length - 1])};
+}
+function findPeriod(rows, n){
+  for (let r = 0; r < Math.min(rows.length, n || 12); r++)
+    for (let c = 0; c < Math.min(rows[r].length, 4); c++){
+      const v = S(rows[r][c]);
+      if (/период/i.test(v)){
+        const here = periodFromRange(v) || periodFromRange(S(rows[r][c + 1]));
+        if (here) return here;
+      }
+    }
+  return null;
+}
 function findHead(rows, must){
   for (let r = 0; r < Math.min(rows.length, 25); r++){
     const h = rows[r].map(S);
@@ -158,7 +187,7 @@ function parseOboroty(rows, levels){
     else if (levels[r] >= 2) items.push(rec);
   }
   if (!total) return null;
-  return {kind:"oborot", account, title, total, items};
+  return {kind:"oborot", account, title, total, items, period:periodFromTitle(title)};
 }
 /* «Отчёт по врачам (УК)» — Фактическая оплата по врачу и направлению */
 function parseDoctors(rows){
@@ -184,7 +213,7 @@ function parseDoctors(rows){
     const dir = S(rows[r][ci["Направление"]]), doc = S(rows[r][ci["Врач"]]);
     if (dir && dir !== "Итог" && doc && !dirOf[doc]) dirOf[doc] = dir;
   }
-  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total};
+  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total, period:findPeriod(rows, 8)};
 }
 /* «Такском-Касса», сводный отчёт по фискальным документам — чеки ККТ */
 function parseTaksk(rows){
@@ -218,7 +247,7 @@ function parseTaksk(rows){
   t.days = Object.keys(t.byDay).length;
   t.live = R2(t.cash + t.card);
   ["cash","card","adv","credit","sum","refund"].forEach(k => t[k] = R2(t[k]));
-  return {kind:"taksk", t};
+  return {kind:"taksk", t, period:findPeriod(rows, 12)};
 }
 /* Реестр оплат управленки — каналы и признак проведения в бухгалтерии */
 function parsePayments(rows){

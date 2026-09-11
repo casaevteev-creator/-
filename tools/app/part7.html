@@ -206,13 +206,100 @@ function xnode(key){
              {l:"Остаток с прошлого месяца", n:psrc("prev" + P), v:p["prev" + P]},
              {l:"Выплачены дивиденды", v:-p["div" + P]}], res: big ? c.payM : c.payP});
   }
+  if (key.indexOf("half:") === 0){
+    const g = key.slice(5);
+    const NM = {other:"выручки других хирургов", cosm:"косметологии", misc:"прочего", dep:"процентов по депозитам"};
+    const full = g === "dep" ? p.dep : (g === "other" ? c.otherNet : c.G[g]);
+    return {t:"Половина " + NM[g], v:R2(full / 2), f:"половина суммы, которая делится поровну",
+      src:g === "dep" ? psrc("dep") : XSRC.doc,
+      parts:[{k:g === "dep" ? "p:dep" : "grp:" + g, l:"Вся сумма", v:full},
+             {l:"Доля каждого учредителя", n:"методика 50/50", v:R2(full / 2)}], res:R2(full / 2)};
+  }
+  if (key.indexOf("tk:") === 0){
+    if (!tk) return null;
+    const g = key.slice(3);
+    const NM = {cash:"Наличными", card:"Безналичными", adv:"Зачёт ранее внесённого аванса",
+      live:"Живые деньги", sum:"Пробито по чекам"};
+    const base = {t:"Чеки · " + NM[g], v:tk[g], src:XSRC.tk, parts:[]};
+    if (g === "live") return Object.assign(base, {f:"наличные + безнал, без зачёта аванса",
+      parts:[{k:"tk:cash", l:"Наличными", v:tk.cash}, {k:"tk:card", l:"Безналичными", v:tk.card}], res:tk.live,
+      note:"Зачёт аванса сюда не входит: это деньги, внесённые в прошлые месяцы."});
+    if (g === "sum") return Object.assign(base, {f:"всё, что прошло через кассу",
+      parts:[{k:"tk:live", l:"Живые деньги", v:tk.live}, {k:"tk:adv", l:"Зачёт аванса", v:tk.adv}], res:tk.sum});
+    if (g === "adv") return Object.assign(base, {f:"колонка «Аванс» в чеках",
+      note:"Услуга оказана сейчас, а деньги пациент внёс раньше. Новых поступлений месяца этот столбец не даёт."});
+    return Object.assign(base, {f:"колонка «" + NM[g] + "» в чеках", note:"Чеков за месяц — " + tk.checks + "."});
+  }
+  if (key.indexOf("day:") === 0){
+    if (!tk) return null;
+    const d = key.slice(4), v = tk.byDay[d] || 0;
+    const dd = Object.keys(tk.byDay).sort(), vals = dd.map(k => tk.byDay[k]);
+    const avg = vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
+    return {t:"День " + d.split("-").reverse().join("."), v, f:"наличные + безнал по чекам этого дня",
+      src:XSRC.tk, parts:[{l:"Средний день месяца", v:R2(avg)},
+        {l:"Отклонение от среднего", v:R2(v - avg)}],
+      note:"Зачёт аванса в день не попадает — он относится к месяцу, когда деньги пришли."};
+  }
+  if (key.indexOf("mon:") === 0){
+    const m = key.slice(4), h = hist[m];
+    if (!h) return null;
+    return {t:"Выручка · " + monthName(m), v:h.rev || 0,
+      f:h.closed ? "закрытый месяц" : "из архива выручки",
+      src:h.closed ? "Снимок закрытого месяца" : "История выручки, загруженная в программу",
+      parts:h.inc != null ? [{l:"Расходы", v:-(h.cost || 0)}, {l:"Доход учредителей", v:h.inc}] : [],
+      note:h.closed ? "Месяц закрыт " + h.closed.split("-").reverse().join(".") + "." : ""};
+  }
+  if (key === "fot") return {t:"ФОТ с налогами", v:R2(p.sal + p.tax), f:"зарплата по банку + налоги с ФОТ",
+    src:psrc("sal"), parts:[{k:"p:sal", l:"Зарплата по банку", v:p.sal},
+      {k:"p:tax", l:"Налоги с ФОТ", v:p.tax}], res:R2(p.sal + p.tax)};
+  if (key === "credit") return {t:"За счёт кредитной линии", v:c.credit,
+    f:"оплаты подрядчикам, помеченным как стройка на заёмные",
+    src:XSRC.a60, parts:st.vendors.filter(v => book.credit.indexOf(v.name) >= 0)
+      .map(v => ({k:"ven:" + v.name, l:v.name, v:v.paid})), res:c.credit,
+    note:"В расходы учредителей не входит: стройка финансируется кредитом, а не выручкой месяца."};
+  if (key === "unclass") return {t:"Контрагенты без статьи", v:c.unclass,
+    f:"оплаты, которые ещё не разнесены", src:XSRC.a60,
+    parts:st.vendors.filter(v => !(book.vendors[v.name] || [])[0] && book.credit.indexOf(v.name) < 0)
+      .map(v => ({k:"ven:" + v.name, l:v.name, v:v.paid})), res:c.unclass,
+    note:"Пока статья не выбрана, эти суммы не попадают ни в медицинские, ни в управленческие."};
+  if (key === "bank51"){
+    const a = st.acc["51"]; if (!a) return null;
+    const open = R2(a.total.openDt - a.total.openKt);
+    return {t:"Остаток на расчётном счёте", v:R2(open + a.total.dt - a.total.kt),
+      f:"остаток на начало + поступления − списания", src:XSRC.a51,
+      parts:[{l:"Остаток на начало месяца", v:open},
+             {l:"Поступления за месяц", v:a.total.dt},
+             {l:"Списания за месяц", v:-a.total.kt}], res:R2(open + a.total.dt - a.total.kt)};
+  }
+  if (key === "halfcommon"){
+    const full = R2(c.otherNet + c.G.cosm + c.G.misc);
+    return {t:"Половина общей выручки", v:R2(full / 2), f:"половина всего, что заработала клиника без личных операций",
+      src:XSRC.doc, parts:[{k:"grp:other", l:"Другие хирурги", v:c.otherNet},
+        {k:"grp:cosm", l:"Косметология", v:c.G.cosm}, {k:"grp:misc", l:"Прочее", v:c.G.misc},
+        {l:"Доля каждого", n:"методика 50/50", v:R2(full / 2)}], res:R2(full / 2)};
+  }
   if (key.indexOf("p:") === 0){
     const k = key.slice(2);
     const NM = {tax:"Налоги с ФОТ", sal:"Зарплата по банку", bank:"Услуги банка", ali:"Алименты",
       int:"Проценты по кредиту", corr:"Возвраты поставщиков", dep:"Проценты по депозитам",
-      refund:"Возвраты пациентам", revBank:"Контрольная сумма выручки"};
+      refund:"Возвраты пациентам", revBank:"Контрольная сумма выручки",
+      mAn:"Анализы · Маланичев", pAn:"Анализы · Погосян",
+      mMat:"Материалы за операции · Маланичев", pMat:"Материалы за операции · Погосян",
+      mAss:"Ассистенты и СММ · Маланичев", pAss:"Ассистенты и СММ · Погосян",
+      mAcq:"Эквайринг с личной выручки · Маланичев", pAcq:"Эквайринг с личной выручки · Погосян",
+      prevM:"Остаток с прошлого месяца · Маланичев", prevP:"Остаток с прошлого месяца · Погосян",
+      divM:"Дивиденды · Маланичев", divP:"Дивиденды · Погосян"};
+    const NOTE = {
+      mAn:"Лежит внутри статьи «Анализы» на счёте 60, поэтому вычитается из общей части.",
+      pAn:"Лежит внутри статьи «Анализы» на счёте 60, поэтому вычитается из общей части.",
+      mMat:"Лежит внутри счёта 60, поэтому вычитается из общей части.",
+      pMat:"Лежит внутри счёта 60, поэтому вычитается из общей части.",
+      mAss:"Вынимается из общей зарплаты: ассистент у каждого свой.",
+      pAss:"Вынимается из общей зарплаты: ассистент у каждого свой.",
+      divM:"Начисленное с НДФЛ, а не выплаченное с расчётного счёта.",
+      divP:"Начисленное с НДФЛ, а не выплаченное с расчётного счёта."};
     return {t:NM[k] || k, v:p[k], f:"Значение месяца", src:psrc(k), parts:[],
-      note:"Поле можно поправить руками на этапе «Параметры месяца» — расчёт пересчитается сразу."};
+      note:(NOTE[k] ? NOTE[k] + " " : "") + "Поле правится руками на этапе «Параметры месяца» — расчёт пересчитается сразу."};
   }
   return T[key] ? T[key]() : null;
 }

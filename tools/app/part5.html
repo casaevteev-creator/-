@@ -17,7 +17,7 @@ async function takeFiles(list){
   const files = Array.from(list);          // input.value очищается сразу, FileList к концу цикла пуст
   if (st.isExample){                       // первый настоящий файл вытесняет августовский пример
     st.isExample = false;
-    st.vendors = []; st.groups = null; st.acc = {}; st.doctors = null; st.payments = null; st.taksk = null; st.files = [];
+    st.vendors = []; st.groups = null; st.acc = {}; st.doctors = null; st.payments = null; st.taksk = null; st.files = []; st.periods = {};
     PK.forEach(k => st.params[k] = 0);
     fillParams();
   }
@@ -41,6 +41,8 @@ async function takeFiles(list){
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(new Uint8Array(buf), {type:"array", cellStyles:true, cellDates:true});
       const p = detect(wb);
+      if (p && p.period) st.periods[p.kind === "oborot" ? "счёт " + p.account
+        : p.kind === "doctors" ? "отчёт по врачам" : p.kind === "taksk" ? "Такском" : p.kind] = p.period;
       if (!p){ rec.note = "не похоже на обороты счёта или отчёт по врачам"; }
       else if (p.kind === "oborot"){
         st.acc[p.account] = p;
@@ -252,9 +254,11 @@ function wire(){
 
   $("month").addEventListener("change", async e => {
     st.month = e.target.value;
+    /* выгрузки принадлежат месяцу — при смене месяца данные всегда обнуляются */
+    st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null;
+    st.taksk = null; st.groups = null; st.periods = {}; st.psrc = {}; st.isExample = false;
     const saved = await loadParams(st.month);
-    if (saved){ PK.forEach(k => st.params[k] = N(saved[k])); }
-    else if (st.month !== "2026-08"){ PK.forEach(k => st.params[k] = 0); st.isExample = false; st.vendors = []; st.groups = null; st.files = []; st.acc = {}; st.doctors = null; st.payments = null; st.taksk = null; }
+    PK.forEach(k => st.params[k] = saved ? N(saved[k]) : 0);
     fillParams(); pullPrevBalance(); render();
   });
 
@@ -321,7 +325,7 @@ function wire(){
   });
   $("reset").addEventListener("click", () => {
     if (!confirm("Убрать загруженные выгрузки и цифры месяца? Справочник статей сохранится.")) return;
-    st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null; st.taksk = null; st.groups = null;
+    st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null; st.taksk = null; st.groups = null; st.periods = {};
     st.isExample = false; PK.forEach(k => st.params[k] = 0);
     fillParams(); render();
   });

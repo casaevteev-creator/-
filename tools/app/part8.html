@@ -1,0 +1,179 @@
+<style>
+/* ======================= взгляд финансового директора ======================= */
+.fd{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:860px){.fd{grid-template-columns:1fr 1fr;gap:20px}}
+.fdc{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 24px;
+  display:flex;flex-direction:column;gap:10px}
+.fdc .tag2{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  font-weight:600;padding:4px 9px;border-radius:99px;align-self:flex-start}
+.fdc.obs .tag2{background:var(--tint);color:var(--mute)}
+.fdc.lev .tag2{background:var(--green-soft);color:var(--green)}
+.fdc.risk .tag2{background:var(--bronze-soft);color:var(--bronze)}
+.fdc h4{font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.2}
+.fdc .big{font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.fdc p{font-size:14px;line-height:1.55;color:var(--ink2)}
+.fdc .lever{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px}
+.fdc .lever b{font-family:var(--mono);font-weight:600;color:var(--green);white-space:nowrap}
+.fdnote{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--mute);
+  margin-top:22px;line-height:1.5;max-width:74ch}
+</style>
+<script>
+"use strict";
+/* Наблюдения считаются из загруженных данных. Никаких отраслевых нормативов —
+   только цифры клиники, их доли и чувствительность в рублях. */
+function cfoCards(c){
+  const p = st.params, tk = st.taksk, out = [];
+  const per = typeof periodTrouble === "function" ? periodTrouble() : {bad:[], wide:[]};
+  if (per.bad.length) return [{kind:"risk", tag:"Стоп", h:"Выгрузки за разные месяцы",
+    big:"—", text:"Часть файлов относится не к " + monthName(st.month) + ": " + per.bad.join(", ") +
+    ". Пока это так, доли и маржа считаются по смеси периодов и смысла не имеют.",
+    lever:"Загрузите выгрузки за один месяц — раздел пересчитается сам."}];
+  const rev = c.revNet, pp = x => pct(rev ? x / rev : 0);
+  const card = (kind, tag, h, big, text, lever) =>
+    out.push({kind, tag, h, big, text, lever});
+
+  /* 1. маржа и её цена */
+  if (rev > 0){
+    card("obs", "Маржа", "Из выручки остаётся " + pct(c.incAll / rev),
+      fmt0(c.incAll) + " ₽",
+      "На каждые 100 ₽, пришедших от пациентов, у вас двоих остаётся " +
+      (c.incAll / rev * 100).toFixed(1).replace(".", ",") + " ₽. Остальное — гонорары, материалы, зарплата, аренда и налоги.",
+      "Один процент маржи стоит <b>" + fmt0(rev / 100) + " ₽</b> в месяц, или " + fmt0(rev / 100 * 12) + " ₽ в год.");
+  }
+  /* 2. разовые статьи — какой была бы маржа без них */
+  const an = anomalies(c);
+  if (an && an.fresh.length){
+    const big1 = an.fresh.filter(x => x[1] > rev * 0.01).sort((a, b) => b[1] - a[1]);
+    if (big1.length){
+      const s = big1.reduce((a, x) => a + x[1], 0);
+      card("obs", "Разовое", "Разовых расходов на " + fmt0(s),
+        pct((c.incAll + s) / rev),
+        "В прошлом месяце этих статей не было: " + big1.map(x => x[0] + " " + fmt0(x[1])).join(", ") +
+        ". Если месяц повторится без них, доход был бы " + fmt0(c.incAll + s) + " ₽.",
+        "Столько же — <b>" + fmt0(s) + " ₽</b> — стоит " + (s / (rev / 100)).toFixed(1).replace(".", ",") + " процентных пункта маржи.");
+    }
+  }
+  /* 3. гонорары как главный рычаг */
+  const gon = c.byArt["Гонорары ИП хирургов"];
+  if (gon && rev > 0){
+    card("lev", "Рычаг", "Гонорары хирургов — " + pp(gon.sum) + " выручки",
+      fmt0(gon.sum) + " ₽",
+      "Это " + pct(c.base ? gon.sum / c.base : 0) + " всех оплат поставщикам и самая крупная статья расходов. " +
+      "Ставка гонорара — единственный параметр, который двигает доходность сильнее любого другого.",
+      "Сдвиг средней ставки на 1 % — <b>" + fmt0(gon.sum / 100) + " ₽</b> в месяц.");
+    const vs = st.vendors.filter(v => (book.vendors[v.name] || [])[0] === "Гонорары ИП хирургов")
+      .sort((a, b) => b.paid - a.paid);
+    if (vs.length && vs[0].paid / gon.sum > 0.2){
+      card("risk", "Концентрация", "На одного хирурга — " + pct(vs[0].paid / gon.sum) + " гонораров",
+        fmt0(vs[0].paid) + " ₽",
+        vs[0].name + " получает больше пятой части всего гонорарного фонда. Если он уйдёт, вместе с ним уйдёт и его поток пациентов. " +
+        "Всего хирургов с гонорарами — " + vs.length + ".",
+        "Его гонорар — <b>" + pp(vs[0].paid) + "</b> выручки клиники.");
+    }
+  }
+  /* 4. собственные операции против чужих */
+  const own = R2(c.G.mal + c.G.pog);
+  if (rev > 0 && own > 0){
+    card("obs", "Структура", "Свои операции — " + pp(own) + " выручки",
+      fmt0(own) + " ₽",
+      "Остальные " + pp(R2(rev - own)) + " делает клиника без вас: другие хирурги, косметология, прочее. " +
+      "Ваш доход зависит от клиники как бизнеса сильнее, чем от собственного операционного дня.",
+      "Половина чужой выручки, которая приходит каждому, — <b>" + fmt0(R2((c.otherNet + c.G.cosm + c.G.misc) / 2)) + " ₽</b>.");
+  }
+  /* 5. деньги пациентов вперёд против заёмных */
+  if (tk && tk.adv > 0){
+    const txt = "Пациенты внесли вперёд " + fmt0(tk.adv) + " ₽ — это " + pct(tk.sum ? tk.adv / tk.sum : 0) +
+      " всего пробитого за месяц. Такие деньги работают в обороте бесплатно." +
+      (p.int > 0 ? " При этом за кредит вы заплатили " + fmt0(p.int) + " ₽ процентов." : "");
+    card("lev", "Финансирование", "Авансы пациентов — " + fmt0(tk.adv),
+      fmt0(tk.adv) + " ₽", txt,
+      p.int > 0 ? "Проценты по кредиту за год — <b>" + fmt0(p.int * 12) + " ₽</b>. Рост предоплат закрывает эту потребность без банка."
+        : "Это бесплатный источник оборотных средств.");
+  }
+  /* 6. депозиты против кредита — чистая позиция */
+  if (p.dep > 0 || p.int > 0){
+    const net = R2(p.dep - p.int);
+    card(net >= 0 ? "obs" : "risk", "Деньги", net >= 0 ? "Проценты работают в плюс" : "Кредит дороже депозитов",
+      (net >= 0 ? "+" : "") + fmt0(net) + " ₽",
+      "Депозиты принесли " + fmt0(p.dep) + " ₽, кредит стоил " + fmt0(p.int) + " ₽. " +
+      (net >= 0 ? "Пока держать деньги на депозите выгоднее, чем гасить кредит досрочно."
+                : "Каждый рубль, снятый с депозита на погашение кредита, экономит больше, чем приносит."),
+      "За год это <b>" + (net >= 0 ? "+" : "") + fmt0(net * 12) + " ₽</b>.");
+  }
+  /* 7. эквайринг */
+  const a57 = st.acc["57"];
+  const fee = a57 ? R2(N(a57.total.ktBy["91"])) : 0;
+  const turn = a57 ? R2(N(a57.total.dtBy["62"])) : 0;
+  if (fee > 0 && turn > 0){
+    card("lev", "Рычаг", "Эквайринг стоит " + pct(fee / turn) + " оборота",
+      fmt0(fee) + " ₽",
+      "С " + fmt0(turn) + " ₽, принятых картами, банк удержал " + fmt0(fee) + " ₽. " +
+      "Ставка эквайринга обсуждаема, особенно при таком обороте.",
+      "Каждая десятая процента ставки — <b>" + fmt0(turn / 1000) + " ₽</b> в месяц.");
+  }
+  /* 8. неровная загрузка */
+  if (tk && tk.days > 20){
+    const dd = Object.keys(tk.byDay).sort(), vals = dd.map(k => tk.byDay[k]);
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const low = vals.slice().sort((a, b) => a - b).slice(0, 10);
+    const gap = R2(low.reduce((a, v) => a + Math.max(0, avg - v), 0));
+    const best = Math.max(...vals), worst = Math.min(...vals);
+    card("lev", "Загрузка", "Сильный день к тихому — " + (worst ? (best / worst).toFixed(1).replace(".", ",") : "—") + "×",
+      fmt0(gap) + " ₽",
+      "Средний день — " + fmt0(avg) + " ₽, самый тихий — " + fmt0(worst) + " ₽. Десять самых слабых дней недобрали " +
+      fmt0(gap) + " ₽ до среднего. Это не спрос, это расписание: операционные и кабинеты в эти дни простаивали.",
+      "Подтянуть тихие дни до среднего — <b>" + fmt0(gap) + " ₽</b> в месяц без единого нового пациента.");
+  }
+  /* 9. управленческие */
+  if (c.byBlock.u > 0 && rev > 0){
+    card("obs", "Расходы", "Управленческие — " + pp(c.byBlock.u) + " выручки",
+      fmt0(c.byBlock.u) + " ₽",
+      "Всё, что не лечит: аренда, маркетинг, IT, юристы, хозрасходы. Медицинские при этом — " + pp(c.byBlock.m) + " выручки.",
+      "Сокращение управленческих на десятую часть — <b>" + fmt0(c.byBlock.u / 10) + " ₽</b> в месяц.");
+  }
+  /* 10. средний чек */
+  if (tk && tk.checks > 0){
+    card("obs", "Чек", "Средний чек — " + fmt0(tk.live / tk.checks),
+      fmt0(R2(tk.live / tk.checks)) + " ₽",
+      "За месяц " + tk.checks + " чеков на " + fmt0(tk.live) + " ₽ живых денег. " +
+      "Средний чек двигается двумя способами: цена и то, сколько услуг попадает в один визит.",
+      "Плюс 1 % к среднему чеку — <b>" + fmt0(tk.live / 100) + " ₽</b> в месяц.");
+  }
+  /* 11. тренд по истории */
+  const yr = +st.month.slice(0, 4), mo = +st.month.slice(5, 7);
+  const near = [], far = [];
+  for (let i = 1; i <= 3; i++){
+    const a = hist[shiftMonth(st.month, -i)], b = hist[shiftMonth(st.month, -i - 3)];
+    if (a && a.rev) near.push(a.rev);
+    if (b && b.rev) far.push(b.rev);
+  }
+  if (near.length === 3 && far.length === 3){
+    const n = near.reduce((a, b) => a + b, 0) / 3, f = far.reduce((a, b) => a + b, 0) / 3;
+    const d = n / f - 1;
+    card(d >= 0 ? "obs" : "risk", "Тренд", (d >= 0 ? "Рост " : "Спад ") + pct(Math.abs(d)) + " за полгода",
+      fmt0(n) + " ₽",
+      "Последние три месяца в среднем " + fmt0(n) + " ₽ против " + fmt0(f) + " ₽ в предыдущие три. " +
+      "Отчётный месяц — " + fmt0(rev) + " ₽.",
+      "Разница трёхмесячных средних — <b>" + (d >= 0 ? "+" : "") + fmt0(R2(n - f)) + " ₽</b> в месяц.");
+  }
+  return out;
+}
+function cfoSection(c){
+  const cards = cfoCards(c);
+  if (!cards.length) return "";
+  return `<section class="tight"><div class="w">
+    <div class="kick">§§ · Финдиректор</div><h2>Что с этим делать</h2>
+    <div class="sb">Наблюдения посчитаны из цифр этого месяца · каждое заканчивается рычагом в рублях</div>
+    <div class="fd">${cards.map(x => `<div class="fdc ${x.kind}">
+      <span class="tag2">${esc(x.tag)}</span>
+      <h4>${esc(x.h)}</h4>
+      <div class="big">${x.big}</div>
+      <p>${esc(x.text)}</p>
+      <div class="lever">${x.lever}</div>
+    </div>`).join("")}</div>
+    <p class="fdnote">Здесь нет отраслевых нормативов и чужих бенчмарков — только ваши цифры,
+    их доли и чувствительность. Решение, какой рычаг тянуть, всё равно за вами.</p>
+  </div></section>`;
+}
+</script>
