@@ -346,8 +346,7 @@ function wire(){
   $("exportRep").addEventListener("click", exportReport);
   $("mnote").addEventListener("input", e => { st.note = e.target.value; saveParams(); render(); });
   $("dlDigest").addEventListener("click", async () => {
-    const txt = ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest()
-      + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: Что главное в этом месяце и что с этим делать?";
+    const txt = RULES_OWNERS + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest(true);
     let copied = false;
     try { await navigator.clipboard.writeText(txt); copied = true; } catch(e){}
     await offer("Сводка месяца — " + monthName(st.month) + ".txt",

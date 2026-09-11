@@ -4,17 +4,14 @@
 @media(min-width:760px){.adv{padding:34px 36px}}
 .adv h3{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:6px}
 .adv .lead{font-family:var(--serif);font-style:italic;font-size:17px;color:#9C968A;margin-bottom:22px}
-.advq{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}
-.advq button{border:1px solid rgba(217,212,201,.24);background:rgba(255,255,255,.05);color:#CFC9BD;
-  border-radius:99px;padding:8px 16px;font-size:13px;cursor:pointer;transition:all .18s;font-family:var(--sans)}
-.advq button:hover{background:var(--bronze2);border-color:var(--bronze2);color:var(--ink)}
-.advbox{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
-.advbox textarea{flex:1;min-width:220px;background:rgba(255,255,255,.05);color:#fff;
-  border:1px solid rgba(217,212,201,.24);border-radius:13px;padding:12px 15px;font-size:14.5px;
-  resize:vertical;min-height:52px;font-family:var(--sans)}
-.advbox textarea::placeholder{color:#7E786E}
-.advbox button{white-space:nowrap}
-.advout{margin-top:22px;font-size:15px;line-height:1.65;color:#E4E0D7;
+.advtwo{display:grid;grid-template-columns:1fr;gap:20px;margin-bottom:6px}
+@media(min-width:720px){.advtwo{grid-template-columns:1fr 1fr;gap:30px}}
+.advcol{display:flex;flex-direction:column;gap:11px;align-items:flex-start}
+.advcol h3{font-family:var(--serif);font-size:22px;font-weight:600;margin:0}
+.advd{font-size:14px;line-height:1.55;color:#A8A296;flex:1}
+.adv .btn.light{color:#E4E0D7;border-color:rgba(217,212,201,.34);background:rgba(255,255,255,.06)}
+.adv .btn.light:hover{background:var(--bronze2);border-color:var(--bronze2);color:var(--ink)}
+.advout{margin-top:24px;font-size:15px;line-height:1.65;color:#E4E0D7;
   border-top:1px solid rgba(217,212,201,.14);padding-top:20px;min-height:24px}
 .advout[hidden]{display:none}
 .advout p{margin-bottom:12px}
@@ -23,6 +20,10 @@
 .advout ul{margin:0 0 12px 20px}
 .advout li{margin-bottom:7px}
 .advout h4{font-family:var(--serif);font-size:19px;font-weight:600;color:#fff;margin:18px 0 8px}
+.advout.fix{font-size:14.5px}
+.advout.fix p{margin-bottom:10px}
+.advout.fix ol{margin:0 0 12px 22px}
+.advout.fix li{margin-bottom:9px}
 .advwait{color:#9C968A;font-family:var(--mono);font-size:13px}
 .advwait::after{content:"";animation:advdots 1.4s steps(4,end) infinite}
 @keyframes advdots{0%{content:""}25%{content:"·"}50%{content:"··"}75%{content:"···"}}
@@ -40,7 +41,7 @@ async function advisor(){
   return ADV;
 }
 /* Сводка месяца: всё, на что опирается разбор. Никаких пациентов. */
-function monthDigest(){
+function monthDigest(full){
   const c = calc(), p = st.params, tk = st.taksk, L = [];
   const R = (k, v) => L.push(k + ": " + fmt(v));
   L.push("МЕСЯЦ: " + monthName(st.month) + (hist[st.month] && hist[st.month].closed ? " (закрыт)" : " (черновик)"));
@@ -80,8 +81,18 @@ function monthDigest(){
   R("  из них управленческие", c.byBlock.u);
   if (c.credit > 0) R("  за счёт кредитной линии (в расходы не входит)", c.credit);
   L.push("  статьи расходов по убыванию:");
-  Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum).slice(0, 20)
+  Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum).slice(0, full ? 99 : 20)
     .forEach(a => L.push("    " + a[0] + " — " + fmt(a[1].sum) + " (" + a[1].block + ")"));
+  if (full && c.unclassN){
+    L.push("  контрагенты без статьи (" + c.unclassN + " на " + fmt(c.unclass) + "):");
+    st.vendors.filter(v => !(book.vendors[v.name] || [])[0] && book.credit.indexOf(v.name) < 0)
+      .sort((a, b) => b.paid - a.paid).forEach(v => L.push("    " + v.name + " — " + fmt(v.paid)));
+  }
+  if (full && Object.keys(st.periods).length){
+    L.push("  периоды загруженных выгрузок:");
+    for (const k in st.periods) L.push("    " + k + ": " + monthName(st.periods[k].from)
+      + (st.periods[k].to !== st.periods[k].from ? " … " + monthName(st.periods[k].to) : ""));
+  }
   const gv = st.vendors.filter(v => (book.vendors[v.name] || [])[0] === "Гонорары ИП хирургов")
     .sort((a, b) => b.paid - a.paid).slice(0, 8);
   if (gv.length) L.push("  крупнейшие получатели гонораров: " + gv.map(v => v.name + " " + fmt0(v.paid)).join("; "));
@@ -137,55 +148,74 @@ function monthDigest(){
   }
   return L.join("\n");
 }
-const ADV_RULES =
-  "Ты — финансовый директор частной клиники пластической хирургии и эстетической косметологии «Форма» " +
-  "(ООО «ОМЕГА»). Владельцы — два практикующих хирурга, Маланичев и Погосян, доли 50/50. Они не финансисты.\n\n" +
-  "Правила ответа:\n" +
-  "— по-русски, спокойно, без консультантского жаргона, без воды и без вводных фраз;\n" +
-  "— опирайся ТОЛЬКО на цифры ниже; ничего не выдумывай и не подставляй отраслевые нормативы, которых в данных нет;\n" +
-  "— каждое утверждение подкрепляй конкретным числом из данных;\n" +
-  "— где уместно, называй рычаг в рублях в месяц или в год;\n" +
-  "— если для ответа не хватает данных, прямо скажи, какой выгрузки или какого числа не хватает;\n" +
-  "— итоги уже сверены программой, и формулы расчёта приведены в данных: прежде чем назвать что-то " +
-  "ошибкой, перечитай формулу — почти всегда расхождение возникает из-за неучтённого слагаемого;\n" +
-  "— если после этого цифры всё равно выглядят неправдоподобно, скажи об этом первым делом;\n" +
-  "— не длиннее 400 слов; заголовки делай строкой вида «## Заголовок», важное выделяй **жирным**.";
+const RULES_OWNERS =
+  "Ты управляющий партнёр частной клиники пластической хирургии и эстетической косметологии «Форма» " +
+  "(ООО «ОМЕГА»). Пишешь короткий комментарий к месяцу для двух владельцев — практикующих хирургов " +
+  "Маланичева и Погосяна, доли 50/50. Они не финансисты и прочтут это первым делом в отчёте.\n\n" +
+  "Правила:\n" +
+  "— от 150 до 220 слов, не больше;\n" +
+  "— спокойно и по делу, как партнёр пишет партнёру; без канцелярита и без вводных фраз;\n" +
+  "— только о результатах месяца: сколько заработали, куда ушло, что изменилось против прошлых " +
+  "месяцев, на что смотреть дальше;\n" +
+  "— каждое утверждение подкрепляй числом из данных;\n" +
+  "— НЕ обсуждай устройство отчёта, методику расчёта, полноту данных, сверки и то, каких выгрузок " +
+  "не хватает — владельцам это не нужно, и цифры уже сверены;\n" +
+  "— не сомневайся в цифрах и не оправдывайся;\n" +
+  "— два-четыре коротких абзаца, без заголовков; важное выделяй **жирным**.";
+const RULES_FIX =
+  "Ты проверяешь данные месяца перед тем, как отчёт уйдёт владельцам клиники. Пишешь для того, " +
+  "кто ведёт учёт и может всё поправить.\n\n" +
+  "Правила:\n" +
+  "— пиши только о том, что стоит проверить или исправить в самих данных: спорное разнесение статей " +
+  "по блокам, контрагенты без статьи, суммы, которые выбиваются, незакрытые сверки, несогласованные " +
+  "периоды выгрузок, подозрительно круглые или разовые платежи;\n" +
+  "— каждый пункт: что не так, на какую сумму, что сделать. Одним-двумя предложениями;\n" +
+  "— по убыванию суммы, не больше семи пунктов, нумерованным списком вида «1. …»;\n" +
+  "— не предлагай менять методику расчёта и устройство отчёта — они заданы;\n" +
+  "— если поправить нечего, скажи это одной строкой и не выдумывай замечаний ради количества.";
 function advFormat(t){
   const esc2 = s => s.replace(/[&<>]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[ch]));
   return esc2(t)
     .replace(/^##\s*(.+)$/gm, "<h4>$1</h4>")
     .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
     .replace(/(^|\s)(−?\d[\d  ]*(?:,\d+)?)(\s*(?:₽|руб))/g, '$1<span class="num">$2</span>$3')
-    .split(/\n{2,}/).map(b => /^<h4>/.test(b) ? b
-      : (/^\s*[-—•]\s/m.test(b)
-          ? "<ul>" + b.split(/\n/).map(l => l.replace(/^\s*[-—•]\s*/, "")).filter(Boolean)
-              .map(l => "<li>" + l + "</li>").join("") + "</ul>"
-          : "<p>" + b.replace(/\n/g, "<br>") + "</p>")).join("");
+    .split(/\n{2,}/).map(b => {
+      if (/^<h4>/.test(b)) return b;
+      if (/^\s*\d+\.\s/m.test(b))
+        return "<ol>" + b.split(/\n/).map(l => l.replace(/^\s*\d+\.\s*/, "")).filter(Boolean)
+          .map(l => "<li>" + l + "</li>").join("") + "</ol>";
+      if (/^\s*[-—•]\s/m.test(b))
+        return "<ul>" + b.split(/\n/).map(l => l.replace(/^\s*[-—•]\s*/, "")).filter(Boolean)
+          .map(l => "<li>" + l + "</li>").join("") + "</ul>";
+      return "<p>" + b.replace(/\n/g, "<br>") + "</p>";
+    }).join("");
 }
-let advBusy = false, lastAnswer = "";   // исходный текст ответа, с разметкой
-async function advAsk(q){
+let advBusy = false, lastAnswer = "";
+async function advRun(mode){
   if (advBusy) return;
-  const out = $("advout");
-  const s = await advisor();
-  if (!s){ out.hidden = false; out.innerHTML =
-    '<p class="advwait" style="animation:none">Разбор доступен только когда программа открыта по ссылке. ' +
-    'В автономном файле и в выгруженном отчёте его нет — там остаются посчитанные выводы выше.</p>'; return; }
+  const out = $("advout"), sm = await advisor();
+  if (!sm){ out.hidden = false; out.innerHTML =
+    '<p class="advwait" style="animation:none">Сводка собирается только когда программа открыта по ссылке. ' +
+    'В автономном файле и в выгруженном отчёте её нет — там остаются посчитанные выводы выше.</p>'; return; }
   advBusy = true;
+  const own = mode === "owners";
   out.hidden = false;
-  out.innerHTML = '<p class="advwait">Считаю по цифрам месяца</p>';
+  out.className = "advout" + (own ? "" : " fix");
+  out.innerHTML = '<p class="advwait">' + (own ? "Собираю комментарий по месяцу" : "Проверяю данные месяца") + '</p>';
   try {
-    await s(ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest() + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: " + q,
+    await sm((own ? RULES_OWNERS : RULES_FIX) + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest(!own),
       {modelTier:"complex", onText:({text}) => { lastAnswer = text; out.innerHTML = advFormat(text); }});
-    out.insertAdjacentHTML("beforeend",
-      '<button class="btn gold sm" id="advtake" type="button" style="margin-top:18px">' +
-      'Взять в комментарий к месяцу</button>' +
-      '<p class="advfoot">Комментарий попадёт в отчёт и в файл, который вы отправите учредителям — ' +
-      'ни программы, ни интернета им не понадобится. Текст можно поправить на рабочем экране.</p>');
+    out.insertAdjacentHTML("beforeend", own
+      ? '<button class="btn gold sm" id="advtake" type="button" style="margin-top:18px">' +
+        'Поставить в отчёт учредителям</button>' +
+        '<p class="advfoot">Текст встанет разделом «Слово к месяцу» сразу после резюме и уедет в файл, ' +
+        'который вы отправите. Поправить его можно на рабочем экране.</p>'
+      : '<p class="advfoot">Это только для вас: в отчёт и в файл учредителям не попадает.</p>');
   } catch(e){
     const code = e && e.code;
-    out.innerHTML = "<p>" + (code === "not_granted" ? "Разбор в этом окне не разрешён."
-      : code === "rate_limited" ? "Слишком часто — подождите минуту и спросите снова."
-      : "Не получилось спросить: " + ((e && e.message) || code || "ошибка")) + "</p>"
+    out.innerHTML = "<p>" + (code === "not_granted" ? "Сборка в этом окне не разрешена."
+      : code === "rate_limited" ? "Слишком часто — подождите минуту и попробуйте снова."
+      : "Не получилось собрать: " + ((e && e.message) || code || "ошибка")) + "</p>"
       + (e && e.text ? advFormat(e.text) : "");
   }
   advBusy = false;
@@ -202,48 +232,37 @@ function noteSection(){
   </div></section>`;
 }
 function advSection(){
-  const Q = ["Что главное в этом месяце?", "Где мы теряем деньги?",
-    "Что изменилось против прошлого месяца?", "Как поднять доходность?",
-    "Что спросить у бухгалтера?"];
   return `<section class="tight advisor"><div class="w">
-    <div class="kick">§§ · Вопросы</div><h2>Разобрать месяц</h2>
-    <div class="sb">Разбор строится по цифрам именно этого месяца — с историей и незакрытыми сверками</div>
+    <div class="kick">\u00a7\u00a7 · Сборка</div><h2>Комментарий и проверка</h2>
+    <div class="sb">Собирается по цифрам этого месяца · одна кнопка, без вопросов</div>
     <div class="adv">
-      <h3>О чём спросить</h3>
-      <div class="lead">Ответ строится заново каждый раз, под цифры загруженного месяца</div>
-      <div class="advq">${Q.map(q => `<button type="button" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-      <div class="advbox">
-        <textarea id="advq" rows="2" placeholder="Или спросите своими словами: почему доход упал, стоит ли гасить кредит, что с загрузкой по дням…"></textarea>
-        <button class="btn gold" id="advgo">Спросить</button>
+      <div class="advtwo">
+        <div class="advcol">
+          <h3>Сводка учредителям</h3>
+          <p class="advd">Короткий комментарий по результатам месяца: сколько заработали, куда ушло,
+          что изменилось. Без методики и без сверок — только то, что им нужно прочесть.</p>
+          <button class="btn gold" id="advOwners" type="button">Собрать сводку</button>
+        </div>
+        <div class="advcol">
+          <h3>Что поправить в данных</h3>
+          <p class="advd">Спорное разнесение статей, контрагенты без статьи, выбивающиеся суммы,
+          незакрытые сверки. Для вас, в отчёт не попадает.</p>
+          <button class="btn ghost light" id="advFix" type="button">Проверить данные</button>
+        </div>
       </div>
       <div class="advout" id="advout" hidden></div>
-      <p class="advfoot">В разбор уходят только цифры этого отчёта: выручка, статьи расходов, история по месяцам и сверки.
-      Данных пациентов в программе нет.</p>
+      <p class="advfoot">В сборку уходят только цифры этого отчёта: выручка, статьи расходов,
+      история по месяцам и сверки. Данных пациентов в программе нет.</p>
     </div>
   </div></section>`;
 }
 document.addEventListener("click", e => {
-  const chip = e.target.closest("[data-ask]");
-  if (chip){ const t = $("advq"); if (t) t.value = chip.dataset.ask; advAsk(chip.dataset.ask); return; }
-  if (e.target.id === "advgo"){
-    const q = S($("advq").value);
-    if (q) advAsk(q);
-    return;
-  }
+  if (e.target.id === "advOwners"){ advRun("owners"); return; }
+  if (e.target.id === "advFix"){ advRun("fix"); return; }
   if (e.target.id === "advtake"){
     const box = $("mnote");
     if (box){ box.value = lastAnswer; st.note = lastAnswer; saveParams(); render(); }
-    toast("Взято в комментарий — он уже в отчёте, ниже раздела «Резюме»");
-    return;
-  }
-  if (e.target.id === "xaskbtn"){
-    const q = e.target.dataset.q;
-    closeDash && null;
-    const sec = document.querySelector(".advisor");
-    $("xp").hidden = true;
-    if (sec) sec.scrollIntoView({block:"start"});
-    const t = $("advq"); if (t) t.value = q;
-    advAsk(q);
+    toast("Поставлено в отчёт — раздел «Слово к месяцу» сразу после резюме");
   }
 });
 </script>
