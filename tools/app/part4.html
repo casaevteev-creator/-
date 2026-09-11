@@ -251,14 +251,29 @@ function renderReport(c, list){
   $("d5").classList.toggle("on", ok && st.vendors.length > 0);
   $("dlXlsx").disabled = !st.vendors.length;
 }
+function renderNeeds(){
+  const got = {"60": st.vendors.length > 0, "51": !!st.acc["51"], "doc": !!st.groups,
+    "50": !!st.acc["50"], "57": !!st.acc["57"], "pay": !!st.payments};
+  const ex = st.isExample ? "пример" : "";
+  const note = {"60": st.vendors.length ? (ex || st.vendors.length + " контрагентов") : "",
+    "51": st.acc["51"] ? "загружено" : "", "doc": st.groups ? (ex || "загружено") : "",
+    "50": st.acc["50"] ? "загружено" : "", "57": st.acc["57"] ? "загружено" : "",
+    "pay": st.payments ? "загружено" : ""};
+  for (const li of $("need").children){
+    const k = li.dataset.k;
+    li.classList.toggle("got", !!got[k]);
+    li.querySelector(".nv").textContent = note[k] || (li.classList.contains("opt") ? "по желанию" : "ждём");
+  }
+}
 function render(){
   const c = calc();
   $("memoCount").textContent = Object.keys(book.vendors).length;
   $("memoDot").classList.add("on");
-  renderFiles(); renderVendors(c); renderBlocks(c); renderDoctors(c);
+  renderNeeds(); renderFiles(); renderVendors(c); renderBlocks(c); renderDoctors(c);
   const list = renderChecks(c);
   renderReport(c, list);
   $("d4").classList.toggle("on", st.params.sal > 0 && st.params.tax > 0);
+  if (!$("dash").hidden) renderDash();
   window.__calc = c;
 }
 </script>

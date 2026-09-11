@@ -9,6 +9,7 @@
   --accent:#2B3A67; --accent-soft:#E7EAF2; --accent-line:#B8C2DC;
   --ok:#2F7D51; --ok-soft:#E4F0E8; --warn:#8E620D; --warn-soft:#F6EEDC;
   --crit:#A3342A; --crit-soft:#F7E5E2; --on-accent:#FFFFFF;
+  --s1:#2a78d6; --s2:#eb6834; --track:#E4E8EC;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
@@ -21,6 +22,7 @@
     --on-accent:#0E1211;
     --ok:#5FB584; --ok-soft:#16271E; --warn:#D4A64C; --warn-soft:#2A2314;
     --crit:#E2796D; --crit-soft:#2C1917;
+    --s1:#3987e5; --s2:#d95926; --track:#232B29;
   }
 }
 :root[data-theme="dark"]{
@@ -30,6 +32,7 @@
   --on-accent:#0E1211;
   --ok:#5FB584; --ok-soft:#16271E; --warn:#D4A64C; --warn-soft:#2A2314;
   --crit:#E2796D; --crit-soft:#2C1917;
+  --s1:#3987e5; --s2:#d95926; --track:#232B29;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
@@ -102,6 +105,23 @@ section{scroll-margin-top:78px;margin-bottom:42px}
 .tag.bad{background:var(--crit-soft);color:var(--crit)}
 .fname{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fnote{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
+
+/* ---- список выгрузок ---- */
+ol.need{list-style:none;margin:0;padding:0;counter-reset:n}
+ol.need li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 11px;
+  padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+ol.need li:last-child{border-bottom:0}
+ol.need .nd{width:9px;height:9px;border-radius:50%;background:var(--faint);
+  box-shadow:0 0 0 3px var(--panel);margin-top:5px}
+ol.need li.got .nd{background:var(--ok)}
+ol.need li.opt .nd{background:transparent;border:1.5px solid var(--faint)}
+ol.need li.opt.got .nd{background:var(--ok);border-color:var(--ok)}
+ol.need .nn{font-weight:500}
+ol.need li.got .nn{color:var(--ok)}
+ol.need .nw{grid-column:2;color:var(--muted);font-size:12.5px}
+ol.need .nv{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+.needfoot{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.needfoot b{color:var(--ink);font-weight:500}
 
 /* ---- таблицы ---- */
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}

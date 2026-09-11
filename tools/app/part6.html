@@ -1,0 +1,155 @@
+<style>
+/* ======================= дашборд учредителям ======================= */
+#dash[hidden]{display:none!important}
+#dash{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
+.dash-in{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
+.dash-bar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-block:16px 14px;z-index:2}
+.dash-bar h2{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em}
+.dash-bar .per{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.dash-bar .sp{margin-left:auto}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:22px 0 26px}
+.hero .h{background:var(--surface);padding:18px 19px}
+.hero .k{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.hero .v{font-family:var(--mono);font-size:clamp(23px,3.4vw,31px);font-weight:500;margin-top:6px;
+  letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.1}
+.hero .s{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+.dh{font-family:var(--serif);font-size:16px;font-weight:600;margin:30px 0 3px}
+.dhs{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.who{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:19px 20px}
+.who .nm{font-family:var(--serif);font-size:17px;font-weight:600}
+.who .big{font-family:var(--mono);font-size:clamp(24px,3.6vw,30px);font-weight:500;letter-spacing:-.025em;
+  margin:12px 0 2px;font-variant-numeric:tabular-nums;line-height:1.1}
+.who .biglab{font-size:12px;color:var(--muted);margin-bottom:15px}
+.wl{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:13.5px;
+  border-top:1px solid var(--line)}
+.wl span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wl.acc span:last-child{font-weight:600}
+
+/* полоса структуры: две доли, зазор 2px, скруглённые торцы */
+.split-bar{display:flex;gap:2px;height:34px;margin:4px 0 12px}
+.split-bar i{display:block;height:100%;position:relative}
+.split-bar i:first-child{border-radius:5px 0 0 5px}
+.split-bar i:last-child{border-radius:0 5px 5px 0}
+.split-key{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;margin-bottom:4px}
+.split-key b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;
+  vertical-align:baseline}
+.split-key em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);
+  margin-left:7px}
+
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}
+.bar .lab{display:flex;justify-content:space-between;gap:14px;font-size:13px;align-items:baseline}
+.bar .lab b{font-weight:400}
+.bar .lab span{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.bar .tr{height:11px;background:var(--track);border-radius:3px;overflow:hidden}
+.bar .fl{display:block;height:100%;background:var(--s1);border-radius:0 4px 4px 0;min-width:3px;
+  transition:filter .12s}
+.bar:hover .fl{filter:brightness(1.12)}
+.bar.alt .fl{background:var(--s2)}
+.dnote{color:var(--faint);font-size:12px;line-height:1.55;margin-top:26px;
+  border-top:1px solid var(--line);padding-top:14px;max-width:70ch}
+@media (max-width:640px){
+  .dash-bar h2{font-size:18px}
+  .hero{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+
+<div id="dash" hidden role="dialog" aria-modal="true" aria-label="Дашборд учредителям">
+  <div class="dash-in">
+    <div class="dash-bar">
+      <h2>ООО «ОМЕГА» · клиника Форма</h2>
+      <span class="per" id="dashPer"></span>
+      <span class="sp"></span>
+      <button class="btn ghost sm" id="closeDash">Закрыть</button>
+    </div>
+    <div id="dashBody"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+function bar(name, val, den, alt){
+  const w = den > 0 ? Math.max(0, val / den * 100) : 0;
+  return `<div class="bar${alt ? " alt" : ""}" title="${esc(name)} — ${fmt(val)} (${pct(den ? val/den : 0)})">
+    <div class="lab"><b>${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
+    <div class="tr"><i class="fl" style="width:${w.toFixed(2)}%"></i></div></div>`;
+}
+function renderDash(){
+  const c = calc(), p = st.params;
+  $("dashPer").textContent = monthName(st.month) + (st.isExample ? " · пример" : "");
+  const who = (nm, own, cost, inc, pay) => `<div class="who">
+    <div class="nm">${nm}</div>
+    <div class="big">${fmt0(inc)}</div><div class="biglab">доход за месяц, ₽</div>
+    <div class="wl"><span>Своя выручка</span><span>${fmt0(own)}</span></div>
+    <div class="wl"><span>Доля расходов</span><span>${fmt0(cost)}</span></div>
+    <div class="wl"><span>Остаток с прошлого месяца</span><span>${fmt0(nm === "Маланичев" ? p.prevM : p.prevP)}</span></div>
+    <div class="wl"><span>Выплачены дивиденды</span><span>−${fmt0(nm === "Маланичев" ? p.divM : p.divP)}</span></div>
+    <div class="wl acc"><span>К выплате</span><span>${fmt0(pay)}</span></div>
+  </div>`;
+
+  const arts = Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum);
+  const top = arts.slice(0, 8);
+  const rest = arts.slice(8).reduce((s, a) => s + a[1].sum, 0);
+  const revRows = [["Другие хирурги", c.otherNet], ["Погосян — свои операции", c.G.pog],
+    ["Маланичев — свои операции", c.G.mal], ["Косметология", c.G.cosm], ["Прочее", c.G.misc]]
+    .filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]);
+  const mShare = c.base ? c.byBlock.m / c.base : 0;
+  const uShare = c.base ? c.byBlock.u / c.base : 0;
+
+  $("dashBody").innerHTML = `
+    <div class="hero">
+      <div class="h"><div class="k">Выручка</div><div class="v">${fmt0(c.revNet)}</div>
+        <div class="s">за вычетом возвратов</div></div>
+      <div class="h"><div class="k">Расходы</div><div class="v">${fmt0(c.costAll)}</div>
+        <div class="s">${pct(c.revNet ? c.costAll / c.revNet : 0)} от выручки</div></div>
+      <div class="h"><div class="k">Доход</div><div class="v">${fmt0(c.incAll)}</div>
+        <div class="s">${pct(c.revNet ? c.incAll / c.revNet : 0)} от выручки</div></div>
+      <div class="h"><div class="k">К выплате</div><div class="v">${fmt0(c.payAll)}</div>
+        <div class="s">на конец месяца</div></div>
+    </div>
+
+    <h3 class="dh">Учредители</h3>
+    <p class="dhs">Общие расходы делятся пополам, личные — каждому свои. Выручка: свои операции плюс половина всего остального.</p>
+    <div class="pair">
+      ${who("Маланичев", c.G.mal, c.costM, c.incM, c.payM)}
+      ${who("Погосян", c.G.pog, c.costP, c.incP, c.payP)}
+    </div>
+
+    <h3 class="dh">Куда ушли деньги</h3>
+    <p class="dhs">Оплаты поставщикам за месяц — ${fmt0(c.base)} ₽${c.credit > 0 ? ", без ремонта за счёт кредитной линии" : ""}.</p>
+    <div class="split-key">
+      <span><b style="background:var(--s1)"></b>Медицинские<em>${fmt0(c.byBlock.m)} · ${pct(mShare)}</em></span>
+      <span><b style="background:var(--s2)"></b>Управленческие<em>${fmt0(c.byBlock.u)} · ${pct(uShare)}</em></span>
+    </div>
+    <div class="split-bar">
+      <i style="background:var(--s1);width:${(mShare * 100).toFixed(2)}%" title="Медицинские ${fmt(c.byBlock.m)}"></i>
+      <i style="background:var(--s2);width:${(uShare * 100).toFixed(2)}%" title="Управленческие ${fmt(c.byBlock.u)}"></i>
+    </div>
+    <div class="bars" style="margin-top:18px">
+      ${top.map(a => bar(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
+      ${rest > 0 ? bar("Остальные статьи — " + (arts.length - 8) + " шт.", rest, c.base) : ""}
+    </div>
+
+    <h3 class="dh">Откуда пришли</h3>
+    <p class="dhs">Выручка месяца по группам, после возвратов пациентам.</p>
+    <div class="bars">${revRows.map(r => bar(r[0], r[1], c.revNet)).join("")}</div>
+
+    <p class="dnote">Выручка учитывается по зачислению на счёт. Разрез по хирургам берётся из управленки по фактической оплате.
+    Расходы — оплаченные за месяц. Ремонт за счёт кредитной линии в расходы учредителей не входит.
+    ${st.isExample ? "Показан август 2026 как пример." : ""}</p>`;
+}
+document.getElementById("openDash").addEventListener("click", () => {
+  renderDash();
+  const d = $("dash"); d.hidden = false;
+  document.body.style.overflow = "hidden";
+  $("closeDash").focus();
+});
+document.getElementById("closeDash").addEventListener("click", closeDash);
+function closeDash(){ $("dash").hidden = true; document.body.style.overflow = ""; $("openDash").focus(); }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("dash").hidden) closeDash(); });
+</script>

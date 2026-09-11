@@ -26,6 +26,25 @@
   <section id="s1">
     <div class="sec-head"><span class="step">Этап 1</span><h2>Выгрузки</h2></div>
     <p class="sec-sub">Перетащите файлы как есть — имена не важны, программа читает заголовок внутри. Нужны обороты счетов 51 и 60 из 1С и «Отчёт по врачам (УК)» из управленки.</p>
+    <div class="card" style="margin-bottom:14px">
+      <div class="sub">Что выгрузить</div>
+      <ol class="need" id="need">
+        <li data-k="60"><span class="nd"></span><span class="nn">Обороты счёта 60</span>
+          <span class="nw">1С · поставщики по контрагентам — из этого берутся все расходы</span><span class="nv"></span></li>
+        <li data-k="51"><span class="nd"></span><span class="nn">Обороты счёта 51</span>
+          <span class="nw">1С · расчётный счёт — движение денег, зарплата, налоги, дивиденды</span><span class="nv"></span></li>
+        <li data-k="doc"><span class="nd"></span><span class="nn">Отчёт по врачам (УК)</span>
+          <span class="nw">управленка · разрез выручки по хирургам, колонка «Фактическая оплата»</span><span class="nv"></span></li>
+        <li data-k="50" class="opt"><span class="nd"></span><span class="nn">Обороты счёта 50</span>
+          <span class="nw">1С · касса — с сентября, когда касса переедет в бухгалтерию</span><span class="nv"></span></li>
+        <li data-k="57" class="opt"><span class="nd"></span><span class="nn">Обороты счёта 57</span>
+          <span class="nw">1С · эквайринг и инкассация — для сверки границы месяца</span><span class="nv"></span></li>
+        <li data-k="pay" class="opt"><span class="nd"></span><span class="nn">Реестр оплат</span>
+          <span class="nw">управленка · каналы нал/безнал и колонка «Бух учет»</span><span class="nv"></span></li>
+      </ol>
+      <p class="needfoot">В 1С: <b>Отчёты → Обороты счёта</b>, период — месяц, группировка по субконто.
+      Для счёта 60 обязательно разверните контрагентов. Первые три строки нужны, остальные три уточняют сверки.</p>
+    </div>
     <div class="drop" id="drop">
       <h3>Перетащите выгрузки сюда</h3>
       <p>xlsx из 1С и управленки · можно несколько сразу</p>
@@ -128,7 +147,8 @@
     <div class="checks" id="checks"></div>
     <div id="reportWrap" style="margin-top:20px"></div>
     <div class="actions">
-      <button class="btn" id="dlXlsx">Скачать Excel для бухгалтера</button>
+      <button class="btn" id="openDash">Дашборд учредителям</button>
+      <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
       <button class="btn ghost" id="dlBook">Выгрузить справочник</button>
       <button class="btn ghost" id="reset">Очистить месяц</button>
     </div>
