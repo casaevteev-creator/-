@@ -67,7 +67,9 @@ function snapshotOf(c){
   for (const k in c.byArt) arts[k] = R2(c.byArt[k].sum);
   return {rev:c.revNet, cost:c.costAll, inc:c.incAll, incM:c.incM, incP:c.incP,
     payM:c.payM, payP:c.payP, base60:c.base60, med:c.byBlock.m, upr:c.byBlock.u,
-    fot:R2(st.params.sal + st.params.tax), groups:Object.assign({}, c.G, {other:c.otherNet}), arts};
+    fot:R2(st.params.sal + st.params.tax), groups:Object.assign({}, c.G, {other:c.otherNet}), arts,
+    tk: st.taksk ? {cash:st.taksk.cash, card:st.taksk.card, adv:st.taksk.adv,
+      live:st.taksk.live, checks:st.taksk.checks} : null};
 }
 /* статьи, которых в прошлом месяце не было или которые выросли больше чем вдвое */
 function anomalies(c){

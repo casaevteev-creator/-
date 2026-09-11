@@ -271,7 +271,7 @@ function exportReport(){
     + '<style>' + EXPORT_ASSETS.css
     + '\nbody{background:var(--bg)}#dash{position:static;height:auto;overflow:visible;background:var(--bg)}'
     + '\n.dclose{display:none}\n</style></head><body>'
-    + '<div id="dash">' + $("dashBody").innerHTML + '</div>'
+    + '<div id="dash">' + bodyForExport() + '</div>'
     + EXPORT_ASSETS.panel
     + '<script>window.FROZEN=' + data + ';<\/script>'
     + '<script>' + EXPORT_ASSETS.js + '<\/script></body></html>';
@@ -342,6 +342,16 @@ function wire(){
   $("closeMonth").addEventListener("click", () => isClosed() ? reopenMonth() : closeMonth());
   $("carryPers").addEventListener("click", carryPersonal);
   $("exportRep").addEventListener("click", exportReport);
+  $("dlDigest").addEventListener("click", async () => {
+    const txt = ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest()
+      + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: Что главное в этом месяце и что с этим делать?";
+    let copied = false;
+    try { await navigator.clipboard.writeText(txt); copied = true; } catch(e){}
+    await offer("Сводка месяца — " + monthName(st.month) + ".txt",
+      new Blob([txt], {type:"text/plain;charset=utf-8"}));
+    toast(copied ? "Сводка скопирована и сохранена файлом — вставьте её в чат с Claude"
+                 : "Сводка сохранена файлом — откройте и вставьте в чат с Claude");
+  });
   $("printRep").addEventListener("click", () => { renderDash(); $("dash").hidden = false; setTimeout(() => window.print(), 120); });
   const cl = $("copyLink");
   if (cl) cl.addEventListener("click", async () => {

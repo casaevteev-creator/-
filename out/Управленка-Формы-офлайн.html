@@ -373,6 +373,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
     </div>
     <div class="actions minor">
       <button class="btn ghost sm" id="printRep">Распечатать отчёт</button>
+      <button class="btn ghost sm" id="dlDigest">Сводка для ИИ</button>
       <button class="btn ghost sm" id="dlBook">Сохранить справочник</button>
       <button class="btn ghost sm" id="reset">Очистить месяц</button>
     </div>
@@ -830,7 +831,14 @@ function renderDash(){
 
   ${cfoSection(c)}
 
-  
+  <section class="tight advisor"><div class="w">
+    <div class="kick">§§ · Советчик</div><h2>Спросить живого финдиректора</h2>
+    <div class="sb">В автономной версии советчик не встроен — но сводку месяца можно унести с собой</div>
+    <div class="dnote"><b>Кнопка «Сводка для ИИ»</b> на рабочем экране копирует и сохраняет текстом всё,
+    на что опирается этот отчёт: выручку по группам и каналам, ряд по дням, статьи расходов, историю по месяцам
+    и незакрытые сверки. Вставьте её в чат с Claude и спрашивайте что угодно — роль финдиректора там уже описана.
+    Если открыть программу по ссылке, тот же советчик встроен прямо в отчёт.</div>
+  </div></section>
 
   <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
   let sn = 0;
@@ -1227,7 +1235,9 @@ function snapshotOf(c){
   for (const k in c.byArt) arts[k] = R2(c.byArt[k].sum);
   return {rev:c.revNet, cost:c.costAll, inc:c.incAll, incM:c.incM, incP:c.incP,
     payM:c.payM, payP:c.payP, base60:c.base60, med:c.byBlock.m, upr:c.byBlock.u,
-    fot:R2(st.params.sal + st.params.tax), groups:Object.assign({}, c.G, {other:c.otherNet}), arts};
+    fot:R2(st.params.sal + st.params.tax), groups:Object.assign({}, c.G, {other:c.otherNet}), arts,
+    tk: st.taksk ? {cash:st.taksk.cash, card:st.taksk.card, adv:st.taksk.adv,
+      live:st.taksk.live, checks:st.taksk.checks} : null};
 }
 /* статьи, которых в прошлом месяце не было или которые выросли больше чем вдвое */
 function anomalies(c){
@@ -1800,7 +1810,7 @@ function exportReport(){
     + '<style>' + EXPORT_ASSETS.css
     + '\nbody{background:var(--bg)}#dash{position:static;height:auto;overflow:visible;background:var(--bg)}'
     + '\n.dclose{display:none}\n</style></head><body>'
-    + '<div id="dash">' + $("dashBody").innerHTML + '</div>'
+    + '<div id="dash">' + bodyForExport() + '</div>'
     + EXPORT_ASSETS.panel
     + '<script>window.FROZEN=' + data + ';<\/script>'
     + '<script>' + EXPORT_ASSETS.js + '<\/script></body></html>';
@@ -1871,6 +1881,16 @@ function wire(){
   $("closeMonth").addEventListener("click", () => isClosed() ? reopenMonth() : closeMonth());
   $("carryPers").addEventListener("click", carryPersonal);
   $("exportRep").addEventListener("click", exportReport);
+  $("dlDigest").addEventListener("click", async () => {
+    const txt = ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest()
+      + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: Что главное в этом месяце и что с этим делать?";
+    let copied = false;
+    try { await navigator.clipboard.writeText(txt); copied = true; } catch(e){}
+    await offer("Сводка месяца — " + monthName(st.month) + ".txt",
+      new Blob([txt], {type:"text/plain;charset=utf-8"}));
+    toast(copied ? "Сводка скопирована и сохранена файлом — вставьте её в чат с Claude"
+                 : "Сводка сохранена файлом — откройте и вставьте в чат с Claude");
+  });
   $("printRep").addEventListener("click", () => { renderDash(); $("dash").hidden = false; setTimeout(() => window.print(), 120); });
   const cl = $("copyLink");
   if (cl) cl.addEventListener("click", async () => {
@@ -2422,6 +2442,99 @@ function cfoCards(c){
       "Средний чек двигается двумя способами: цена и то, сколько услуг попадает в один визит.",
       "Плюс 1 % к среднему чеку — <b>" + fmt0(tk.live / 100) + " ₽</b> в месяц.");
   }
+  /* --- правила, которые срабатывают только в своей ситуации --- */
+  const prev = hist[shiftMonth(st.month, -1)];
+  const a51 = st.acc["51"];
+  const bank51 = a51 ? R2(a51.total.openDt - a51.total.openKt + a51.total.dt - a51.total.kt) : null;
+
+  /* ФОТ к выручке */
+  if (rev > 0 && (p.sal + p.tax) > 0){
+    const fot = R2(p.sal + p.tax);
+    card("obs", "ФОТ", "Зарплата с налогами — " + pp(fot) + " выручки", fmt0(fot) + " ₽",
+      "Зарплата по банку " + fmt0(p.sal) + " ₽ плюс налоги с неё " + fmt0(p.tax) + " ₽. " +
+      "Это расходы, которые не зависят от того, сколько операций прошло за месяц.",
+      "Один процент ФОТ — <b>" + fmt0(fot / 100) + " ₽</b> в месяц.");
+  }
+  /* расходы против выручки, месяц к месяцу */
+  if (prev && prev.rev && prev.cost && rev > 0){
+    const dR = rev / prev.rev - 1, dC = c.costAll / prev.cost - 1;
+    const mNow = c.incAll / rev, mWas = (prev.inc != null ? prev.inc / prev.rev : null);
+    if (Math.abs(dR - dC) > 0.02){
+      card(dC > dR ? "risk" : "lev", "Динамика",
+        dC > dR ? "Расходы растут быстрее выручки" : "Расходы отстают от выручки",
+        (dR >= 0 ? "+" : "") + pct(dR) + " / " + (dC >= 0 ? "+" : "") + pct(dC),
+        "Против " + monthName(shiftMonth(st.month, -1)) + " выручка " + (dR >= 0 ? "выросла" : "упала") +
+        " на " + pct(Math.abs(dR)) + ", расходы " + (dC >= 0 ? "выросли" : "упали") + " на " + pct(Math.abs(dC)) + "." +
+        (mWas != null ? " Маржа была " + pct(mWas) + ", стала " + pct(mNow) + "." : ""),
+        mWas != null ? "Разница маржи стоит <b>" + fmt0(Math.abs(mNow - mWas) * rev) + " ₽</b> в месяц."
+          : "Разрыв темпов — <b>" + pct(Math.abs(dR - dC)) + "</b>.");
+    }
+  }
+  /* месяц против среднего за полгода */
+  const back = [];
+  for (let i = 1; i <= 6; i++){ const h = hist[shiftMonth(st.month, -i)]; if (h && h.rev) back.push(h.rev); }
+  if (back.length >= 3 && rev > 0){
+    const avg = back.reduce((a, b) => a + b, 0) / back.length;
+    const d = rev / avg - 1;
+    if (Math.abs(d) > 0.05){
+      card(d >= 0 ? "obs" : "risk", "Месяц", (d >= 0 ? "Выше" : "Ниже") + " среднего на " + pct(Math.abs(d)),
+        fmt0(rev) + " ₽",
+        "Средняя выручка за последние " + back.length + " месяцев — " + fmt0(avg) + " ₽. " +
+        "Этот месяц " + (d >= 0 ? "лучше" : "слабее") + " на " + fmt0(Math.abs(R2(rev - avg))) + " ₽.",
+        "Вернуться к среднему — <b>" + fmt0(Math.abs(R2(rev - avg))) + " ₽</b> выручки.");
+    }
+  }
+  /* доля наличных */
+  if (tk && tk.live > 0 && tk.cash / tk.live > 0.2){
+    card("obs", "Наличные", "Наличными приходит " + pct(tk.cash / tk.live), fmt0(tk.cash) + " ₽",
+      "Пятая часть и больше приходит купюрами. Это инкассация, хранение, пересчёт и лишние руки в кассе. " +
+      "Безналом за месяц — " + fmt0(tk.card) + " ₽.",
+      "Перевод десятой части наличных в карты — <b>" + fmt0(tk.cash / 10) + " ₽</b> меньше кассовых операций в месяц.");
+  }
+  /* авансы против прошлого месяца */
+  if (tk && prev && prev.tk && prev.tk.adv){
+    const d = tk.adv / prev.tk.adv - 1;
+    if (Math.abs(d) > 0.15)
+      card(d >= 0 ? "lev" : "risk", "Предоплаты", (d >= 0 ? "Авансов больше на " : "Авансов меньше на ") + pct(Math.abs(d)),
+        fmt0(tk.adv) + " ₽",
+        "В " + monthName(shiftMonth(st.month, -1)) + " зачли " + fmt0(prev.tk.adv) + " ₽, сейчас " + fmt0(tk.adv) + " ₽. " +
+        "Зачёт аванса — это операции, оплаченные раньше: он показывает, сколько записей было набрано в прошлые месяцы.",
+        d >= 0 ? "Запас оплаченных вперёд операций растёт."
+               : "Падение предоплат обычно приходит в выручку через месяц-другой.");
+  }
+  /* возвраты */
+  if (p.refund > 0 && rev > 0 && p.refund / rev > 0.003){
+    card("obs", "Возвраты", "Возвраты пациентам — " + pp(p.refund), fmt0(p.refund) + " ₽",
+      "За месяц вернули " + fmt0(p.refund) + " ₽. Каждый возврат это несостоявшаяся операция и, как правило, разговор, " +
+      "который стоил времени.", "Годовой масштаб — <b>" + fmt0(p.refund * 12) + " ₽</b>.");
+  }
+  /* личные расходы разошлись */
+  const lo = Math.min(c.persM, c.persP), hi = Math.max(c.persM, c.persP);
+  if (lo > 0 && hi / lo > 2.5){
+    const who = c.persP > c.persM ? "Погосяна" : "Маланичева";
+    card("obs", "Личные", "Личные расходы отличаются в " + (hi / lo).toFixed(1).replace(".", ",") + " раза",
+      fmt0(R2(hi - lo)) + " ₽",
+      "У " + who + " личных расходов на " + fmt0(R2(hi - lo)) + " ₽ больше. Именно эта разница и делает доходы разными: " +
+      "общая часть у обоих одинаковая до копейки.",
+      "Стоит убедиться, что материалы и анализы разнесены по учредителям правильно.");
+  }
+  /* запас прочности */
+  if (bank51 != null && c.costAll > 0){
+    const m = bank51 / c.costAll;
+    card(m < 0.5 ? "risk" : "obs", "Запас", "Остатка хватит на " + m.toFixed(1).replace(".", ",") + " месяца расходов",
+      fmt0(bank51) + " ₽",
+      "На расчётном счёте на конец месяца " + fmt0(bank51) + " ₽ при расходах " + fmt0(c.costAll) + " ₽ в месяц. " +
+      "Депозиты сюда не входят.",
+      m < 0.5 ? "Меньше половины месяца — любая задержка поступлений упрётся в кассовый разрыв."
+              : "Один месяц расходов — <b>" + fmt0(c.costAll) + " ₽</b>.");
+  }
+  /* кредитная линия */
+  if (c.credit > 0){
+    card("risk", "Кредит", "За месяц выбрано " + fmt0(c.credit), fmt0(c.credit) + " ₽",
+      "Стройка идёт на заёмные: " + book.credit.join(", ") + ". В расходы учредителей это не попадает, " +
+      "но долг растёт, а проценты уже платятся — " + fmt0(p.int) + " ₽ за месяц.",
+      "При таком темпе за год — <b>" + fmt0(c.credit * 12) + " ₽</b> долга и " + fmt0(p.int * 12) + " ₽ процентов.");
+  }
   /* 11. тренд по истории */
   const yr = +st.month.slice(0, 4), mo = +st.month.slice(5, 7);
   const near = [], far = [];
@@ -2439,7 +2552,13 @@ function cfoCards(c){
       "Отчётный месяц — " + fmt0(rev) + " ₽.",
       "Разница трёхмесячных средних — <b>" + (d >= 0 ? "+" : "") + fmt0(R2(n - f)) + " ₽</b> в месяц.");
   }
-  return out;
+  /* сверки вперёд всего: по несошедшимся цифрам выводы делать нельзя */
+  const red = checks(c).filter(x => x.ok === false);
+  if (red.length) out.unshift({kind:"risk", tag:"Сверки", h:"Не сошлось: " + red.length,
+    big:"—", text:red.map(x => x.what).join("; ") + ". Пока это не закрыто, доли и маржа ниже могут быть неполными.",
+    lever:"Откройте этап «Сверки и отчёт» — там написано, чего не хватает."});
+  const rank = {risk:0, lev:1, obs:2};
+  return out.sort((a, b) => rank[a.kind] - rank[b.kind]).slice(0, 14);
 }
 function cfoSection(c){
   const cards = cfoCards(c);
