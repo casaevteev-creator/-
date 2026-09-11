@@ -18,6 +18,7 @@ const monthName = v => { const m = /(\d{4})-(\d{2})/.exec(v || ""); return m ? M
 /* ============================ справочник по умолчанию ============================ */
 const BASE_BOOK = __BOOK__;
 const EXAMPLE = __EXAMPLE__;
+const BASE_HIST = __HIST__;
 
 /* ============================ хранилище ============================ */
 let DB = null;
@@ -40,6 +41,28 @@ async function loadBook(){
     founders: (src && src.founders) || {mal:"", pog:""}
   };
 }
+let hist = {};
+async function loadHist(){
+  let src = LS.get("hist");
+  if (DB){ try { const s = await DB.doc("history/all").get(); if (s.exists) src = s.data().months || src; } catch(e){} }
+  return Object.assign({}, BASE_HIST, src || {});
+}
+let histTimer = null;
+function saveHist(){
+  clearTimeout(histTimer);
+  histTimer = setTimeout(async () => {
+    const own = {};
+    for (const k in hist) if (!BASE_HIST[k] || hist[k].closed) own[k] = hist[k];
+    LS.set("hist", own);
+    if (DB){ try { await DB.doc("history/all").set({months: own}); } catch(e){} }
+  }, 700);
+}
+const shiftMonth = (m, d) => {
+  const x = /(\d{4})-(\d{2})/.exec(m); if (!x) return "";
+  let y = +x[1], mm = +x[2] + d;
+  while (mm < 1){ mm += 12; y--; } while (mm > 12){ mm -= 12; y++; }
+  return y + "-" + String(mm).padStart(2, "0");
+};
 let saveTimer = null;
 function saveBook(){
   clearTimeout(saveTimer);

@@ -118,9 +118,32 @@
 .dnote{background:var(--green-soft);border-radius:16px;padding:20px 24px;margin-top:22px;
   font-size:14px;color:var(--ink2);line-height:1.6}
 .dnote b{color:var(--green)}
+/* динамика по месяцам */
+.mbars{display:flex;align-items:flex-end;gap:0;height:230px;border-bottom:1.5px solid var(--ink);padding:22px 4px 0}
+@media(min-width:760px){.mbars{height:280px}}
+.mg{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;height:100%;position:relative}
+.mb{width:min(5vw,26px);border-radius:5px 5px 0 0;position:relative}
+.mb.prev{background:var(--ghost)} .mb.cur{background:var(--green)} .mb.now{background:var(--bronze2)}
+.mb .bv{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-family:var(--mono);
+  font-size:10.5px;white-space:nowrap;color:var(--ink2)}
+@media(max-width:760px){.mb .bv{display:none}.mb{width:min(4vw,26px)}.mg{gap:2px}}
+.mx{display:flex;padding:9px 4px 0}
+.mx span{flex:1;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--mute)}
+.leg{display:flex;gap:20px;padding:14px 4px 0;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.kc .d.up{color:var(--green)} .kc .d.dn{color:var(--red)}
 #dash footer{background:var(--ink);color:#6E6960;font-family:var(--mono);font-size:11.5px;
   padding:28px 0;border-top:1px solid rgba(217,212,201,.12)}
 #dash footer .w{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media print{
+  header.top, .grid, .toast, .dclose{display:none!important}
+  #dash{position:static;overflow:visible;background:#fff}
+  #dash section{padding:26px 0;break-inside:avoid}
+  .dhero{padding:40px 0 34px;break-after:avoid}
+  .kpi, .own, .dsplit{break-inside:avoid}
+  .tez, .kc, .ocard, .chartbox{break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:14mm}
+}
 </style>
 
 <div id="dash" hidden role="dialog" aria-modal="true" aria-label="Отчёт учредителям">
@@ -199,6 +222,61 @@ function renderDash(){
     {n:"Банк, алименты, проценты", v:-R2(p.bank + p.ali + p.int + p.mAcq + p.pAcq)},
     {n:"Доход учредителей", v:c.incAll, end:true}
   ];
+  /* динамика: выручка по месяцам, текущий год против прошлого */
+  const yr = +(st.month.slice(0, 4)), mo = +(st.month.slice(5, 7));
+  const months = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+  const live = Object.assign({}, hist);
+  live[st.month] = Object.assign({}, live[st.month] || {}, {rev: c.revNet, inc: c.incAll});
+  const rowFor = y => months.map((_, i) => {
+    const k = y + "-" + String(i + 1).padStart(2, "0");
+    return live[k] && live[k].rev ? live[k].rev : 0;
+  });
+  const cur = rowFor(yr), prevY = rowFor(yr - 1);
+  const lastM = cur.reduce((a, v, i) => v ? i : a, -1);
+  const peakM = Math.max(...cur, ...prevY) || 1;
+  const ytd = cur.slice(0, lastM + 1).reduce((a, b) => a + b, 0);
+  const ytdPrev = prevY.slice(0, lastM + 1).reduce((a, b) => a + b, 0);
+  const hasPrevY = ytdPrev > 0;
+  const dyn = lastM >= 1 ? `
+  <section class="tight"><div class="w">
+    <div class="kick">07 · Динамика</div><h2>Год к году</h2>
+    <div class="sb">Выручка по месяцам, млн ₽ · ${yr} против ${yr - 1}</div>
+    <div class="chartbox">
+      <div class="mbars">${months.slice(0, lastM + 1).map((_, i) => `<div class="mg">
+        ${prevY[i] ? `<div class="mb prev" style="height:${(prevY[i]/peakM*100).toFixed(1)}%"></div>` : ""}
+        <div class="mb ${i + 1 === mo && yr === +(st.month.slice(0,4)) ? "now" : "cur"}"
+             style="height:${(cur[i]/peakM*100).toFixed(1)}%">
+          ${cur[i] ? `<span class="bv">${MLN(cur[i])}</span>` : ""}</div>
+      </div>`).join("")}</div>
+      <div class="mx">${months.slice(0, lastM + 1).map(m => `<span>${m}</span>`).join("")}</div>
+      <div class="leg">
+        <span><span class="sw" style="background:var(--ghost)"></span>${yr - 1}</span>
+        <span><span class="sw" style="background:var(--green)"></span>${yr}</span>
+        <span><span class="sw" style="background:var(--bronze2)"></span>отчётный месяц</span>
+      </div>
+    </div>
+    <div class="dnote"><b>С начала года — ${MLN(ytd)} млн ₽.</b>
+      ${hasPrevY ? "За те же месяцы " + (yr - 1) + " года — " + MLN(ytdPrev) + " млн, это "
+        + (ytd >= ytdPrev ? "рост" : "спад") + " на " + pct(Math.abs(ytd / ytdPrev - 1)) + "."
+        : "Сравнить с прошлым годом не с чем: данных за " + (yr - 1) + " год нет."}
+      ${prevY[mo - 1] ? " В " + months[mo - 1].toLowerCase() + " " + (yr - 1) + " было "
+        + MLN(prevY[mo - 1]) + " млн." : " За этот месяц прошлого года данных нет."}</div>
+  </div></section>` : "";
+
+  /* дельты к прошлому месяцу */
+  const pm = shiftMonth(st.month, -1), prevS = hist[pm];
+  const delta = (now, was, invert) => {
+    if (!was) return {cls:"", txt:""};
+    const d = now / was - 1;
+    if (Math.abs(d) < 0.001) return {cls:"", txt:"как в " + monthName(pm).split(" ")[0]};
+    const good = invert ? d < 0 : d > 0;
+    return {cls: good ? "up" : "dn",
+      txt: (d > 0 ? "▲ +" : "▼ −") + pct(Math.abs(d)).replace(" %", " %") + " к " + monthName(pm).split(" ")[0]};
+  };
+  const dRev = delta(c.revNet, prevS && prevS.rev);
+  const dCost = delta(c.costAll, prevS && prevS.cost, true);
+  const dInc = delta(c.incAll, prevS && prevS.inc);
+
   const who = (nm, own, cost, inc, pay, prev, div) => `<div class="ocard">
     <h3>${nm}</h3>
     <div class="orow"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
@@ -234,7 +312,7 @@ function renderDash(){
     ${tez("02", "Расходы — " + MLN(c.costAll) + " млн ₽",
       "Это " + pct(c.revNet ? c.costAll / c.revNet : 0) + " выручки. Поставщики — <b>" + MLN(c.base60) + " млн</b>, ФОТ с налогами — " + MLN(fot) + " млн." + (c.credit > 0 ? " Ремонт за счёт кредитной линии, " + MLN(c.credit) + " млн, в расходы учредителей не входит." : ""))}
     ${tez("03", "Доход учредителей — " + MLN(c.incAll) + " млн ₽",
-      "Погосян — <b>" + MLN(c.incP) + " млн</b>, Маланичев — <b>" + MLN(c.incM) + " млн</b>. Разница — личная выручка и личные расходы, общая часть у обоих одинаковая.")}
+      "Погосян — <b>" + MLN(c.incP) + " млн</b>, Маланичев — <b>" + MLN(c.incM) + " млн</b>. Разница — личная выручка и личные расходы, общая часть у обоих одинаковая." + (dInc.txt ? " Против прошлого месяца — " + dInc.txt.replace("▲ ", "").replace("▼ ", "") + "." : ""))}
     ${tez("04", "К выплате — " + MLN(c.payAll) + " млн ₽",
       "С учётом накопленных остатков: Погосян " + MLN(c.payP) + " млн, Маланичев " + MLN(c.payM) + " млн. Дивиденды за месяц — " + fmt0(c.divAll) + " ₽.")}
   </div></section>
@@ -244,9 +322,9 @@ function renderDash(){
     <div class="sb">Шесть чисел, по которым видно месяц</div>
     <div class="kpi">
       <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
-        <div class="l">Выручка за месяц</div><div class="d">после возвратов пациентам</div></div>
+        <div class="l">Выручка за месяц</div><div class="d ${dRev.cls}">${dRev.txt || "после возвратов пациентам"}</div></div>
       <div class="kc"><div class="v">${MLN(c.base60)} <small>млн ₽</small></div>
-        <div class="l">Оплаты поставщикам · сч. 60</div><div class="d">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки</div></div>
+        <div class="l">Оплаты поставщикам · сч. 60</div><div class="d ${dCost.cls}">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки${dCost.txt ? " · " + dCost.txt : ""}</div></div>
       <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
         <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
       <div class="kc"><div class="v">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
@@ -308,7 +386,9 @@ function renderDash(){
     Расходы — оплаченные за месяц.${st.isExample ? " Показан август 2026 как пример." : ""}</p>
   </div></section>
 
-  <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per}</span></div></footer>`;
+  ${dyn}
+
+  <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
 }
 document.getElementById("openDash").addEventListener("click", () => {
   renderDash();

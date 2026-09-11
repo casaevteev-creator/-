@@ -22,6 +22,12 @@ EX={"vendors":vend,
    "revBank":97338730.30,"refund":465000.0}}
 html="\n".join(open('app/part%d.html'%i,encoding='utf-8').read() for i in (1,2,6,3,4,5))
 html=html.replace("__BOOK__", json.dumps(BOOK,ensure_ascii=False,separators=(',',':')))
+H=json.load(open('/home/user/-/data/history.json'))
+HIST={}
+for y,mm in H.items():
+    for m,v in mm.items():
+        HIST[f"{y}-{int(m):02d}"]={"rev":round(float(v),2)}
 html=html.replace("__EXAMPLE__", json.dumps(EX,ensure_ascii=False,separators=(',',':')))
+html=html.replace("__HIST__", json.dumps(HIST,ensure_ascii=False,separators=(',',':')))
 open('/home/user/-/out/upravlenka.html','w',encoding='utf-8').write(html)
 print("собрано, символов:",len(html))

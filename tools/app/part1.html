@@ -41,6 +41,9 @@ header.top{border-bottom:1px solid var(--line);background:var(--panel);position:
 .month-pick label{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--bronze)}
 .month-pick input{width:128px;background:var(--sunk);border:1px solid var(--line);border-radius:9px;
   padding:6px 10px;font-family:var(--mono);font-size:12.5px}
+.state{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  padding:4px 10px;border-radius:99px;background:var(--tint);color:var(--mute)}
+.state.closed{background:var(--green-soft);color:var(--green)}
 .memo{display:inline-flex;align-items:center;gap:7px}
 .memo b{font-family:var(--mono);font-weight:600;color:var(--ink)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ghost);flex:none}
@@ -186,7 +189,12 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
 .banner b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--bronze);white-space:nowrap}
 .banner.stop{background:var(--red-soft)} .banner.stop b{color:var(--red)}
-.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}
+.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px;align-items:center}
+.actions.minor{margin-top:12px}
+.sub .carry{margin-left:14px;text-transform:none;letter-spacing:0;font-family:var(--sans)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;background:var(--ink);
+  color:#fff;padding:11px 20px;border-radius:11px;font-size:13.5px;box-shadow:0 6px 24px rgba(28,27,24,.24)}
+.toast[hidden]{display:none!important}
 .foot{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--mute);
   margin-top:16px;line-height:1.5;max-width:70ch}
 

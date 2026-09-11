@@ -41,6 +41,9 @@ header.top{border-bottom:1px solid var(--line);background:var(--panel);position:
 .month-pick label{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--bronze)}
 .month-pick input{width:128px;background:var(--sunk);border:1px solid var(--line);border-radius:9px;
   padding:6px 10px;font-family:var(--mono);font-size:12.5px}
+.state{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  padding:4px 10px;border-radius:99px;background:var(--tint);color:var(--mute)}
+.state.closed{background:var(--green-soft);color:var(--green)}
 .memo{display:inline-flex;align-items:center;gap:7px}
 .memo b{font-family:var(--mono);font-weight:600;color:var(--ink)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ghost);flex:none}
@@ -186,7 +189,12 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
 .banner b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--bronze);white-space:nowrap}
 .banner.stop{background:var(--red-soft)} .banner.stop b{color:var(--red)}
-.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}
+.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px;align-items:center}
+.actions.minor{margin-top:12px}
+.sub .carry{margin-left:14px;text-transform:none;letter-spacing:0;font-family:var(--sans)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;background:var(--ink);
+  color:#fff;padding:11px 20px;border-radius:11px;font-size:13.5px;box-shadow:0 6px 24px rgba(28,27,24,.24)}
+.toast[hidden]{display:none!important}
 .foot{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--mute);
   margin-top:16px;line-height:1.5;max-width:70ch}
 
@@ -207,6 +215,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
     <div class="brand">Ф О Р М А<em>управленка</em></div>
     <div class="top-meta">
       <span class="month-pick"><label for="month">Месяц</label><input id="month" type="month" value="2026-09"></span>
+      <span class="state" id="mstate">черновик</span>
       <span class="memo"><span class="dot" id="memoDot"></span>Справочник: <b id="memoCount">—</b> контрагентов</span>
     </div>
   </div>
@@ -317,7 +326,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
           <div class="hint">уменьшают базу счёта 60</div></div>
       </div>
 
-      <div class="sub">Личные — Маланичев</div>
+      <div class="sub">Личные — Маланичев<button class="btn ghost sm carry" id="carryPers" type="button">Как в прошлом месяце</button></div>
       <div class="fields">
         <div class="f"><label for="mAn">Анализы</label><input id="mAn" inputmode="decimal"></div>
         <div class="f"><label for="mMat">Материалы за операции</label><input id="mMat" inputmode="decimal"></div>
@@ -336,7 +345,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
       <div class="sub">Прочие доходы и расчёты с учредителями</div>
       <div class="fields">
         <div class="f"><label for="pDep">Проценты по депозитам</label><input id="pDep" inputmode="decimal"></div>
-        <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"></div>
+        <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"><div class="hint" id="hPrev"></div></div>
         <div class="f"><label for="pPrevP">Остаток прошлого месяца — Погосян</label><input id="pPrevP" inputmode="decimal"></div>
         <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"><div class="hint" id="hDiv"></div></div>
         <div class="f"><label for="pDivP">Дивиденды — Погосян</label><input id="pDivP" inputmode="decimal"></div>
@@ -352,9 +361,14 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
     <div id="reportWrap" style="margin-top:20px"></div>
     <div class="actions">
       <button class="btn gold" id="openDash">Открыть отчёт учредителям</button>
-      <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
-      <button class="btn ghost" id="dlBook">Сохранить справочник</button>
-      <button class="btn ghost" id="reset">Очистить месяц</button>
+      <button class="btn" id="closeMonth">Закрыть месяц</button>
+      <button class="btn ghost" id="dlXlsx">Скачать Excel</button>
+    </div>
+    <div class="actions minor">
+      <button class="btn ghost sm" id="copyLink">Ссылка для учредителей</button>
+      <button class="btn ghost sm" id="printRep">Распечатать отчёт</button>
+      <button class="btn ghost sm" id="dlBook">Сохранить справочник</button>
+      <button class="btn ghost sm" id="reset">Очистить месяц</button>
     </div>
     <p class="foot">Справочник статей, состав ассистентов и подрядчики по стройке сохраняются между месяцами и общие для всех, кто открывает эту ссылку. Выгрузки нигде не сохраняются.</p>
   </section>
@@ -362,6 +376,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
   </main>
 </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <style>
 /* ======================= отчёт учредителям ======================= */
@@ -483,9 +498,32 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
 .dnote{background:var(--green-soft);border-radius:16px;padding:20px 24px;margin-top:22px;
   font-size:14px;color:var(--ink2);line-height:1.6}
 .dnote b{color:var(--green)}
+/* динамика по месяцам */
+.mbars{display:flex;align-items:flex-end;gap:0;height:230px;border-bottom:1.5px solid var(--ink);padding:22px 4px 0}
+@media(min-width:760px){.mbars{height:280px}}
+.mg{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;height:100%;position:relative}
+.mb{width:min(5vw,26px);border-radius:5px 5px 0 0;position:relative}
+.mb.prev{background:var(--ghost)} .mb.cur{background:var(--green)} .mb.now{background:var(--bronze2)}
+.mb .bv{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-family:var(--mono);
+  font-size:10.5px;white-space:nowrap;color:var(--ink2)}
+@media(max-width:760px){.mb .bv{display:none}.mb{width:min(4vw,26px)}.mg{gap:2px}}
+.mx{display:flex;padding:9px 4px 0}
+.mx span{flex:1;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--mute)}
+.leg{display:flex;gap:20px;padding:14px 4px 0;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.kc .d.up{color:var(--green)} .kc .d.dn{color:var(--red)}
 #dash footer{background:var(--ink);color:#6E6960;font-family:var(--mono);font-size:11.5px;
   padding:28px 0;border-top:1px solid rgba(217,212,201,.12)}
 #dash footer .w{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media print{
+  header.top, .grid, .toast, .dclose{display:none!important}
+  #dash{position:static;overflow:visible;background:#fff}
+  #dash section{padding:26px 0;break-inside:avoid}
+  .dhero{padding:40px 0 34px;break-after:avoid}
+  .kpi, .own, .dsplit{break-inside:avoid}
+  .tez, .kc, .ocard, .chartbox{break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:14mm}
+}
 </style>
 
 <div id="dash" hidden role="dialog" aria-modal="true" aria-label="Отчёт учредителям">
@@ -564,6 +602,61 @@ function renderDash(){
     {n:"Банк, алименты, проценты", v:-R2(p.bank + p.ali + p.int + p.mAcq + p.pAcq)},
     {n:"Доход учредителей", v:c.incAll, end:true}
   ];
+  /* динамика: выручка по месяцам, текущий год против прошлого */
+  const yr = +(st.month.slice(0, 4)), mo = +(st.month.slice(5, 7));
+  const months = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+  const live = Object.assign({}, hist);
+  live[st.month] = Object.assign({}, live[st.month] || {}, {rev: c.revNet, inc: c.incAll});
+  const rowFor = y => months.map((_, i) => {
+    const k = y + "-" + String(i + 1).padStart(2, "0");
+    return live[k] && live[k].rev ? live[k].rev : 0;
+  });
+  const cur = rowFor(yr), prevY = rowFor(yr - 1);
+  const lastM = cur.reduce((a, v, i) => v ? i : a, -1);
+  const peakM = Math.max(...cur, ...prevY) || 1;
+  const ytd = cur.slice(0, lastM + 1).reduce((a, b) => a + b, 0);
+  const ytdPrev = prevY.slice(0, lastM + 1).reduce((a, b) => a + b, 0);
+  const hasPrevY = ytdPrev > 0;
+  const dyn = lastM >= 1 ? `
+  <section class="tight"><div class="w">
+    <div class="kick">07 · Динамика</div><h2>Год к году</h2>
+    <div class="sb">Выручка по месяцам, млн ₽ · ${yr} против ${yr - 1}</div>
+    <div class="chartbox">
+      <div class="mbars">${months.slice(0, lastM + 1).map((_, i) => `<div class="mg">
+        ${prevY[i] ? `<div class="mb prev" style="height:${(prevY[i]/peakM*100).toFixed(1)}%"></div>` : ""}
+        <div class="mb ${i + 1 === mo && yr === +(st.month.slice(0,4)) ? "now" : "cur"}"
+             style="height:${(cur[i]/peakM*100).toFixed(1)}%">
+          ${cur[i] ? `<span class="bv">${MLN(cur[i])}</span>` : ""}</div>
+      </div>`).join("")}</div>
+      <div class="mx">${months.slice(0, lastM + 1).map(m => `<span>${m}</span>`).join("")}</div>
+      <div class="leg">
+        <span><span class="sw" style="background:var(--ghost)"></span>${yr - 1}</span>
+        <span><span class="sw" style="background:var(--green)"></span>${yr}</span>
+        <span><span class="sw" style="background:var(--bronze2)"></span>отчётный месяц</span>
+      </div>
+    </div>
+    <div class="dnote"><b>С начала года — ${MLN(ytd)} млн ₽.</b>
+      ${hasPrevY ? "За те же месяцы " + (yr - 1) + " года — " + MLN(ytdPrev) + " млн, это "
+        + (ytd >= ytdPrev ? "рост" : "спад") + " на " + pct(Math.abs(ytd / ytdPrev - 1)) + "."
+        : "Сравнить с прошлым годом не с чем: данных за " + (yr - 1) + " год нет."}
+      ${prevY[mo - 1] ? " В " + months[mo - 1].toLowerCase() + " " + (yr - 1) + " было "
+        + MLN(prevY[mo - 1]) + " млн." : " За этот месяц прошлого года данных нет."}</div>
+  </div></section>` : "";
+
+  /* дельты к прошлому месяцу */
+  const pm = shiftMonth(st.month, -1), prevS = hist[pm];
+  const delta = (now, was, invert) => {
+    if (!was) return {cls:"", txt:""};
+    const d = now / was - 1;
+    if (Math.abs(d) < 0.001) return {cls:"", txt:"как в " + monthName(pm).split(" ")[0]};
+    const good = invert ? d < 0 : d > 0;
+    return {cls: good ? "up" : "dn",
+      txt: (d > 0 ? "▲ +" : "▼ −") + pct(Math.abs(d)).replace(" %", " %") + " к " + monthName(pm).split(" ")[0]};
+  };
+  const dRev = delta(c.revNet, prevS && prevS.rev);
+  const dCost = delta(c.costAll, prevS && prevS.cost, true);
+  const dInc = delta(c.incAll, prevS && prevS.inc);
+
   const who = (nm, own, cost, inc, pay, prev, div) => `<div class="ocard">
     <h3>${nm}</h3>
     <div class="orow"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
@@ -599,7 +692,7 @@ function renderDash(){
     ${tez("02", "Расходы — " + MLN(c.costAll) + " млн ₽",
       "Это " + pct(c.revNet ? c.costAll / c.revNet : 0) + " выручки. Поставщики — <b>" + MLN(c.base60) + " млн</b>, ФОТ с налогами — " + MLN(fot) + " млн." + (c.credit > 0 ? " Ремонт за счёт кредитной линии, " + MLN(c.credit) + " млн, в расходы учредителей не входит." : ""))}
     ${tez("03", "Доход учредителей — " + MLN(c.incAll) + " млн ₽",
-      "Погосян — <b>" + MLN(c.incP) + " млн</b>, Маланичев — <b>" + MLN(c.incM) + " млн</b>. Разница — личная выручка и личные расходы, общая часть у обоих одинаковая.")}
+      "Погосян — <b>" + MLN(c.incP) + " млн</b>, Маланичев — <b>" + MLN(c.incM) + " млн</b>. Разница — личная выручка и личные расходы, общая часть у обоих одинаковая." + (dInc.txt ? " Против прошлого месяца — " + dInc.txt.replace("▲ ", "").replace("▼ ", "") + "." : ""))}
     ${tez("04", "К выплате — " + MLN(c.payAll) + " млн ₽",
       "С учётом накопленных остатков: Погосян " + MLN(c.payP) + " млн, Маланичев " + MLN(c.payM) + " млн. Дивиденды за месяц — " + fmt0(c.divAll) + " ₽.")}
   </div></section>
@@ -609,9 +702,9 @@ function renderDash(){
     <div class="sb">Шесть чисел, по которым видно месяц</div>
     <div class="kpi">
       <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
-        <div class="l">Выручка за месяц</div><div class="d">после возвратов пациентам</div></div>
+        <div class="l">Выручка за месяц</div><div class="d ${dRev.cls}">${dRev.txt || "после возвратов пациентам"}</div></div>
       <div class="kc"><div class="v">${MLN(c.base60)} <small>млн ₽</small></div>
-        <div class="l">Оплаты поставщикам · сч. 60</div><div class="d">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки</div></div>
+        <div class="l">Оплаты поставщикам · сч. 60</div><div class="d ${dCost.cls}">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки${dCost.txt ? " · " + dCost.txt : ""}</div></div>
       <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
         <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
       <div class="kc"><div class="v">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
@@ -673,7 +766,9 @@ function renderDash(){
     Расходы — оплаченные за месяц.${st.isExample ? " Показан август 2026 как пример." : ""}</p>
   </div></section>
 
-  <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per}</span></div></footer>`;
+  ${dyn}
+
+  <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
 }
 document.getElementById("openDash").addEventListener("click", () => {
   renderDash();
@@ -713,6 +808,7 @@ const monthName = v => { const m = /(\d{4})-(\d{2})/.exec(v || ""); return m ? M
 /* ============================ справочник по умолчанию ============================ */
 const BASE_BOOK = {"vendors":{"Маркарян Максим Рачьянович ИП":["Гонорары ИП хирургов","медицинские"],"БУРДИНА Е.С. ИП":["Гонорары ИП хирургов","медицинские"],"Сехина Виктория Дмитриевна":["Урегулирование досудебного спора","управленческие"],"Ужахов Тимур Магомедович ИП":["Гонорары ИП хирургов","медицинские"],"КЛОВЕРМЕД ООО":["Импланты","медицинские"],"Завиркин Антон Владимирович ИП":["ИП Завиркин А.В.","медицинские"],"Маржохов Астемир Ануарович ИП":["Гонорары ИП хирургов","медицинские"],"Габеев Алан Ирбекович ИП":["Гонорары ИП хирургов","медицинские"],"Ласукова Екатерина Борисовна":["Маркетинговые услуги","управленческие"],"Пономарёва Елена Юрьевна ИП":["Гонорары ИП хирургов","медицинские"],"БУРДИН С. А. ИП":["Гонорары ИП хирургов","медицинские"],"Ханукаев Александр Ильич":["Гонорары ИП хирургов","медицинские"],"СистеМед ООО":["Медицинские материалы","медицинские"],"ПОКАЛЕНЬЕВ Н. С. ИП":["Гонорары ИП хирургов","медицинские"],"СЛЕСАРЕВ ПАВЕЛ ИГОРЕВИЧ ИП":["Гонорары ИП хирургов","медицинские"],"ДельтаМед ООО":["Расходка","медицинские"],"Никифоров Сергей Арнольдович":["Аренда Самокатная 1 стр1","управленческие"],"Врачев Владислав Юрьевич ИП":["Гонорары ИП хирургов","медицинские"],"Береснев Алексей Игоревич ИП":["Гонорары ИП хирургов","медицинские"],"Макеенко Николай Владимирович ИП":["Гонорары ИП хирургов","медицинские"],"ИП КАЧАЯН В.А. ИП":["Гонорары ИП хирургов","медицинские"],"Чугуевская Ирина Сергеевна ИП":["ИП Чугуевская (ЗП Заведягин ОН)","медицинские"],"СИРИУС ММ ООО":["Расходка","медицинские"],"Громова Наталья Юрьевна ИП":["Ремонт","управленческие"],"КИТ МЕД ООО":["Медоборудование 320588 и расходники 194940","медицинские"],"ЦВ ПРОТЕК АО":["Лекарства","медицинские"],"ИТ-ЭКСПЕРТ ООО":["Обслуживание 1СУправление","управленческие"],"АЛЬДЖЕНСА ООО":["Питание","медицинские"],"ВИТТА КОМПАНИ ООО":["Лекарства","медицинские"],"РЕНЕССАНС ЭСТЕТИКА ООО":["Импланты","медицинские"],"Электростальский филиал МОКА":["Услуги юриста","управленческие"],"Самозанятый Завиркина Лилия Викторовна":["Складской учет","управленческие"],"Стародубов Дмитрий Александрович ИП":["Медицинские материалы","медицинские"],"ПФ СКБ Контур АО":["ПО и IT-сервисы","управленческие"],"Выскуб Ольга Анатольевна ИП":["Косметология","управленческие"],"РОКЕТ СЕРВИС ООО":["Битрикс 24","управленческие"],"ГЕРАСИМОВА А.В. ИП":["Маркетинговые услуги","медицинские"],"Хафизов Станислав Ильшатович ИП":["Сайт","управленческие"],"КРЕЙТ ООО":["Белье","медицинские"],"МЕДПРО ООО":["Белье","медицинские"],"ЛЕ МОНЛИД ООО":["Ремонт керамогранит","управленческие"],"Рыболова Анастасия Алексеевна ИП":["Расходка","медицинские"],"Богачко Елизавета Максимовна ИП":["Аренда Inmode","медицинские"],"МЕДИНТОРГ АО":["Расходка","медицинские"],"ФГБУЗ Центр крови ФМБА России УФК по г.Москве (ФГБУЗ Центр крови ФМБА России) л/с 20736У64550":["Кровь","медицинские"],"ПЗСПП ООО":["Светильники и оборудование","управленческие"],"БЕЛВА ООО ПТК":["Мед.мебель","медицинские"],"Самозанятый Маланичев Юрий Васильевич":["Услуги инженера","управленческие"],"КОМУС ООО":["Канц и хоз расходы","управленческие"],"ИМОТИО ООО":["Сервис речевой аналитики","управленческие"],"Кудря Дарья Сергеевна ИП":["Фото видео","управленческие"],"АЛКАНА А ООО":["Медицинские материалы","медицинские"],"ИТМЕДИКАЛ ООО":["Импланты","медицинские"],"ТД ТИНКО ООО":["Ремонт Самокатная 1 стр.12","управленческие"],"Елизаров Андрей Владимирович ИП":["IT услуги","управленческие"],"А410 ООО":["Косметология","управленческие"],"Ершов Эдуард Владимирович ИП":["Фото видео","управленческие"],"МИА ООО":["Белье","медицинские"],"Дубровина Юлия Игоревна ИП":["Гонорары ИП хирургов","медицинские"],"КДЛ ДОМОДЕДОВО-ТЕСТ ООО":["Анализы","медицинские"],"Звоник Юрий Алексеевич":["Реклама","управленческие"],"ЯНДЕКС.ТАКСИ ООО":["Такси","управленческие"],"ТЕХПРОФИТ ООО":["IT услуги","управленческие"],"Самозанятый Дроздецкий Дмитрий Александрович":["Реклама","управленческие"],"ДельтаМедКомпани ООО":["Расходка","медицинские"],"ИННОВАЦИОННЫЕ ТЕХНОЛОГИИ ООО":["Внедрение финансового учёта","управленческие"],"ЦЕНТР-ОТЕЛЬ ООО":["Краснодар","управленческие"],"М-ИНВЕСТ ООО":["Медицинские материалы","медицинские"],"ИНТЕРНЕТ РЕШЕНИЯ ООО":["Хоз расходы","управленческие"],"ДЕЗНЭТ ООО":["Медицинские материалы","медицинские"],"Самозанятый Лукина Екатерина Витальевна":["Фото видео","управленческие"],"ПРОМТЕКСТИЛЬ ООО ТД":["Медицинские материалы","медицинские"],"Самозанятый Орлов Сергей Юрьевич":["Общехозяйственные","управленческие"],"Евтеев Александр Викторович Самозанятый":["Общехозяйственные","управленческие"],"АЛКАНА М ООО":["Косметология","управленческие"],"СитиМед ООО":["Бланки, мед.журналы, мед.книжки","медицинские"],"ЭКОТЕХПРОМ АО":["Вывоз ТКО и мед отходов","медицинские"],"МЕДИКЛЦЕНТРСЕРВИС ООО":["Стиральный порошок","медицинские"],"КРИОФАРМ ООО":["Медицинские материалы","медицинские"],"БАРИСТА ООО":["Кофе","управленческие"],"СИСТЕМА ООО":["Медицинские материалы","медицинские"],"Семин Сергей Владиславович":["Цветы","управленческие"],"КОЛТАЧ СОЛЮШНС ООО":["Программное обнспечение","управленческие"],"СМБ-СЕРВИС ООО":["Реклама","управленческие"],"ГРАНД КОМФОРТ ООО":["Средства гигиены","управленческие"],"ДОКТОР ДИСКАУНТ ООО":["Мед.инструмент","медицинские"],"Селектел АО":["IT услуги","управленческие"],"МЕДЛИГА АО":["Медоборудование","медицинские"],"ХЭДХАНТЕР ООО":["Подбор персонала","управленческие"],"ЭКМУС ООО":["Утилизация медотходов","медицинские"],"МЕТАЛЛИЧЕСКАЯ МЕБЕЛЬ ООО":["Мебель, инвентарь","управленческие"],"МАНГО ТЕЛЕКОМ ООО":["Связь","управленческие"],"ТАТАРОВА В. Г. ИП":["Вода","управленческие"],"ТАКСКОМ ООО":["Техподдержка ККТ","управленческие"],"МРК-СНАБ ООО":["Расходка","медицинские"],"ОнЛайн Трейд ООО":["Электрооборудование","управленческие"],"КантриКом АО":["Связь","управленческие"],"ЧОО Спектр секъюрити ООО":["Охрана","управленческие"],"ВЕСТ КОЛЛ ЛТД ООО":["Интернет","управленческие"],"ТЕЛЕМИР ООО":["Связь","управленческие"],"ИНСТРУ-МЕД ООО":["Расходник","управленческие"],"Алдошин Павел Александрович ИП":["Аренда кофемашины","управленческие"],"Вилорд ООО":["Медицинские материалы","медицинские"],"ГБУЗ ЦЛО ДЗМ":["Наркотики","медицинские"],"АТОЛ ОНЛАЙН ООО":["Обслуживание ККТ","управленческие"],"Самозанятый Кожина Наталия Васильевна":["Дизайн-услуги","управленческие"],"АСПРОМЕД ООО":["Расходка","медицинские"],"МГУТУ АНО ДПО":["Обучение персонала","управленческие"],"АО \"Почта России\"":["Общехоз.расходы прочие","управленческие"],"МЕДРОКЕТ ООО":["ПроДокторов","управленческие"],"ТЕХМОНТАЖ ООО":["Охрана","управленческие"],"Деловые линии ООО":["Доставка","управленческие"],"ТЕХМОНТАЖСЕРВИС ООО":["ТО СКУД, пожарной сигнализации","управленческие"],"КИКОТЬ ОЛЕГ МИХАЙЛОВИЧ ИП":["Обслуживание 1СПредприятие","управленческие"],"Самозанятый Кучер Татьяна Александровна":["Дизайн-услуги","управленческие"],"ДЕАЛМЕД АО":["Медицинские материалы","медицинские"],"ИНФОТЕХ ООО":["Оргтехника","управленческие"],"Аквапрактика ООО":["Обслуживание аквариума","управленческие"],"Cамозанятый Котлярова Олеся Владимировна":["Консультационные услуги","управленческие"],"КВАЛИТЕТ ООО":["Ремонт Самокатная 1 стр.12","управленческие"]},"articles":{"Гонорары ИП хирургов":"медицинские","Урегулирование досудебного спора":"управленческие","Импланты":"медицинские","ИП Завиркин А.В.":"медицинские","Маркетинговые услуги":"управленческие","Медицинские материалы":"медицинские","Расходка":"медицинские","Аренда Самокатная 1 стр1":"управленческие","ИП Чугуевская (ЗП Заведягин ОН)":"медицинские","Ремонт":"управленческие","Медоборудование 320588 и расходники 194940":"медицинские","Лекарства":"медицинские","Обслуживание 1СУправление":"управленческие","Питание":"медицинские","Услуги юриста":"управленческие","Складской учет":"управленческие","ПО и IT-сервисы":"управленческие","Косметология":"управленческие","Битрикс 24":"управленческие","Сайт":"управленческие","Белье":"медицинские","Ремонт керамогранит":"управленческие","Аренда Inmode":"медицинские","Кровь":"медицинские","Светильники и оборудование":"управленческие","Мед.мебель":"медицинские","Услуги инженера":"управленческие","Канц и хоз расходы":"управленческие","Сервис речевой аналитики":"управленческие","Фото видео":"управленческие","Ремонт Самокатная 1 стр.12":"управленческие","IT услуги":"управленческие","Анализы":"медицинские","Реклама":"управленческие","Такси":"управленческие","Внедрение финансового учёта":"управленческие","Краснодар":"управленческие","Хоз расходы":"управленческие","Общехозяйственные":"управленческие","Бланки, мед.журналы, мед.книжки":"медицинские","Вывоз ТКО и мед отходов":"медицинские","Стиральный порошок":"медицинские","Кофе":"управленческие","Цветы":"управленческие","Программное обнспечение":"управленческие","Средства гигиены":"управленческие","Мед.инструмент":"медицинские","Медоборудование":"медицинские","Подбор персонала":"управленческие","Утилизация медотходов":"медицинские","Мебель, инвентарь":"управленческие","Связь":"управленческие","Вода":"управленческие","Техподдержка ККТ":"управленческие","Электрооборудование":"управленческие","Охрана":"управленческие","Интернет":"управленческие","Расходник":"управленческие","Аренда кофемашины":"управленческие","Наркотики":"медицинские","Обслуживание ККТ":"управленческие","Дизайн-услуги":"управленческие","Обучение персонала":"управленческие","Общехоз.расходы прочие":"управленческие","ПроДокторов":"управленческие","Доставка":"управленческие","ТО СКУД, пожарной сигнализации":"управленческие","Обслуживание 1СПредприятие":"управленческие","Оргтехника":"управленческие","Обслуживание аквариума":"управленческие","Консультационные услуги":"управленческие"}};
 const EXAMPLE = {"vendors":[["Маркарян Максим Рачьянович ИП",10966274.0],["БУРДИНА Е.С. ИП",5382764.0],["Сехина Виктория Дмитриевна",4692500.0],["Ужахов Тимур Магомедович ИП",4518074.0],["КЛОВЕРМЕД ООО",4196900.0],["Завиркин Антон Владимирович ИП",2887658.0],["Маржохов Астемир Ануарович ИП",2811745.0],["Габеев Алан Ирбекович ИП",2631347.0],["Ласукова Екатерина Борисовна",2505800.0],["Пономарёва Елена Юрьевна ИП",2272677.0],["БУРДИН С. А. ИП",2227217.0],["Ханукаев Александр Ильич",2210015.0],["СистеМед ООО",1857678.61],["ПОКАЛЕНЬЕВ Н. С. ИП",1740957.0],["СЛЕСАРЕВ ПАВЕЛ ИГОРЕВИЧ ИП",1337422.0],["ДельтаМед ООО",1157543.1],["Никифоров Сергей Арнольдович",1155000.0],["Врачев Владислав Юрьевич ИП",927938.0],["Береснев Алексей Игоревич ИП",792876.0],["Макеенко Николай Владимирович ИП",703266.0],["ИП КАЧАЯН В.А. ИП",656611.0],["Чугуевская Ирина Сергеевна ИП",570005.0],["СИРИУС ММ ООО",550653.36],["Громова Наталья Юрьевна ИП",516000.0],["КИТ МЕД ООО",515528.0],["ЦВ ПРОТЕК АО",477406.58],["ИТ-ЭКСПЕРТ ООО",435435.0],["АЛЬДЖЕНСА ООО",376950.0],["ВИТТА КОМПАНИ ООО",349946.07],["РЕНЕССАНС ЭСТЕТИКА ООО",331000.0],["Электростальский филиал МОКА",330000.0],["Самозанятый Завиркина Лилия Викторовна",320000.0],["Стародубов Дмитрий Александрович ИП",293400.0],["ПФ СКБ Контур АО",279349.86],["Выскуб Ольга Анатольевна ИП",275300.0],["РОКЕТ СЕРВИС ООО",264850.0],["ГЕРАСИМОВА А.В. ИП",260766.0],["Хафизов Станислав Ильшатович ИП",254000.0],["КРЕЙТ ООО",246913.68],["МЕДПРО ООО",235200.0],["ЛЕ МОНЛИД ООО",222551.24],["Рыболова Анастасия Алексеевна ИП",220000.0],["Богачко Елизавета Максимовна ИП",210000.0],["МЕДИНТОРГ АО",206303.7],["ФГБУЗ Центр крови ФМБА России УФК по г.Москве (ФГБУЗ Центр крови ФМБА России) л/с 20736У64550",181735.9],["ПЗСПП ООО",179400.0],["БЕЛВА ООО ПТК",173834.16],["Самозанятый Маланичев Юрий Васильевич",159575.0],["КОМУС ООО",157671.72],["ИМОТИО ООО",152250.0],["Кудря Дарья Сергеевна ИП",149600.0],["АЛКАНА А ООО",82000.0],["ИТМЕДИКАЛ ООО",136000.0],["ТД ТИНКО ООО",118740.75],["Елизаров Андрей Владимирович ИП",118735.06],["А410 ООО",114858.0],["Ершов Эдуард Владимирович ИП",111300.0],["МИА ООО",110000.0],["Дубровина Юлия Игоревна ИП",104374.0],["КДЛ ДОМОДЕДОВО-ТЕСТ ООО",102102.0],["Звоник Юрий Алексеевич",100000.0],["ЯНДЕКС.ТАКСИ ООО",100000.0],["ТЕХПРОФИТ ООО",99200.0],["Самозанятый Дроздецкий Дмитрий Александрович",90100.0],["ДельтаМедКомпани ООО",87600.0],["ИННОВАЦИОННЫЕ ТЕХНОЛОГИИ ООО",85000.0],["ЦЕНТР-ОТЕЛЬ ООО",81075.0],["М-ИНВЕСТ ООО",77412.0],["ИНТЕРНЕТ РЕШЕНИЯ ООО",78090.0],["ДЕЗНЭТ ООО",76940.0],["Самозанятый Лукина Екатерина Витальевна",76540.0],["ПРОМТЕКСТИЛЬ ООО ТД",76000.0],["Самозанятый Орлов Сергей Юрьевич",72360.0],["Евтеев Александр Викторович Самозанятый",64756.0],["АЛКАНА М ООО",64600.0],["СитиМед ООО",63600.0],["ЭКОТЕХПРОМ АО",52136.72],["МЕДИКЛЦЕНТРСЕРВИС ООО",51760.0],["КРИОФАРМ ООО",51675.0],["БАРИСТА ООО",48301.44],["СИСТЕМА ООО",48285.78],["Семин Сергей Владиславович",40000.0],["КОЛТАЧ СОЛЮШНС ООО",39200.0],["СМБ-СЕРВИС ООО",37700.0],["ГРАНД КОМФОРТ ООО",37568.0],["ДОКТОР ДИСКАУНТ ООО",35920.61],["Селектел АО",30000.0],["МЕДЛИГА АО",29800.0],["ХЭДХАНТЕР ООО",27629.0],["ЭКМУС ООО",23625.0],["МЕТАЛЛИЧЕСКАЯ МЕБЕЛЬ ООО",22130.0],["МАНГО ТЕЛЕКОМ ООО",20000.0],["ТАТАРОВА В. Г. ИП",20000.0],["ТАКСКОМ ООО",17900.0],["МРК-СНАБ ООО",17750.0],["ОнЛайн Трейд ООО",17740.0],["КантриКом АО",17568.0],["ЧОО Спектр секъюрити ООО",16800.0],["ВЕСТ КОЛЛ ЛТД ООО",16235.15],["ТЕЛЕМИР ООО",16192.0],["ИНСТРУ-МЕД ООО",15120.0],["Алдошин Павел Александрович ИП",15000.0],["Вилорд ООО",12800.0],["ГБУЗ ЦЛО ДЗМ",12760.0],["АТОЛ ОНЛАЙН ООО",12505.0],["Самозанятый Кожина Наталия Васильевна",11660.0],["АСПРОМЕД ООО",10940.0],["МГУТУ АНО ДПО",10900.0],["АО \"Почта России\"",10000.0],["МЕДРОКЕТ ООО",10000.0],["ТЕХМОНТАЖ ООО",9800.0],["Деловые линии ООО",7495.0],["ТЕХМОНТАЖСЕРВИС ООО",7000.0],["КИКОТЬ ОЛЕГ МИХАЙЛОВИЧ ИП",6135.0],["Самозанятый Кучер Татьяна Александровна",5400.0],["ДЕАЛМЕД АО",5170.0],["ИНФОТЕХ ООО",610.0],["Аквапрактика ООО",5000.0],["Cамозанятый Котлярова Олеся Владимировна",1100.0],["КВАЛИТЕТ ООО",11000000.0]],"groups":{"mal":3840000.0,"pog":11985000.0,"other":78426470.3,"cosm":2788990.0,"misc":298270.0},"params":{"tax":6135792.28,"sal":12490831.85,"bank":450077.22,"ali":38726.66,"int":204388.93,"corr":220355.37,"mAn":30620.0,"mMat":140241.64,"mAss":64884.23,"mAcq":15981.06,"pAn":12248.0,"pMat":1479282.06,"pAss":226384.0,"pAcq":49901.51,"dep":396337.24,"prevM":30658896.02,"prevP":45275972.21,"divM":5882353.0,"divP":5882353.0,"revBank":97338730.3,"refund":465000.0}};
+const BASE_HIST = {"2025-01":{"rev":65706942.0},"2025-02":{"rev":74025535.0},"2025-03":{"rev":82158176.0},"2025-04":{"rev":84678135.0},"2025-05":{"rev":79591558.0},"2025-06":{"rev":72223764.0},"2025-07":{"rev":69118798.5},"2025-09":{"rev":81488546.61},"2025-10":{"rev":112251113.0},"2025-11":{"rev":99764489.61},"2025-12":{"rev":86073459.34},"2026-01":{"rev":95732197.49},"2026-02":{"rev":99580226.87},"2026-03":{"rev":114153459.7},"2026-04":{"rev":115281361.15},"2026-05":{"rev":79719174.69},"2026-06":{"rev":84057781.89},"2026-07":{"rev":108126415.72},"2026-08":{"rev":96500243.15}};
 
 /* ============================ хранилище ============================ */
 let DB = null;
@@ -735,6 +831,28 @@ async function loadBook(){
     founders: (src && src.founders) || {mal:"", pog:""}
   };
 }
+let hist = {};
+async function loadHist(){
+  let src = LS.get("hist");
+  if (DB){ try { const s = await DB.doc("history/all").get(); if (s.exists) src = s.data().months || src; } catch(e){} }
+  return Object.assign({}, BASE_HIST, src || {});
+}
+let histTimer = null;
+function saveHist(){
+  clearTimeout(histTimer);
+  histTimer = setTimeout(async () => {
+    const own = {};
+    for (const k in hist) if (!BASE_HIST[k] || hist[k].closed) own[k] = hist[k];
+    LS.set("hist", own);
+    if (DB){ try { await DB.doc("history/all").set({months: own}); } catch(e){} }
+  }, 700);
+}
+const shiftMonth = (m, d) => {
+  const x = /(\d{4})-(\d{2})/.exec(m); if (!x) return "";
+  let y = +x[1], mm = +x[2] + d;
+  while (mm < 1){ mm += 12; y--; } while (mm > 12){ mm -= 12; y++; }
+  return y + "-" + String(mm).padStart(2, "0");
+};
 let saveTimer = null;
 function saveBook(){
   clearTimeout(saveTimer);
@@ -935,6 +1053,25 @@ function calc(){
     prevAll:R2(p.prevM + p.prevP), divAll:R2(p.divM + p.divP), payAll:R2(payM + payP)};
 }
 
+function snapshotOf(c){
+  const arts = {};
+  for (const k in c.byArt) arts[k] = R2(c.byArt[k].sum);
+  return {rev:c.revNet, cost:c.costAll, inc:c.incAll, incM:c.incM, incP:c.incP,
+    payM:c.payM, payP:c.payP, base60:c.base60, med:c.byBlock.m, upr:c.byBlock.u,
+    fot:R2(st.params.sal + st.params.tax), groups:Object.assign({}, c.G, {other:c.otherNet}), arts};
+}
+/* статьи, которых в прошлом месяце не было или которые выросли больше чем вдвое */
+function anomalies(c){
+  const prev = hist[shiftMonth(st.month, -1)];
+  if (!prev || !prev.arts) return null;
+  const fresh = [], jump = [];
+  for (const k in c.byArt){
+    const now = c.byArt[k].sum, was = prev.arts[k];
+    if (was == null){ if (now > 50000) fresh.push([k, now]); }
+    else if (was > 20000 && now > was * 2) jump.push([k, now, was]);
+  }
+  return {fresh, jump, prevMonth:shiftMonth(st.month, -1)};
+}
 /* ============================ сверки ============================ */
 function checks(c){
   const out = [];
@@ -982,6 +1119,16 @@ function checks(c){
   out.push({ok: Math.abs(R2(c.incM + c.incP) - c.incAll) < 0.01,
     what:"Доход: всего равно Маланичев плюс Погосян", sub:"возвраты и половинные доли учтены в обеих колонках",
     val: fmt(c.incAll)});
+  const an = anomalies(c);
+  if (an && (an.fresh.length || an.jump.length)){
+    const bits = [];
+    if (an.fresh.length) bits.push(an.fresh.slice(0,3).map(x => x[0] + " " + fmt0(x[1])).join(" · ")
+      + (an.fresh.length > 3 ? " и ещё " + (an.fresh.length - 3) : ""));
+    if (an.jump.length) bits.push(an.jump.slice(0,3).map(x => x[0] + " ×" + (x[1]/x[2]).toFixed(1)).join(" · ")
+      + (an.jump.length > 3 ? " и ещё " + (an.jump.length - 3) : ""));
+    out.push({ok:"warn", what:"Не как в прошлом месяце: новых статей " + an.fresh.length + ", выросло вдвое " + an.jump.length,
+      sub: bits.join(" | "), val: monthName(an.prevMonth)});
+  }
   if (c.credit > 0) out.push({ok:"warn", what:"За счёт кредитной линии исключено из расходов",
     sub: book.credit.join(" · "), val: fmt(c.credit)});
   return out;
@@ -1140,6 +1287,11 @@ function renderNeeds(){
 }
 function render(){
   const c = calc();
+  const cl = hist[st.month] && hist[st.month].closed;
+  const ms = $("mstate");
+  ms.textContent = cl ? "закрыт " + cl.split("-").reverse().slice(0,2).join(".") : "черновик";
+  ms.classList.toggle("closed", !!cl);
+  const cb = $("closeMonth"); if (cb) cb.textContent = cl ? "Открыть заново" : "Закрыть месяц";
   $("memoCount").textContent = Object.keys(book.vendors).length;
   $("memoDot").classList.add("on");
   renderNeeds(); renderFiles(); renderVendors(c); renderBlocks(c); renderDoctors(c);
@@ -1346,6 +1498,40 @@ async function offer(filename, blob){
   catch(e){ if (e && e.code !== "declined") alert("Не сохранилось: " + (e.message || e.code)); }
 }
 /*ENDOFFER*/
+function toast(text){
+  const t = $("toast"); t.textContent = text; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 2600);
+}
+function isClosed(){ return !!(hist[st.month] && hist[st.month].closed); }
+function closeMonth(){
+  const c = calc();
+  const bad = checks(c).filter(x => x.ok === false);
+  if (bad.length && !confirm("Не сходится: " + bad.map(x => x.what).join("; ")
+    + ".\n\nВсё равно закрыть месяц?")) return;
+  hist[st.month] = Object.assign(snapshotOf(c), {closed: new Date().toISOString().slice(0, 10)});
+  saveHist(); render();
+  toast("Месяц закрыт. Цифры сохранены в историю — учредители увидят динамику.");
+}
+function reopenMonth(){
+  if (!confirm("Открыть месяц заново? Он снова станет черновиком.")) return;
+  if (hist[st.month]) delete hist[st.month].closed;
+  saveHist(); render();
+}
+function carryPersonal(){
+  const pm = shiftMonth(st.month, -1), prev = LS.get("params:" + pm);
+  if (!prev){ toast("За " + monthName(pm) + " параметров не сохранено"); return; }
+  ["mAn","mMat","mAss","pAn","pMat","pAss"].forEach(k => st.params[k] = N(prev[k]));
+  fillParams(); saveParams(); render();
+  toast("Личные расходы взяты из " + monthName(pm) + " — проверьте суммы");
+}
+function pullPrevBalance(){
+  const pm = shiftMonth(st.month, -1), prev = hist[pm];
+  if (!prev || prev.payM == null) return;
+  say("hPrev", "по закрытому " + monthName(pm) + ": " + fmt(prev.payM) + " и " + fmt(prev.payP));
+  if (!st.params.prevM && !st.params.prevP){
+    st.params.prevM = prev.payM; st.params.prevP = prev.payP; fillParams(); saveParams();
+  }
+}
 /* ============================ события ============================ */
 function wire(){
   $("pick").addEventListener("click", () => $("file").click());
@@ -1362,7 +1548,7 @@ function wire(){
     const saved = await loadParams(st.month);
     if (saved){ PK.forEach(k => st.params[k] = N(saved[k])); }
     else if (st.month !== "2026-08"){ PK.forEach(k => st.params[k] = 0); st.isExample = false; st.vendors = []; st.groups = null; st.files = []; st.acc = {}; st.doctors = null; st.payments = null; }
-    fillParams(); render();
+    fillParams(); pullPrevBalance(); render();
   });
 
   $("vbody").addEventListener("change", e => {
@@ -1405,6 +1591,16 @@ function wire(){
     book.founders[i ? "pog" : "mal"] = e.target.value; saveBook(); regroup(); render();
   }));
 
+  $("closeMonth").addEventListener("click", () => isClosed() ? reopenMonth() : closeMonth());
+  $("carryPers").addEventListener("click", carryPersonal);
+  $("printRep").addEventListener("click", () => { renderDash(); $("dash").hidden = false; setTimeout(() => window.print(), 120); });
+  const cl = $("copyLink");
+  if (cl) cl.addEventListener("click", async () => {
+    const url = location.href.split("#")[0] + "#report";
+    try { await navigator.clipboard.writeText(url); toast("Ссылка скопирована — учредители откроют сразу отчёт"); }
+    catch(e){ prompt("Скопируйте ссылку для учредителей:", url); }
+  });
+
   $("dlXlsx").addEventListener("click", async () => {
     const c = calc();
     const out = XLSX.write(buildWorkbook(c), {bookType:"xlsx", type:"array"});
@@ -1426,18 +1622,21 @@ function wire(){
 /* ============================ старт ============================ */
 async function start(){
   book = await loadBook();
+  hist = await loadHist();
   st.month = "2026-08";
   $("month").value = st.month;
   st.vendors = EXAMPLE.vendors.map(v => ({name:v[0], paid:v[1]}));
   st.groups = EXAMPLE.groups;
   PK.forEach(k => st.params[k] = N(EXAMPLE.params[k]));
-  fillParams(); bindParams(); wire(); render();
+  fillParams(); bindParams(); wire(); pullPrevBalance(); render();
+  if (/report|отч/i.test(decodeURIComponent(location.hash))) $("openDash").click();
 
   claude.use("db").then(async d => {
     if (!d) return;
     DB = d;
     book = await loadBook();
-    render();
+    hist = await loadHist();
+    pullPrevBalance(); render();
   }).catch(() => {});
 }
 if (typeof claude === "undefined") window.claude = {use: () => Promise.resolve(null)};

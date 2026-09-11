@@ -3,6 +3,7 @@
     <div class="brand">Ф О Р М А<em>управленка</em></div>
     <div class="top-meta">
       <span class="month-pick"><label for="month">Месяц</label><input id="month" type="month" value="2026-09"></span>
+      <span class="state" id="mstate">черновик</span>
       <span class="memo"><span class="dot" id="memoDot"></span>Справочник: <b id="memoCount">—</b> контрагентов</span>
     </div>
   </div>
@@ -113,7 +114,7 @@
           <div class="hint">уменьшают базу счёта 60</div></div>
       </div>
 
-      <div class="sub">Личные — Маланичев</div>
+      <div class="sub">Личные — Маланичев<button class="btn ghost sm carry" id="carryPers" type="button">Как в прошлом месяце</button></div>
       <div class="fields">
         <div class="f"><label for="mAn">Анализы</label><input id="mAn" inputmode="decimal"></div>
         <div class="f"><label for="mMat">Материалы за операции</label><input id="mMat" inputmode="decimal"></div>
@@ -132,7 +133,7 @@
       <div class="sub">Прочие доходы и расчёты с учредителями</div>
       <div class="fields">
         <div class="f"><label for="pDep">Проценты по депозитам</label><input id="pDep" inputmode="decimal"></div>
-        <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"></div>
+        <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"><div class="hint" id="hPrev"></div></div>
         <div class="f"><label for="pPrevP">Остаток прошлого месяца — Погосян</label><input id="pPrevP" inputmode="decimal"></div>
         <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"><div class="hint" id="hDiv"></div></div>
         <div class="f"><label for="pDivP">Дивиденды — Погосян</label><input id="pDivP" inputmode="decimal"></div>
@@ -148,9 +149,14 @@
     <div id="reportWrap" style="margin-top:20px"></div>
     <div class="actions">
       <button class="btn gold" id="openDash">Открыть отчёт учредителям</button>
-      <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
-      <button class="btn ghost" id="dlBook">Сохранить справочник</button>
-      <button class="btn ghost" id="reset">Очистить месяц</button>
+      <button class="btn" id="closeMonth">Закрыть месяц</button>
+      <button class="btn ghost" id="dlXlsx">Скачать Excel</button>
+    </div>
+    <div class="actions minor">
+      <button class="btn ghost sm" id="copyLink">Ссылка для учредителей</button>
+      <button class="btn ghost sm" id="printRep">Распечатать отчёт</button>
+      <button class="btn ghost sm" id="dlBook">Сохранить справочник</button>
+      <button class="btn ghost sm" id="reset">Очистить месяц</button>
     </div>
     <p class="foot">Справочник статей, состав ассистентов и подрядчики по стройке сохраняются между месяцами и общие для всех, кто открывает эту ссылку. Выгрузки нигде не сохраняются.</p>
   </section>
@@ -158,3 +164,4 @@
   </main>
 </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

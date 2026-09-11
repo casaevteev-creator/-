@@ -62,6 +62,25 @@ function calc(){
     prevAll:R2(p.prevM + p.prevP), divAll:R2(p.divM + p.divP), payAll:R2(payM + payP)};
 }
 
+function snapshotOf(c){
+  const arts = {};
+  for (const k in c.byArt) arts[k] = R2(c.byArt[k].sum);
+  return {rev:c.revNet, cost:c.costAll, inc:c.incAll, incM:c.incM, incP:c.incP,
+    payM:c.payM, payP:c.payP, base60:c.base60, med:c.byBlock.m, upr:c.byBlock.u,
+    fot:R2(st.params.sal + st.params.tax), groups:Object.assign({}, c.G, {other:c.otherNet}), arts};
+}
+/* статьи, которых в прошлом месяце не было или которые выросли больше чем вдвое */
+function anomalies(c){
+  const prev = hist[shiftMonth(st.month, -1)];
+  if (!prev || !prev.arts) return null;
+  const fresh = [], jump = [];
+  for (const k in c.byArt){
+    const now = c.byArt[k].sum, was = prev.arts[k];
+    if (was == null){ if (now > 50000) fresh.push([k, now]); }
+    else if (was > 20000 && now > was * 2) jump.push([k, now, was]);
+  }
+  return {fresh, jump, prevMonth:shiftMonth(st.month, -1)};
+}
 /* ============================ сверки ============================ */
 function checks(c){
   const out = [];
@@ -109,6 +128,16 @@ function checks(c){
   out.push({ok: Math.abs(R2(c.incM + c.incP) - c.incAll) < 0.01,
     what:"Доход: всего равно Маланичев плюс Погосян", sub:"возвраты и половинные доли учтены в обеих колонках",
     val: fmt(c.incAll)});
+  const an = anomalies(c);
+  if (an && (an.fresh.length || an.jump.length)){
+    const bits = [];
+    if (an.fresh.length) bits.push(an.fresh.slice(0,3).map(x => x[0] + " " + fmt0(x[1])).join(" · ")
+      + (an.fresh.length > 3 ? " и ещё " + (an.fresh.length - 3) : ""));
+    if (an.jump.length) bits.push(an.jump.slice(0,3).map(x => x[0] + " ×" + (x[1]/x[2]).toFixed(1)).join(" · ")
+      + (an.jump.length > 3 ? " и ещё " + (an.jump.length - 3) : ""));
+    out.push({ok:"warn", what:"Не как в прошлом месяце: новых статей " + an.fresh.length + ", выросло вдвое " + an.jump.length,
+      sub: bits.join(" | "), val: monthName(an.prevMonth)});
+  }
   if (c.credit > 0) out.push({ok:"warn", what:"За счёт кредитной линии исключено из расходов",
     sub: book.credit.join(" · "), val: fmt(c.credit)});
   return out;
@@ -267,6 +296,11 @@ function renderNeeds(){
 }
 function render(){
   const c = calc();
+  const cl = hist[st.month] && hist[st.month].closed;
+  const ms = $("mstate");
+  ms.textContent = cl ? "закрыт " + cl.split("-").reverse().slice(0,2).join(".") : "черновик";
+  ms.classList.toggle("closed", !!cl);
+  const cb = $("closeMonth"); if (cb) cb.textContent = cl ? "Открыть заново" : "Закрыть месяц";
   $("memoCount").textContent = Object.keys(book.vendors).length;
   $("memoDot").classList.add("on");
   renderNeeds(); renderFiles(); renderVendors(c); renderBlocks(c); renderDoctors(c);

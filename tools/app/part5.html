@@ -193,6 +193,40 @@ async function offer(filename, blob){
   catch(e){ if (e && e.code !== "declined") alert("Не сохранилось: " + (e.message || e.code)); }
 }
 /*ENDOFFER*/
+function toast(text){
+  const t = $("toast"); t.textContent = text; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 2600);
+}
+function isClosed(){ return !!(hist[st.month] && hist[st.month].closed); }
+function closeMonth(){
+  const c = calc();
+  const bad = checks(c).filter(x => x.ok === false);
+  if (bad.length && !confirm("Не сходится: " + bad.map(x => x.what).join("; ")
+    + ".\n\nВсё равно закрыть месяц?")) return;
+  hist[st.month] = Object.assign(snapshotOf(c), {closed: new Date().toISOString().slice(0, 10)});
+  saveHist(); render();
+  toast("Месяц закрыт. Цифры сохранены в историю — учредители увидят динамику.");
+}
+function reopenMonth(){
+  if (!confirm("Открыть месяц заново? Он снова станет черновиком.")) return;
+  if (hist[st.month]) delete hist[st.month].closed;
+  saveHist(); render();
+}
+function carryPersonal(){
+  const pm = shiftMonth(st.month, -1), prev = LS.get("params:" + pm);
+  if (!prev){ toast("За " + monthName(pm) + " параметров не сохранено"); return; }
+  ["mAn","mMat","mAss","pAn","pMat","pAss"].forEach(k => st.params[k] = N(prev[k]));
+  fillParams(); saveParams(); render();
+  toast("Личные расходы взяты из " + monthName(pm) + " — проверьте суммы");
+}
+function pullPrevBalance(){
+  const pm = shiftMonth(st.month, -1), prev = hist[pm];
+  if (!prev || prev.payM == null) return;
+  say("hPrev", "по закрытому " + monthName(pm) + ": " + fmt(prev.payM) + " и " + fmt(prev.payP));
+  if (!st.params.prevM && !st.params.prevP){
+    st.params.prevM = prev.payM; st.params.prevP = prev.payP; fillParams(); saveParams();
+  }
+}
 /* ============================ события ============================ */
 function wire(){
   $("pick").addEventListener("click", () => $("file").click());
@@ -209,7 +243,7 @@ function wire(){
     const saved = await loadParams(st.month);
     if (saved){ PK.forEach(k => st.params[k] = N(saved[k])); }
     else if (st.month !== "2026-08"){ PK.forEach(k => st.params[k] = 0); st.isExample = false; st.vendors = []; st.groups = null; st.files = []; st.acc = {}; st.doctors = null; st.payments = null; }
-    fillParams(); render();
+    fillParams(); pullPrevBalance(); render();
   });
 
   $("vbody").addEventListener("change", e => {
@@ -252,6 +286,16 @@ function wire(){
     book.founders[i ? "pog" : "mal"] = e.target.value; saveBook(); regroup(); render();
   }));
 
+  $("closeMonth").addEventListener("click", () => isClosed() ? reopenMonth() : closeMonth());
+  $("carryPers").addEventListener("click", carryPersonal);
+  $("printRep").addEventListener("click", () => { renderDash(); $("dash").hidden = false; setTimeout(() => window.print(), 120); });
+  const cl = $("copyLink");
+  if (cl) cl.addEventListener("click", async () => {
+    const url = location.href.split("#")[0] + "#report";
+    try { await navigator.clipboard.writeText(url); toast("Ссылка скопирована — учредители откроют сразу отчёт"); }
+    catch(e){ prompt("Скопируйте ссылку для учредителей:", url); }
+  });
+
   $("dlXlsx").addEventListener("click", async () => {
     const c = calc();
     const out = XLSX.write(buildWorkbook(c), {bookType:"xlsx", type:"array"});
@@ -273,18 +317,21 @@ function wire(){
 /* ============================ старт ============================ */
 async function start(){
   book = await loadBook();
+  hist = await loadHist();
   st.month = "2026-08";
   $("month").value = st.month;
   st.vendors = EXAMPLE.vendors.map(v => ({name:v[0], paid:v[1]}));
   st.groups = EXAMPLE.groups;
   PK.forEach(k => st.params[k] = N(EXAMPLE.params[k]));
-  fillParams(); bindParams(); wire(); render();
+  fillParams(); bindParams(); wire(); pullPrevBalance(); render();
+  if (/report|отч/i.test(decodeURIComponent(location.hash))) $("openDash").click();
 
   claude.use("db").then(async d => {
     if (!d) return;
     DB = d;
     book = await loadBook();
-    render();
+    hist = await loadHist();
+    pullPrevBalance(); render();
   }).catch(() => {});
 }
 if (typeof claude === "undefined") window.claude = {use: () => Promise.resolve(null)};
