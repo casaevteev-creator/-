@@ -244,6 +244,16 @@ function pullPrevBalance(){
 const EXPORT_ASSETS = __EXPORT__;
 /* Отчёт уходит учредителям отдельным файлом: цифры месяца в нём заморожены,
    разбор по клику работает, интернет и учётные записи не нужны. */
+function bodyForExport(){
+  const tmp = document.createElement("div");
+  tmp.innerHTML = $("dashBody").innerHTML;
+  tmp.querySelectorAll(".advisor").forEach(n => n.remove());   // советчику нужен Claude, в файле его нет
+  let i = 0;
+  tmp.querySelectorAll(".kick").forEach(n => {                 // перенумеровать без раздела советчика
+    n.textContent = n.textContent.replace(/^\d+/, () => String(++i).padStart(2, "0"));
+  });
+  return tmp.innerHTML;
+}
 function exportReport(){
   renderDash();
   const acc = {};
@@ -368,6 +378,8 @@ async function start(){
   st.groups = EXAMPLE.groups;
   PK.forEach(k => st.params[k] = N(EXAMPLE.params[k]));
   fillParams(); bindParams(); wire(); pullPrevBalance(); render();
+  // советчик описан в следующем скрипте — спрашиваем после разбора страницы
+  setTimeout(() => { if (typeof advisor === "function") advisor(); }, 0);
   if (/report|отч/i.test(decodeURIComponent(location.hash))) $("openDash").click();
 
   claude.use("db").then(async d => {

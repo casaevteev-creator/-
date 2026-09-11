@@ -1,0 +1,212 @@
+<style>
+/* ======================= советчик ======================= */
+.adv{background:var(--ink);color:#fff;border-radius:20px;padding:28px 26px}
+@media(min-width:760px){.adv{padding:34px 36px}}
+.adv h3{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:6px}
+.adv .lead{font-family:var(--serif);font-style:italic;font-size:17px;color:#9C968A;margin-bottom:22px}
+.advq{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.advq button{border:1px solid rgba(217,212,201,.24);background:rgba(255,255,255,.05);color:#CFC9BD;
+  border-radius:99px;padding:8px 16px;font-size:13px;cursor:pointer;transition:all .18s;font-family:var(--sans)}
+.advq button:hover{background:var(--bronze2);border-color:var(--bronze2);color:var(--ink)}
+.advbox{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.advbox textarea{flex:1;min-width:220px;background:rgba(255,255,255,.05);color:#fff;
+  border:1px solid rgba(217,212,201,.24);border-radius:13px;padding:12px 15px;font-size:14.5px;
+  resize:vertical;min-height:52px;font-family:var(--sans)}
+.advbox textarea::placeholder{color:#7E786E}
+.advbox button{white-space:nowrap}
+.advout{margin-top:22px;font-size:15px;line-height:1.65;color:#E4E0D7;
+  border-top:1px solid rgba(217,212,201,.14);padding-top:20px;min-height:24px}
+.advout[hidden]{display:none}
+.advout p{margin-bottom:12px}
+.advout b{color:#fff;font-weight:600}
+.advout .num{font-family:var(--mono);color:#8FBFA9;font-weight:500}
+.advout ul{margin:0 0 12px 20px}
+.advout li{margin-bottom:7px}
+.advout h4{font-family:var(--serif);font-size:19px;font-weight:600;color:#fff;margin:18px 0 8px}
+.advwait{color:#9C968A;font-family:var(--mono);font-size:13px}
+.advwait::after{content:"";animation:advdots 1.4s steps(4,end) infinite}
+@keyframes advdots{0%{content:""}25%{content:"·"}50%{content:"··"}75%{content:"···"}}
+.advfoot{color:#7E786E;font-size:12.5px;margin-top:16px;line-height:1.5}
+.xask{margin-top:16px}
+</style>
+<script>
+"use strict";
+let ADV = undefined;                       // undefined — ещё не спрашивали, null — недоступно
+async function advisor(){
+  if (ADV === undefined){
+    ADV = (typeof claude !== "undefined" && claude.use)
+      ? await claude.use("sample").catch(() => null) : null;
+  }
+  return ADV;
+}
+/* Сводка месяца: всё, на что советчик может опираться. Никаких пациентов. */
+function monthDigest(){
+  const c = calc(), p = st.params, tk = st.taksk, L = [];
+  const R = (k, v) => L.push(k + ": " + fmt(v));
+  L.push("МЕСЯЦ: " + monthName(st.month) + (hist[st.month] && hist[st.month].closed ? " (закрыт)" : " (черновик)"));
+  L.push("");
+  L.push("ВЫРУЧКА");
+  R("  всего за месяц (после возвратов)", c.revNet);
+  R("  Маланичев, свои операции", c.G.mal);
+  R("  Погосян, свои операции", c.G.pog);
+  R("  другие хирурги", c.otherNet);
+  R("  косметология", c.G.cosm);
+  R("  прочее", c.G.misc);
+  R("  возвраты пациентам", p.refund);
+  if (tk){
+    L.push("  по чекам ККТ: наличными " + fmt(tk.cash) + ", безналом " + fmt(tk.card)
+      + ", зачёт ранее внесённого аванса " + fmt(tk.adv) + ", живых денег " + fmt(tk.live)
+      + ", чеков " + tk.checks + ", возвратов по чекам " + fmt(tk.refund));
+    const dd = Object.keys(tk.byDay).sort(), v = dd.map(k => tk.byDay[k]);
+    if (dd.length > 3){
+      const avg = v.reduce((a, b) => a + b, 0) / v.length;
+      const mx = Math.max(...v), mn = Math.min(...v);
+      L.push("  по дням: средний " + fmt(avg) + ", лучший " + fmt(mx) + ", худший " + fmt(mn)
+        + ", дней " + dd.length);
+      L.push("  ряд по дням: " + dd.map(k => (+k.slice(8)) + ":" + Math.round(tk.byDay[k] / 1000)).join(" ") + " (тыс. руб.)");
+    }
+  }
+  L.push("");
+  L.push("РАСХОДЫ");
+  R("  всего за месяц", c.costAll);
+  R("  общая часть (делится пополам)", c.common);
+  R("  налоги с ФОТ", p.tax);
+  R("  зарплата по банку", p.sal);
+  R("  услуги банка", p.bank);
+  R("  алименты", p.ali);
+  R("  проценты по кредиту", p.int);
+  R("  оплаты поставщикам, база счёта 60", c.base60);
+  R("  из них медицинские", c.byBlock.m);
+  R("  из них управленческие", c.byBlock.u);
+  if (c.credit > 0) R("  за счёт кредитной линии (в расходы не входит)", c.credit);
+  L.push("  статьи расходов по убыванию:");
+  Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum).slice(0, 20)
+    .forEach(a => L.push("    " + a[0] + " — " + fmt(a[1].sum) + " (" + a[1].block + ")"));
+  const gv = st.vendors.filter(v => (book.vendors[v.name] || [])[0] === "Гонорары ИП хирургов")
+    .sort((a, b) => b.paid - a.paid).slice(0, 8);
+  if (gv.length) L.push("  крупнейшие получатели гонораров: " + gv.map(v => v.name + " " + fmt0(v.paid)).join("; "));
+  L.push("");
+  L.push("ЛИЧНЫЕ РАСХОДЫ УЧРЕДИТЕЛЕЙ");
+  L.push("  Маланичев: анализы " + fmt(p.mAn) + ", материалы за операции " + fmt(p.mMat)
+    + ", ассистенты " + fmt(p.mAss) + ", эквайринг " + fmt(p.mAcq));
+  L.push("  Погосян: анализы " + fmt(p.pAn) + ", материалы за операции " + fmt(p.pMat)
+    + ", ассистенты " + fmt(p.pAss) + ", эквайринг " + fmt(p.pAcq));
+  L.push("");
+  L.push("ИТОГ");
+  R("  доход учредителей за месяц", c.incAll);
+  R("    Маланичев", c.incM);
+  R("    Погосян", c.incP);
+  R("  проценты по депозитам", p.dep);
+  R("  к выплате Маланичеву", c.payM);
+  R("  к выплате Погосяну", c.payP);
+  L.push("  маржа: " + pct(c.revNet ? c.incAll / c.revNet : 0));
+  const a51 = st.acc["51"];
+  if (a51) R("  остаток на расчётном счёте на конец месяца",
+    R2(a51.total.openDt - a51.total.openKt + a51.total.dt - a51.total.kt));
+  L.push("");
+  L.push("ВЫРУЧКА ПО МЕСЯЦАМ (история)");
+  Object.keys(hist).sort().slice(-24).forEach(k => {
+    if (hist[k] && hist[k].rev) L.push("  " + monthName(k) + ": " + fmt0(hist[k].rev)
+      + (hist[k].inc != null ? ", доход " + fmt0(hist[k].inc) : ""));
+  });
+  const an = anomalies(c);
+  if (an && (an.fresh.length || an.jump.length)){
+    L.push("");
+    L.push("ИЗМЕНЕНИЯ ПРОТИВ ПРОШЛОГО МЕСЯЦА");
+    an.fresh.forEach(x => L.push("  новая статья: " + x[0] + " — " + fmt0(x[1])));
+    an.jump.forEach(x => L.push("  выросло: " + x[0] + " — было " + fmt0(x[2]) + ", стало " + fmt0(x[1])));
+  }
+  const bad = checks(calc()).filter(x => x.ok === false || x.ok === "warn");
+  if (bad.length){
+    L.push("");
+    L.push("НЕЗАКРЫТЫЕ СВЕРКИ");
+    bad.forEach(x => L.push("  " + (x.ok === false ? "не сходится" : "внимание") + ": " + x.what + " — " + x.sub));
+  }
+  return L.join("\n");
+}
+const ADV_RULES =
+  "Ты — финансовый директор частной клиники пластической хирургии и эстетической косметологии «Форма» " +
+  "(ООО «ОМЕГА»). Владельцы — два практикующих хирурга, Маланичев и Погосян, доли 50/50. Они не финансисты.\n\n" +
+  "Правила ответа:\n" +
+  "— по-русски, спокойно, без консультантского жаргона, без воды и без вводных фраз;\n" +
+  "— опирайся ТОЛЬКО на цифры ниже; ничего не выдумывай и не подставляй отраслевые нормативы, которых в данных нет;\n" +
+  "— каждое утверждение подкрепляй конкретным числом из данных;\n" +
+  "— где уместно, называй рычаг в рублях в месяц или в год;\n" +
+  "— если для ответа не хватает данных, прямо скажи, какой выгрузки или какого числа не хватает;\n" +
+  "— если видишь, что цифры выглядят неправдоподобно, скажи об этом первым делом;\n" +
+  "— не длиннее 400 слов; заголовки делай строкой вида «## Заголовок», важное выделяй **жирным**.";
+function advFormat(t){
+  const esc2 = s => s.replace(/[&<>]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[ch]));
+  return esc2(t)
+    .replace(/^##\s*(.+)$/gm, "<h4>$1</h4>")
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/(^|\s)(−?\d[\d  ]*(?:,\d+)?)(\s*(?:₽|руб))/g, '$1<span class="num">$2</span>$3')
+    .split(/\n{2,}/).map(b => /^<h4>/.test(b) ? b
+      : (/^\s*[-—•]\s/m.test(b)
+          ? "<ul>" + b.split(/\n/).map(l => l.replace(/^\s*[-—•]\s*/, "")).filter(Boolean)
+              .map(l => "<li>" + l + "</li>").join("") + "</ul>"
+          : "<p>" + b.replace(/\n/g, "<br>") + "</p>")).join("");
+}
+let advBusy = false;
+async function advAsk(q){
+  if (advBusy) return;
+  const out = $("advout");
+  const s = await advisor();
+  if (!s){ out.hidden = false; out.innerHTML =
+    '<p class="advwait" style="animation:none">Советчик доступен только когда программа открыта по ссылке. ' +
+    'В автономном файле и в выгруженном отчёте его нет — там остаются посчитанные наблюдения выше.</p>'; return; }
+  advBusy = true;
+  out.hidden = false;
+  out.innerHTML = '<p class="advwait">Смотрю цифры месяца</p>';
+  try {
+    await s(ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest() + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: " + q,
+      {modelTier:"complex", onText:({text}) => { out.innerHTML = advFormat(text); }});
+  } catch(e){
+    const code = e && e.code;
+    out.innerHTML = "<p>" + (code === "not_granted" ? "Доступ к советчику не разрешён в этом окне."
+      : code === "rate_limited" ? "Слишком часто — подождите минуту и спросите снова."
+      : "Не получилось спросить: " + ((e && e.message) || code || "ошибка")) + "</p>"
+      + (e && e.text ? advFormat(e.text) : "");
+  }
+  advBusy = false;
+}
+function advSection(){
+  const Q = ["Что главное в этом месяце?", "Где мы теряем деньги?",
+    "Что изменилось против прошлого месяца?", "Как поднять доходность?",
+    "Что спросить у бухгалтера?"];
+  return `<section class="tight advisor"><div class="w">
+    <div class="kick">§§ · Советчик</div><h2>Спросить финдиректора</h2>
+    <div class="sb">Он смотрит именно на этот месяц — все цифры выше, история и незакрытые сверки</div>
+    <div class="adv">
+      <h3>О чём спросить</h3>
+      <div class="lead">Ответ считается заново каждый раз, под цифры загруженного месяца</div>
+      <div class="advq">${Q.map(q => `<button type="button" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+      <div class="advbox">
+        <textarea id="advq" rows="2" placeholder="Или спросите своими словами: почему доход упал, стоит ли гасить кредит, что с загрузкой по дням…"></textarea>
+        <button class="btn gold" id="advgo">Спросить</button>
+      </div>
+      <div class="advout" id="advout" hidden></div>
+      <p class="advfoot">Советчик видит только цифры этого отчёта: выручку, статьи расходов, историю по месяцам и сверки.
+      Данных пациентов в программе нет и никуда не уходит.</p>
+    </div>
+  </div></section>`;
+}
+document.addEventListener("click", e => {
+  const chip = e.target.closest("[data-ask]");
+  if (chip){ const t = $("advq"); if (t) t.value = chip.dataset.ask; advAsk(chip.dataset.ask); return; }
+  if (e.target.id === "advgo"){
+    const q = S($("advq").value);
+    if (q) advAsk(q);
+    return;
+  }
+  if (e.target.id === "xaskbtn"){
+    const q = e.target.dataset.q;
+    closeDash && null;
+    const sec = document.querySelector(".advisor");
+    $("xp").hidden = true;
+    if (sec) sec.scrollIntoView({block:"start"});
+    const t = $("advq"); if (t) t.value = q;
+    advAsk(q);
+  }
+});
+</script>

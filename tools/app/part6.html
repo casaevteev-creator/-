@@ -444,6 +444,8 @@ function renderDash(){
 
   ${cfoSection(c)}
 
+  ${advSection()}
+
   <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
   let sn = 0;
   $("dashBody").innerHTML = out.replace(/\u00a7\u00a7/g, () => String(++sn).padStart(2, "0"));

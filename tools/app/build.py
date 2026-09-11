@@ -21,7 +21,7 @@ EX={"vendors":vend,
    "pAn":12248.0,"pMat":1479282.06,"pAss":226384.0,"pAcq":49901.51,"dep":396337.24,
    "prevM":30658896.02,"prevP":45275972.21,"divM":5882353.0,"divP":5882353.0,
    "revBank":97338730.30,"refund":465000.0}}
-html="\n".join(open('app/part%d.html'%i,encoding='utf-8').read() for i in (1,2,6,3,4,5,7,8))
+html="\n".join(open('app/part%d.html'%i,encoding='utf-8').read() for i in (1,2,6,3,4,5,7,8,9))
 html=html.replace("__BOOK__", json.dumps(BOOK,ensure_ascii=False,separators=(',',':')))
 H=json.load(open('/home/user/-/data/history.json'))
 HIST={}
