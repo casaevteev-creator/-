@@ -8,7 +8,7 @@ const FIELD = {tax:"pTax", sal:"pSal", bank:"pBank", ali:"pAli", int:"pInt", cor
   dep:"pDep", prevM:"pPrevM", prevP:"pPrevP", divM:"pDivM", divP:"pDivP", revBank:"revBank", refund:"refund"};
 const st = {
   month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null, taksk: null,
-  groups: null, params: {}, isExample: true, filter: "all", q: ""
+  groups: null, params: {}, psrc: {}, isExample: true, filter: "all", q: ""
 };
 PK.forEach(k => st.params[k] = 0);
 
@@ -216,13 +216,14 @@ function renderVendors(c){
 function renderBlocks(c){
   const den = c.base || 1;
   const arts = Object.entries(c.byArt).sort((a,b) => b[1].sum - a[1].sum);
-  const line = (n, v, cls) => `<div class="rrow${cls || ""}"><span>${esc(n)}</span><span>${fmt(v)}</span><span>${pct(v/den)}</span><span></span></div>`;
+  const line = (n, v, cls, key) => `<div class="rrow${cls || ""}${key ? " xn" : ""}"${key ? ' data-x="' + esc(key) + '"' : ""}>
+    <span>${esc(n)}</span><span>${fmt(v)}</span><span>${pct(v/den)}</span><span></span></div>`;
   let h = `<div class="rrow head"><span>Статья</span><span>Сумма</span><span>Доля</span><span></span></div>`;
-  h += line("Медицинские", c.byBlock.m, " tot");
-  h += arts.filter(a => a[1].block === "медицинские").map(a => line(a[0], a[1].sum, " ind dim")).join("");
-  h += line("Управленческие", c.byBlock.u, " tot");
-  h += arts.filter(a => a[1].block === "управленческие").map(a => line(a[0], a[1].sum, " ind dim")).join("");
-  h += line("База счёта 60", c.base, " tot");
+  h += line("Медицинские", c.byBlock.m, " tot", "med");
+  h += arts.filter(a => a[1].block === "медицинские").map(a => line(a[0], a[1].sum, " ind dim", "art:" + a[0])).join("");
+  h += line("Управленческие", c.byBlock.u, " tot", "upr");
+  h += arts.filter(a => a[1].block === "управленческие").map(a => line(a[0], a[1].sum, " ind dim", "art:" + a[0])).join("");
+  h += line("База счёта 60", c.base, " tot", "base");
   $("blocksum").innerHTML = h;
 }
 function renderDoctors(c){
@@ -251,25 +252,26 @@ function renderChecks(c){
 }
 function renderReport(c, list){
   const ok = list.every(x => x.ok !== false);
-  const row = (n, a, b, d, cls) => `<div class="rrow${cls||""}"><span>${esc(n)}</span>
-    <span>${a==null?"":fmt(a)}</span><span>${b==null?"":fmt(b)}</span><span>${d==null?"":fmt(d)}</span></div>`;
+  const row = (n, a, b, d, cls, key) => `<div class="rrow${cls||""}${key?" xn":""}"${key?' data-x="'+esc(key)+'"':""}>
+    <span>${esc(n)}</span><span>${a==null?"":fmt(a)}</span><span>${b==null?"":fmt(b)}</span>
+    <span>${d==null?"":fmt(d)}</span></div>`;
   let h = "";
   if (st.isExample) h += `<div class="banner"><b>Пример</b><span>Открыт август 2026 — данные из вашего закрытого месяца. Перетащите сентябрьские выгрузки, чтобы заменить.</span></div>`;
   if (!ok) h += `<div class="banner" style="background:var(--crit-soft);color:var(--crit)"><b>Не выпускать</b><span>Есть красные сверки — цифры ниже неполные.</span></div>`;
   h += `<div class="tiles">
-    <div class="tile"><div class="k">Выручка</div><div class="v">${fmt0(c.revNet)}</div><div class="s">за вычетом возвратов</div></div>
-    <div class="tile"><div class="k">Расходы</div><div class="v">${fmt0(c.costAll)}</div><div class="s">${pct(c.revNet?c.costAll/c.revNet:0)} от выручки</div></div>
-    <div class="tile"><div class="k">Доход за месяц</div><div class="v">${fmt0(c.incAll)}</div><div class="s">на двоих</div></div>
-    <div class="tile"><div class="k">К выплате</div><div class="v">${fmt0(c.payAll)}</div><div class="s">на конец месяца</div></div>
+    <div class="tile"><div class="k">Выручка</div><div class="v xn" data-x="rev">${fmt0(c.revNet)}</div><div class="s">за вычетом возвратов</div></div>
+    <div class="tile"><div class="k">Расходы</div><div class="v xn" data-x="cost">${fmt0(c.costAll)}</div><div class="s">${pct(c.revNet?c.costAll/c.revNet:0)} от выручки</div></div>
+    <div class="tile"><div class="k">Доход за месяц</div><div class="v xn" data-x="inc">${fmt0(c.incAll)}</div><div class="s">на двоих</div></div>
+    <div class="tile"><div class="k">К выплате</div><div class="v xn" data-x="pay">${fmt0(c.payAll)}</div><div class="s">на конец месяца</div></div>
   </div>`;
   h += `<div class="report">`;
   h += `<h3>Выручка</h3>`;
   h += `<div class="rrow head"><span>Показатель</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
-  h += row("Свои операции", R2(c.G.mal + c.G.pog), c.G.mal, c.G.pog);
-  h += row("Другие хирурги", c.otherNet, null, null, " dim");
+  h += row("Свои операции", R2(c.G.mal + c.G.pog), c.G.mal, c.G.pog, "", "grp:mal");
+  h += row("Другие хирурги", c.otherNet, null, null, " dim", "grp:other");
   h += row("Косметология", c.G.cosm, null, null, " dim");
   h += row("Прочее", c.G.misc, null, null, " dim");
-  h += row("Итого выручка", c.revNet, null, null, " tot");
+  h += row("Итого выручка", c.revNet, null, null, " tot", "rev");
   h += `<h3>Расходы</h3>`;
   h += `<div class="rrow head"><span>Статья</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
   const p = st.params;
@@ -278,14 +280,14 @@ function renderReport(c, list){
   h += row("Услуги банка", p.bank, p.bank/2, p.bank/2);
   h += row("Алименты", p.ali, p.ali/2, p.ali/2);
   h += row("Проценты по кредиту", p.int, p.int/2, p.int/2);
-  h += row("Поставщики без личных", c.common60, c.common60/2, c.common60/2);
-  h += row("Общая часть", c.common, c.common/2, c.common/2, " tot");
+  h += row("Поставщики без личных", c.common60, c.common60/2, c.common60/2, "", "common60");
+  h += row("Общая часть", c.common, c.common/2, c.common/2, " tot", "common");
   h += row("Анализы", R2(p.mAn+p.pAn), p.mAn, p.pAn, " ind dim");
   h += row("Материалы за операции", R2(p.mMat+p.pMat), p.mMat, p.pMat, " ind dim");
   h += row("Ассистенты и СММ", R2(p.mAss+p.pAss), p.mAss, p.pAss, " ind dim");
   h += row("Эквайринг с личной выручки", R2(p.mAcq+p.pAcq), p.mAcq, p.pAcq, " ind dim");
-  h += row("Личные, каждому свои", R2(c.persM+c.persP), c.persM, c.persP);
-  h += row("Доля расходов каждого", c.costAll, c.costM, c.costP, " tot");
+  h += row("Личные, каждому свои", R2(c.persM+c.persP), c.persM, c.persP, "", "pers:mal");
+  h += row("Доля расходов каждого", c.costAll, c.costM, c.costP, " tot", "cost");
   if (c.credit > 0) h += row("Справочно: за счёт кредитной линии", c.credit, null, null, " dim");
   h += `<h3>Доход учредителей</h3>`;
   h += `<div class="rrow head"><span>Шаг</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
@@ -295,13 +297,13 @@ function renderReport(c, list){
   h += row("Половина прочего", c.G.misc, c.G.misc/2, c.G.misc/2);
   h += row("Половина процентов по депозитам", p.dep, p.dep/2, p.dep/2);
   h += row("Минус доля расходов", -c.costAll, -c.costM, -c.costP);
-  h += row("Доход за месяц", c.incAll, c.incM, c.incP, " tot");
+  h += row("Доход за месяц", c.incAll, c.incM, c.incP, " tot", "inc");
   h += `<h3>К выплате</h3>`;
   h += `<div class="rrow head"><span>Показатель</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
   h += row("Доход за месяц", c.incAll, c.incM, c.incP);
   h += row("Остаток с прошлого месяца", c.prevAll, p.prevM, p.prevP);
   h += row("Выплачены дивиденды", -c.divAll, -p.divM, -p.divP);
-  h += row("Итого к выплате", c.payAll, c.payM, c.payP, " tot");
+  h += row("Итого к выплате", c.payAll, c.payM, c.payP, " tot", "pay");
   h += `</div>`;
   $("reportWrap").innerHTML = h;
   $("d5").classList.toggle("on", ok && st.vendors.length > 0);

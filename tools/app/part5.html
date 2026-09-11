@@ -7,7 +7,7 @@ function fillParams(){
 function bindParams(){
   for (const k of PK){
     const el = $(FIELD[k]); if (!el) continue;
-    el.addEventListener("input", () => { st.params[k] = num(el.value); saveParams(); render(); });
+    el.addEventListener("input", () => { st.params[k] = num(el.value); st.psrc[k] = ""; saveParams(); render(); });
   }
 }
 /* ============================ приём файлов ============================ */
@@ -68,7 +68,7 @@ async function takeFiles(list){
         st.taksk = p.t; rec.ok = true; rec.tag = "такском";
         rec.note = "чеков " + p.t.checks + " · живые деньги " + fmt0(p.t.live)
           + " · зачёт аванса " + fmt0(p.t.adv);
-        if (!st.params.refund && p.t.refund) st.params.refund = p.t.refund;
+        if (!st.params.refund && p.t.refund){ st.params.refund = p.t.refund; st.psrc.refund = XSRC.tk + " · чеки «Возврат прихода»"; }
         say("revHint", "живые деньги по чекам: " + fmt(p.t.live) + " (нал " + fmt0(p.t.cash)
           + " + безнал " + fmt0(p.t.card) + "). Зачёт аванса " + fmt0(p.t.adv)
           + " новых поступлений не даёт.");
@@ -84,14 +84,14 @@ async function takeFiles(list){
   render();
 }
 /* подсказки из выгрузок — заполняем пустые поля, заполненные не трогаем */
-function hint(k, v){ if (!st.params[k] && v) { st.params[k] = R2(v); } }
+function hint(k, v, src){ if (!st.params[k] && v) { st.params[k] = R2(v); st.psrc[k] = src || ""; } }
 function say(id, text){ const el = $(id); if (el) el.textContent = text; }
 function pullFrom51(p){
   const kt = p.total.ktBy || {}, dt = p.total.dtBy || {};
-  hint("sal", kt["70"]);            // счёт 70 — ровно зарплата
-  hint("ali", kt["76"]);            // счёт 76 — алименты
-  hint("refund", kt["62"]);         // счёт 62 — возвраты пациентам
-  hint("dep", dt["91"]);            // проценты банка на остатки
+  hint("sal", kt["70"], "Обороты счёта 51 · Кт, кор. счёт 70");
+  hint("ali", kt["76"], "Обороты счёта 51 · Кт, кор. счёт 76");
+  hint("refund", kt["62"], "Обороты счёта 51 · Кт, кор. счёт 62");
+  hint("dep", dt["91"], "Обороты счёта 51 · Дт, кор. счёт 91");
   // ниже — только подсказки: цифры из банка не равны нужным, вычитать надо руками
   if (N(kt["68"]) + N(kt["69"]))
     say("hTax", "по банку счета 68 и 69: " + fmt(R2(N(kt["68"]) + N(kt["69"]))) + " — вычтите НДФЛ с дивидендов");
@@ -101,7 +101,7 @@ function pullFrom51(p){
 }
 function pullFrom60(p){
   const t = p.total;
-  hint("corr", N(t.ktBy && t.ktBy["51"]));
+  hint("corr", N(t.ktBy && t.ktBy["51"]), "Обороты счёта 60 · Кт, кор. счёт 51");
   fillParams();
 }
 function fillFounders(){
@@ -234,7 +234,9 @@ function pullPrevBalance(){
   if (!prev || prev.payM == null) return;
   say("hPrev", "по закрытому " + monthName(pm) + ": " + fmt(prev.payM) + " и " + fmt(prev.payP));
   if (!st.params.prevM && !st.params.prevP){
-    st.params.prevM = prev.payM; st.params.prevP = prev.payP; fillParams(); saveParams();
+    st.params.prevM = prev.payM; st.params.prevP = prev.payP;
+    st.psrc.prevM = st.psrc.prevP = "Строка «К выплате» закрытого " + monthName(pm);
+    fillParams(); saveParams();
   }
 }
 /* ============================ события ============================ */

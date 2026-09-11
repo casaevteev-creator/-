@@ -163,9 +163,9 @@
 <script>
 "use strict";
 const MLN = x => (x / 1e6).toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2});
-function rankRow(name, val, den, upr){
+function rankRow(name, val, den, upr, key){
   const w = den > 0 ? Math.max(0, val / den * 100) : 0;
-  return `<div class="rk${upr ? " u" : ""}" title="${esc(name)} — ${fmt(val)} ₽">
+  return `<div class="rk${upr ? " u" : ""}${key ? " xn" : ""}"${key ? ' data-x="' + esc(key) + '"' : ""} title="${esc(name)} — ${fmt(val)} ₽">
     <div class="t"><b style="font-weight:400">${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
     <div class="tr"><i class="fl" style="width:${w.toFixed(2)}%"></i></div></div>`;
 }
@@ -212,11 +212,11 @@ function renderDash(){
   const per = monthName(st.month);
   const G = c.G, den = c.revNet || 1;
   const revParts = [
-    {n:"Другие хирурги", v:c.otherNet, c:"#2E5E4E"},
-    {n:"Погосян", v:G.pog, c:"#4A7A68"},
-    {n:"Маланичев", v:G.mal, c:"#7BA08F"},
-    {n:"Косметология", v:G.cosm, c:"#B9895A"},
-    {n:"Прочее", v:G.misc, c:"#D9D4C9"}
+    {n:"Другие хирурги", g:"other", v:c.otherNet, c:"#2E5E4E"},
+    {n:"Погосян", g:"pog", v:G.pog, c:"#4A7A68"},
+    {n:"Маланичев", g:"mal", v:G.mal, c:"#7BA08F"},
+    {n:"Косметология", g:"cosm", v:G.cosm, c:"#B9895A"},
+    {n:"Прочее", g:"misc", v:G.misc, c:"#D9D4C9"}
   ].filter(x => x.v > 0);
   const arts = Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum);
   const top = arts.slice(0, 9);
@@ -327,16 +327,16 @@ function renderDash(){
   const dCost = delta(c.costAll, prevS && prevS.cost, true);
   const dInc = delta(c.incAll, prevS && prevS.inc);
 
-  const who = (nm, own, cost, inc, pay, prev, div) => `<div class="ocard">
+  const who = (nm, own, cost, inc, pay, prev, div, f) => `<div class="ocard">
     <h3>${nm}</h3>
-    <div class="orow"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
+    <div class="orow xn" data-x="grp:${f}"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
     <div class="orow"><span>Половина общей выручки</span><span class="n">${fmt0(R2((c.otherNet + G.cosm + G.misc) / 2))}</span></div>
     <div class="orow"><span>Половина процентов по депозитам</span><span class="n">${fmt0(p.dep/2)}</span></div>
-    <div class="orow"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
-    <div class="oinc"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
+    <div class="orow xn" data-x="cost:${f}"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
+    <div class="oinc xn" data-x="inc:${f}"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
     <div class="orow"><span>Остаток с прошлого месяца</span><span class="n">${fmt0(prev)}</span></div>
     <div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−${fmt0(div)}</span></div>
-    <div class="opay"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
+    <div class="opay xn" data-x="pay:${f}"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
   </div>`;
   const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
 
@@ -347,10 +347,10 @@ function renderDash(){
     <h1>Отчёт учредителям</h1>
     <div class="yr">${per.charAt(0).toUpperCase() + per.slice(1)}${st.isExample ? " · пример" : ""}</div>
     <div class="strip">
-      <div><div class="v mono">${MLN(c.revNet)}</div><div class="l">млн ₽ выручка</div></div>
-      <div><div class="v mono" style="color:#8FBFA9">${MLN(c.incAll)}</div><div class="l">млн ₽ доход учредителей</div></div>
-      <div><div class="v mono">${MLN(c.costAll)}</div><div class="l">млн ₽ расходы</div></div>
-      <div><div class="v mono" style="color:#B9895A">${MLN(c.payAll)}</div><div class="l">млн ₽ к выплате</div></div>
+      <div><div class="v mono xn" data-x="rev">${MLN(c.revNet)}</div><div class="l">млн ₽ выручка</div></div>
+      <div><div class="v mono xn" data-x="inc" style="color:#8FBFA9">${MLN(c.incAll)}</div><div class="l">млн ₽ доход учредителей</div></div>
+      <div><div class="v mono xn" data-x="cost">${MLN(c.costAll)}</div><div class="l">млн ₽ расходы</div></div>
+      <div><div class="v mono xn" data-x="pay" style="color:#B9895A">${MLN(c.payAll)}</div><div class="l">млн ₽ к выплате</div></div>
     </div>
   </div></header>
 
@@ -371,15 +371,15 @@ function renderDash(){
     <div class="kick">${K("Показатели")}</div><h2>Ключевые цифры</h2>
     <div class="sb">Шесть чисел, по которым видно месяц</div>
     <div class="kpi">
-      <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="rev">${MLN(c.revNet)} <small>млн ₽</small></div>
         <div class="l">Выручка за месяц</div><div class="d ${dRev.cls}">${dRev.txt || "после возвратов пациентам"}</div></div>
-      <div class="kc"><div class="v">${MLN(c.base60)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="base60">${MLN(c.base60)} <small>млн ₽</small></div>
         <div class="l">Оплаты поставщикам · сч. 60</div><div class="d ${dCost.cls}">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки${dCost.txt ? " · " + dCost.txt : ""}</div></div>
       <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
         <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
-      <div class="kc"><div class="v">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="med">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
         <div class="l">Медицинские расходы</div><div class="d">${pct(mSh)} счёта 60</div></div>
-      <div class="kc"><div class="v">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="upr">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
         <div class="l">Управленческие расходы</div><div class="d">${pct(uSh)} счёта 60</div></div>
       ${bank51 != null
         ? `<div class="kc"><div class="v">${MLN(bank51)} <small>млн ₽</small></div>
@@ -396,9 +396,9 @@ function renderDash(){
       <div class="chartbox">${donut(revParts, MLN(c.revNet), "млн ₽ выручка")}</div>
       <div class="tw"><table>
         <tr><th>Группа</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
-        ${revParts.map(x => `<tr><td><span class="sw" style="background:${x.c}"></span>${esc(x.n)}</td>
+        ${revParts.map(x => `<tr class="xn" data-x="grp:${x.g}"><td><span class="sw" style="background:${x.c}"></span>${esc(x.n)}</td>
           <td class="num">${fmt0(x.v)}</td><td class="num">${pct(x.v / den)}</td></tr>`).join("")}
-        <tr class="tot"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
+        <tr class="tot xn" data-x="rev"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
       </table></div>
     </div>
     ${chan}
@@ -414,7 +414,7 @@ function renderDash(){
       <div style="background:#8A7350;width:${(uSh*100).toFixed(2)}%">Управленческие · ${pct(uSh)}</div>
     </div>
     <div class="rank">
-      ${top.map(a => rankRow(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
+      ${top.map(a => rankRow(a[0], a[1].sum, c.base, a[1].block === "управленческие", "art:" + a[0])).join("")}
       ${rest > 0 ? rankRow("Остальные статьи — " + (arts.length - 9) + " шт.", rest, c.base) : ""}
     </div>
     ${c.credit > 0 ? `<div class="dnote"><b>За счёт кредитной линии:</b> ${fmt0(c.credit)} ₽ —
@@ -429,10 +429,10 @@ function renderDash(){
 
   <section class="dk"><div class="w">
     <div class="kick">${K("Учредители")}</div><h2>Доли учредителей</h2>
-    <div class="sb">Общие расходы пополам, личные — каждому свои</div>
+    <div class="sb">Общие расходы пополам, личные — каждому свои · нажмите на любую цифру, чтобы увидеть, из чего она сложена</div>
     <div class="own">
-      ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM)}
-      ${who("Погосян", G.pog, c.costP, c.incP, c.payP, p.prevP, p.divP)}
+      ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM, "mal")}
+      ${who("Погосян", G.pog, c.costP, c.incP, c.payP, p.prevP, p.divP, "pog")}
     </div>
     <p class="onote">Выручка учитывается по зачислению на счёт, разрез по хирургам — по фактической оплате.
     Половина выручки других хирургов, косметологии, прочего и процентов по депозитам делится поровну.

@@ -356,7 +356,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
   <!-- 5 -->
   <section id="s5">
     <div class="sec-head"><div class="kick">05 · Контроль</div><h2>Сверки и отчёт</h2></div>
-    <p class="sec-sub">Отчёт выпускается только когда сверки зелёные. Каждая строка ниже — ошибка, которую август пропустил вручную.</p>
+    <p class="sec-sub">Отчёт выпускается только когда сверки зелёные. Каждая строка ниже — ошибка, которую август пропустил вручную. Любую цифру с пунктиром можно нажать и увидеть, из чего она сложена и из какой выгрузки пришла.</p>
     <div class="checks" id="checks"></div>
     <div id="reportWrap" style="margin-top:20px"></div>
     <div class="actions">
@@ -543,9 +543,9 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
 <script>
 "use strict";
 const MLN = x => (x / 1e6).toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2});
-function rankRow(name, val, den, upr){
+function rankRow(name, val, den, upr, key){
   const w = den > 0 ? Math.max(0, val / den * 100) : 0;
-  return `<div class="rk${upr ? " u" : ""}" title="${esc(name)} — ${fmt(val)} ₽">
+  return `<div class="rk${upr ? " u" : ""}${key ? " xn" : ""}"${key ? ' data-x="' + esc(key) + '"' : ""} title="${esc(name)} — ${fmt(val)} ₽">
     <div class="t"><b style="font-weight:400">${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
     <div class="tr"><i class="fl" style="width:${w.toFixed(2)}%"></i></div></div>`;
 }
@@ -592,11 +592,11 @@ function renderDash(){
   const per = monthName(st.month);
   const G = c.G, den = c.revNet || 1;
   const revParts = [
-    {n:"Другие хирурги", v:c.otherNet, c:"#2E5E4E"},
-    {n:"Погосян", v:G.pog, c:"#4A7A68"},
-    {n:"Маланичев", v:G.mal, c:"#7BA08F"},
-    {n:"Косметология", v:G.cosm, c:"#B9895A"},
-    {n:"Прочее", v:G.misc, c:"#D9D4C9"}
+    {n:"Другие хирурги", g:"other", v:c.otherNet, c:"#2E5E4E"},
+    {n:"Погосян", g:"pog", v:G.pog, c:"#4A7A68"},
+    {n:"Маланичев", g:"mal", v:G.mal, c:"#7BA08F"},
+    {n:"Косметология", g:"cosm", v:G.cosm, c:"#B9895A"},
+    {n:"Прочее", g:"misc", v:G.misc, c:"#D9D4C9"}
   ].filter(x => x.v > 0);
   const arts = Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum);
   const top = arts.slice(0, 9);
@@ -707,16 +707,16 @@ function renderDash(){
   const dCost = delta(c.costAll, prevS && prevS.cost, true);
   const dInc = delta(c.incAll, prevS && prevS.inc);
 
-  const who = (nm, own, cost, inc, pay, prev, div) => `<div class="ocard">
+  const who = (nm, own, cost, inc, pay, prev, div, f) => `<div class="ocard">
     <h3>${nm}</h3>
-    <div class="orow"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
+    <div class="orow xn" data-x="grp:${f}"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
     <div class="orow"><span>Половина общей выручки</span><span class="n">${fmt0(R2((c.otherNet + G.cosm + G.misc) / 2))}</span></div>
     <div class="orow"><span>Половина процентов по депозитам</span><span class="n">${fmt0(p.dep/2)}</span></div>
-    <div class="orow"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
-    <div class="oinc"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
+    <div class="orow xn" data-x="cost:${f}"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
+    <div class="oinc xn" data-x="inc:${f}"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
     <div class="orow"><span>Остаток с прошлого месяца</span><span class="n">${fmt0(prev)}</span></div>
     <div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−${fmt0(div)}</span></div>
-    <div class="opay"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
+    <div class="opay xn" data-x="pay:${f}"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
   </div>`;
   const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
 
@@ -727,10 +727,10 @@ function renderDash(){
     <h1>Отчёт учредителям</h1>
     <div class="yr">${per.charAt(0).toUpperCase() + per.slice(1)}${st.isExample ? " · пример" : ""}</div>
     <div class="strip">
-      <div><div class="v mono">${MLN(c.revNet)}</div><div class="l">млн ₽ выручка</div></div>
-      <div><div class="v mono" style="color:#8FBFA9">${MLN(c.incAll)}</div><div class="l">млн ₽ доход учредителей</div></div>
-      <div><div class="v mono">${MLN(c.costAll)}</div><div class="l">млн ₽ расходы</div></div>
-      <div><div class="v mono" style="color:#B9895A">${MLN(c.payAll)}</div><div class="l">млн ₽ к выплате</div></div>
+      <div><div class="v mono xn" data-x="rev">${MLN(c.revNet)}</div><div class="l">млн ₽ выручка</div></div>
+      <div><div class="v mono xn" data-x="inc" style="color:#8FBFA9">${MLN(c.incAll)}</div><div class="l">млн ₽ доход учредителей</div></div>
+      <div><div class="v mono xn" data-x="cost">${MLN(c.costAll)}</div><div class="l">млн ₽ расходы</div></div>
+      <div><div class="v mono xn" data-x="pay" style="color:#B9895A">${MLN(c.payAll)}</div><div class="l">млн ₽ к выплате</div></div>
     </div>
   </div></header>
 
@@ -751,15 +751,15 @@ function renderDash(){
     <div class="kick">${K("Показатели")}</div><h2>Ключевые цифры</h2>
     <div class="sb">Шесть чисел, по которым видно месяц</div>
     <div class="kpi">
-      <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="rev">${MLN(c.revNet)} <small>млн ₽</small></div>
         <div class="l">Выручка за месяц</div><div class="d ${dRev.cls}">${dRev.txt || "после возвратов пациентам"}</div></div>
-      <div class="kc"><div class="v">${MLN(c.base60)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="base60">${MLN(c.base60)} <small>млн ₽</small></div>
         <div class="l">Оплаты поставщикам · сч. 60</div><div class="d ${dCost.cls}">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки${dCost.txt ? " · " + dCost.txt : ""}</div></div>
       <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
         <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
-      <div class="kc"><div class="v">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="med">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
         <div class="l">Медицинские расходы</div><div class="d">${pct(mSh)} счёта 60</div></div>
-      <div class="kc"><div class="v">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
+      <div class="kc"><div class="v xn" data-x="upr">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
         <div class="l">Управленческие расходы</div><div class="d">${pct(uSh)} счёта 60</div></div>
       ${bank51 != null
         ? `<div class="kc"><div class="v">${MLN(bank51)} <small>млн ₽</small></div>
@@ -776,9 +776,9 @@ function renderDash(){
       <div class="chartbox">${donut(revParts, MLN(c.revNet), "млн ₽ выручка")}</div>
       <div class="tw"><table>
         <tr><th>Группа</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
-        ${revParts.map(x => `<tr><td><span class="sw" style="background:${x.c}"></span>${esc(x.n)}</td>
+        ${revParts.map(x => `<tr class="xn" data-x="grp:${x.g}"><td><span class="sw" style="background:${x.c}"></span>${esc(x.n)}</td>
           <td class="num">${fmt0(x.v)}</td><td class="num">${pct(x.v / den)}</td></tr>`).join("")}
-        <tr class="tot"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
+        <tr class="tot xn" data-x="rev"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
       </table></div>
     </div>
     ${chan}
@@ -794,7 +794,7 @@ function renderDash(){
       <div style="background:#8A7350;width:${(uSh*100).toFixed(2)}%">Управленческие · ${pct(uSh)}</div>
     </div>
     <div class="rank">
-      ${top.map(a => rankRow(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
+      ${top.map(a => rankRow(a[0], a[1].sum, c.base, a[1].block === "управленческие", "art:" + a[0])).join("")}
       ${rest > 0 ? rankRow("Остальные статьи — " + (arts.length - 9) + " шт.", rest, c.base) : ""}
     </div>
     ${c.credit > 0 ? `<div class="dnote"><b>За счёт кредитной линии:</b> ${fmt0(c.credit)} ₽ —
@@ -809,10 +809,10 @@ function renderDash(){
 
   <section class="dk"><div class="w">
     <div class="kick">${K("Учредители")}</div><h2>Доли учредителей</h2>
-    <div class="sb">Общие расходы пополам, личные — каждому свои</div>
+    <div class="sb">Общие расходы пополам, личные — каждому свои · нажмите на любую цифру, чтобы увидеть, из чего она сложена</div>
     <div class="own">
-      ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM)}
-      ${who("Погосян", G.pog, c.costP, c.incP, c.payP, p.prevP, p.divP)}
+      ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM, "mal")}
+      ${who("Погосян", G.pog, c.costP, c.incP, c.payP, p.prevP, p.divP, "pog")}
     </div>
     <p class="onote">Выручка учитывается по зачислению на счёт, разрез по хирургам — по фактической оплате.
     Половина выручки других хирургов, косметологии, прочего и процентов по депозитам делится поровну.
@@ -1104,7 +1104,7 @@ const FIELD = {tax:"pTax", sal:"pSal", bank:"pBank", ali:"pAli", int:"pInt", cor
   dep:"pDep", prevM:"pPrevM", prevP:"pPrevP", divM:"pDivM", divP:"pDivP", revBank:"revBank", refund:"refund"};
 const st = {
   month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null, taksk: null,
-  groups: null, params: {}, isExample: true, filter: "all", q: ""
+  groups: null, params: {}, psrc: {}, isExample: true, filter: "all", q: ""
 };
 PK.forEach(k => st.params[k] = 0);
 
@@ -1312,13 +1312,14 @@ function renderVendors(c){
 function renderBlocks(c){
   const den = c.base || 1;
   const arts = Object.entries(c.byArt).sort((a,b) => b[1].sum - a[1].sum);
-  const line = (n, v, cls) => `<div class="rrow${cls || ""}"><span>${esc(n)}</span><span>${fmt(v)}</span><span>${pct(v/den)}</span><span></span></div>`;
+  const line = (n, v, cls, key) => `<div class="rrow${cls || ""}${key ? " xn" : ""}"${key ? ' data-x="' + esc(key) + '"' : ""}>
+    <span>${esc(n)}</span><span>${fmt(v)}</span><span>${pct(v/den)}</span><span></span></div>`;
   let h = `<div class="rrow head"><span>Статья</span><span>Сумма</span><span>Доля</span><span></span></div>`;
-  h += line("Медицинские", c.byBlock.m, " tot");
-  h += arts.filter(a => a[1].block === "медицинские").map(a => line(a[0], a[1].sum, " ind dim")).join("");
-  h += line("Управленческие", c.byBlock.u, " tot");
-  h += arts.filter(a => a[1].block === "управленческие").map(a => line(a[0], a[1].sum, " ind dim")).join("");
-  h += line("База счёта 60", c.base, " tot");
+  h += line("Медицинские", c.byBlock.m, " tot", "med");
+  h += arts.filter(a => a[1].block === "медицинские").map(a => line(a[0], a[1].sum, " ind dim", "art:" + a[0])).join("");
+  h += line("Управленческие", c.byBlock.u, " tot", "upr");
+  h += arts.filter(a => a[1].block === "управленческие").map(a => line(a[0], a[1].sum, " ind dim", "art:" + a[0])).join("");
+  h += line("База счёта 60", c.base, " tot", "base");
   $("blocksum").innerHTML = h;
 }
 function renderDoctors(c){
@@ -1347,25 +1348,26 @@ function renderChecks(c){
 }
 function renderReport(c, list){
   const ok = list.every(x => x.ok !== false);
-  const row = (n, a, b, d, cls) => `<div class="rrow${cls||""}"><span>${esc(n)}</span>
-    <span>${a==null?"":fmt(a)}</span><span>${b==null?"":fmt(b)}</span><span>${d==null?"":fmt(d)}</span></div>`;
+  const row = (n, a, b, d, cls, key) => `<div class="rrow${cls||""}${key?" xn":""}"${key?' data-x="'+esc(key)+'"':""}>
+    <span>${esc(n)}</span><span>${a==null?"":fmt(a)}</span><span>${b==null?"":fmt(b)}</span>
+    <span>${d==null?"":fmt(d)}</span></div>`;
   let h = "";
   if (st.isExample) h += `<div class="banner"><b>Пример</b><span>Открыт август 2026 — данные из вашего закрытого месяца. Перетащите сентябрьские выгрузки, чтобы заменить.</span></div>`;
   if (!ok) h += `<div class="banner" style="background:var(--crit-soft);color:var(--crit)"><b>Не выпускать</b><span>Есть красные сверки — цифры ниже неполные.</span></div>`;
   h += `<div class="tiles">
-    <div class="tile"><div class="k">Выручка</div><div class="v">${fmt0(c.revNet)}</div><div class="s">за вычетом возвратов</div></div>
-    <div class="tile"><div class="k">Расходы</div><div class="v">${fmt0(c.costAll)}</div><div class="s">${pct(c.revNet?c.costAll/c.revNet:0)} от выручки</div></div>
-    <div class="tile"><div class="k">Доход за месяц</div><div class="v">${fmt0(c.incAll)}</div><div class="s">на двоих</div></div>
-    <div class="tile"><div class="k">К выплате</div><div class="v">${fmt0(c.payAll)}</div><div class="s">на конец месяца</div></div>
+    <div class="tile"><div class="k">Выручка</div><div class="v xn" data-x="rev">${fmt0(c.revNet)}</div><div class="s">за вычетом возвратов</div></div>
+    <div class="tile"><div class="k">Расходы</div><div class="v xn" data-x="cost">${fmt0(c.costAll)}</div><div class="s">${pct(c.revNet?c.costAll/c.revNet:0)} от выручки</div></div>
+    <div class="tile"><div class="k">Доход за месяц</div><div class="v xn" data-x="inc">${fmt0(c.incAll)}</div><div class="s">на двоих</div></div>
+    <div class="tile"><div class="k">К выплате</div><div class="v xn" data-x="pay">${fmt0(c.payAll)}</div><div class="s">на конец месяца</div></div>
   </div>`;
   h += `<div class="report">`;
   h += `<h3>Выручка</h3>`;
   h += `<div class="rrow head"><span>Показатель</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
-  h += row("Свои операции", R2(c.G.mal + c.G.pog), c.G.mal, c.G.pog);
-  h += row("Другие хирурги", c.otherNet, null, null, " dim");
+  h += row("Свои операции", R2(c.G.mal + c.G.pog), c.G.mal, c.G.pog, "", "grp:mal");
+  h += row("Другие хирурги", c.otherNet, null, null, " dim", "grp:other");
   h += row("Косметология", c.G.cosm, null, null, " dim");
   h += row("Прочее", c.G.misc, null, null, " dim");
-  h += row("Итого выручка", c.revNet, null, null, " tot");
+  h += row("Итого выручка", c.revNet, null, null, " tot", "rev");
   h += `<h3>Расходы</h3>`;
   h += `<div class="rrow head"><span>Статья</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
   const p = st.params;
@@ -1374,14 +1376,14 @@ function renderReport(c, list){
   h += row("Услуги банка", p.bank, p.bank/2, p.bank/2);
   h += row("Алименты", p.ali, p.ali/2, p.ali/2);
   h += row("Проценты по кредиту", p.int, p.int/2, p.int/2);
-  h += row("Поставщики без личных", c.common60, c.common60/2, c.common60/2);
-  h += row("Общая часть", c.common, c.common/2, c.common/2, " tot");
+  h += row("Поставщики без личных", c.common60, c.common60/2, c.common60/2, "", "common60");
+  h += row("Общая часть", c.common, c.common/2, c.common/2, " tot", "common");
   h += row("Анализы", R2(p.mAn+p.pAn), p.mAn, p.pAn, " ind dim");
   h += row("Материалы за операции", R2(p.mMat+p.pMat), p.mMat, p.pMat, " ind dim");
   h += row("Ассистенты и СММ", R2(p.mAss+p.pAss), p.mAss, p.pAss, " ind dim");
   h += row("Эквайринг с личной выручки", R2(p.mAcq+p.pAcq), p.mAcq, p.pAcq, " ind dim");
-  h += row("Личные, каждому свои", R2(c.persM+c.persP), c.persM, c.persP);
-  h += row("Доля расходов каждого", c.costAll, c.costM, c.costP, " tot");
+  h += row("Личные, каждому свои", R2(c.persM+c.persP), c.persM, c.persP, "", "pers:mal");
+  h += row("Доля расходов каждого", c.costAll, c.costM, c.costP, " tot", "cost");
   if (c.credit > 0) h += row("Справочно: за счёт кредитной линии", c.credit, null, null, " dim");
   h += `<h3>Доход учредителей</h3>`;
   h += `<div class="rrow head"><span>Шаг</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
@@ -1391,13 +1393,13 @@ function renderReport(c, list){
   h += row("Половина прочего", c.G.misc, c.G.misc/2, c.G.misc/2);
   h += row("Половина процентов по депозитам", p.dep, p.dep/2, p.dep/2);
   h += row("Минус доля расходов", -c.costAll, -c.costM, -c.costP);
-  h += row("Доход за месяц", c.incAll, c.incM, c.incP, " tot");
+  h += row("Доход за месяц", c.incAll, c.incM, c.incP, " tot", "inc");
   h += `<h3>К выплате</h3>`;
   h += `<div class="rrow head"><span>Показатель</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
   h += row("Доход за месяц", c.incAll, c.incM, c.incP);
   h += row("Остаток с прошлого месяца", c.prevAll, p.prevM, p.prevP);
   h += row("Выплачены дивиденды", -c.divAll, -p.divM, -p.divP);
-  h += row("Итого к выплате", c.payAll, c.payM, c.payP, " tot");
+  h += row("Итого к выплате", c.payAll, c.payM, c.payP, " tot", "pay");
   h += `</div>`;
   $("reportWrap").innerHTML = h;
   $("d5").classList.toggle("on", ok && st.vendors.length > 0);
@@ -1444,7 +1446,7 @@ function fillParams(){
 function bindParams(){
   for (const k of PK){
     const el = $(FIELD[k]); if (!el) continue;
-    el.addEventListener("input", () => { st.params[k] = num(el.value); saveParams(); render(); });
+    el.addEventListener("input", () => { st.params[k] = num(el.value); st.psrc[k] = ""; saveParams(); render(); });
   }
 }
 /* ============================ приём файлов ============================ */
@@ -1505,7 +1507,7 @@ async function takeFiles(list){
         st.taksk = p.t; rec.ok = true; rec.tag = "такском";
         rec.note = "чеков " + p.t.checks + " · живые деньги " + fmt0(p.t.live)
           + " · зачёт аванса " + fmt0(p.t.adv);
-        if (!st.params.refund && p.t.refund) st.params.refund = p.t.refund;
+        if (!st.params.refund && p.t.refund){ st.params.refund = p.t.refund; st.psrc.refund = XSRC.tk + " · чеки «Возврат прихода»"; }
         say("revHint", "живые деньги по чекам: " + fmt(p.t.live) + " (нал " + fmt0(p.t.cash)
           + " + безнал " + fmt0(p.t.card) + "). Зачёт аванса " + fmt0(p.t.adv)
           + " новых поступлений не даёт.");
@@ -1521,14 +1523,14 @@ async function takeFiles(list){
   render();
 }
 /* подсказки из выгрузок — заполняем пустые поля, заполненные не трогаем */
-function hint(k, v){ if (!st.params[k] && v) { st.params[k] = R2(v); } }
+function hint(k, v, src){ if (!st.params[k] && v) { st.params[k] = R2(v); st.psrc[k] = src || ""; } }
 function say(id, text){ const el = $(id); if (el) el.textContent = text; }
 function pullFrom51(p){
   const kt = p.total.ktBy || {}, dt = p.total.dtBy || {};
-  hint("sal", kt["70"]);            // счёт 70 — ровно зарплата
-  hint("ali", kt["76"]);            // счёт 76 — алименты
-  hint("refund", kt["62"]);         // счёт 62 — возвраты пациентам
-  hint("dep", dt["91"]);            // проценты банка на остатки
+  hint("sal", kt["70"], "Обороты счёта 51 · Кт, кор. счёт 70");
+  hint("ali", kt["76"], "Обороты счёта 51 · Кт, кор. счёт 76");
+  hint("refund", kt["62"], "Обороты счёта 51 · Кт, кор. счёт 62");
+  hint("dep", dt["91"], "Обороты счёта 51 · Дт, кор. счёт 91");
   // ниже — только подсказки: цифры из банка не равны нужным, вычитать надо руками
   if (N(kt["68"]) + N(kt["69"]))
     say("hTax", "по банку счета 68 и 69: " + fmt(R2(N(kt["68"]) + N(kt["69"]))) + " — вычтите НДФЛ с дивидендов");
@@ -1538,7 +1540,7 @@ function pullFrom51(p){
 }
 function pullFrom60(p){
   const t = p.total;
-  hint("corr", N(t.ktBy && t.ktBy["51"]));
+  hint("corr", N(t.ktBy && t.ktBy["51"]), "Обороты счёта 60 · Кт, кор. счёт 51");
   fillParams();
 }
 function fillFounders(){
@@ -1671,7 +1673,9 @@ function pullPrevBalance(){
   if (!prev || prev.payM == null) return;
   say("hPrev", "по закрытому " + monthName(pm) + ": " + fmt(prev.payM) + " и " + fmt(prev.payP));
   if (!st.params.prevM && !st.params.prevP){
-    st.params.prevM = prev.payM; st.params.prevP = prev.payP; fillParams(); saveParams();
+    st.params.prevM = prev.payM; st.params.prevP = prev.payP;
+    st.psrc.prevM = st.psrc.prevP = "Строка «К выплате» закрытого " + monthName(pm);
+    fillParams(); saveParams();
   }
 }
 /* ============================ события ============================ */
@@ -1783,4 +1787,269 @@ async function start(){
 }
 if (typeof claude === "undefined") window.claude = {use: () => Promise.resolve(null)};
 start();
+</script>
+
+<style>
+/* ======================= разбор цифры ======================= */
+.xn{cursor:pointer;border-bottom:1px dotted var(--ghost);transition:border-color .15s,color .15s}
+.xn:hover{border-bottom-color:var(--bronze2);color:var(--bronze)}
+.dk .xn,.ocard .xn{border-bottom-color:rgba(217,212,201,.35)}
+.dk .xn:hover,.ocard .xn:hover{border-bottom-color:var(--bronze2);color:var(--bronze2)}
+#xp[hidden]{display:none!important}
+#xp{position:fixed;inset:0;z-index:100;display:flex;justify-content:flex-end}
+#xp .veil{position:absolute;inset:0;background:rgba(28,27,24,.34)}
+#xp .pane{position:relative;width:min(560px,100%);background:var(--bg);height:100%;overflow-y:auto;
+  box-shadow:-8px 0 40px rgba(28,27,24,.2);display:flex;flex-direction:column}
+.xhead{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);
+  padding:18px 24px 14px;z-index:2}
+.xcrumb{display:flex;gap:6px;flex-wrap:wrap;padding-right:96px;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.xcrumb b{font-weight:400;color:var(--bronze);cursor:pointer}
+.xcrumb b:hover{text-decoration:underline}
+.xhead h3{font-family:var(--serif);font-size:24px;font-weight:600;line-height:1.15;padding-right:52px}
+.xval{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.02em;margin-top:8px;
+  font-variant-numeric:tabular-nums}
+.xclose{position:absolute;right:18px;top:16px}
+.xbody{padding:20px 24px 48px}
+.xf{background:var(--tint);border-radius:13px;padding:14px 17px;font-family:var(--mono);font-size:13px;
+  line-height:1.6;color:var(--ink2);margin-bottom:16px}
+.xsrc{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;font-size:13px;
+  color:var(--ink2);margin-bottom:20px;align-items:baseline}
+.xsrc dt{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--bronze);white-space:nowrap;padding-top:2px}
+.xsrc dd{margin:0}
+.xp-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);border-radius:13px;
+  overflow:hidden;background:var(--line)}
+.xrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:baseline;
+  background:var(--panel);padding:11px 16px;font-size:13.5px}
+.xrow.link{cursor:pointer}
+.xrow.link:hover{background:var(--sunk)}
+.xrow .l small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.xrow .v{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.xrow .v.neg{color:var(--red)}
+.xrow.res{background:var(--green-soft);font-weight:700}
+.xrow .go{color:var(--bronze2);font-family:var(--mono);font-size:11px;margin-left:8px}
+.xnote{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--mute);
+  margin-top:18px;line-height:1.5}
+@media(max-width:620px){#xp .pane{width:100%}.xhead{padding:16px 18px 12px}.xbody{padding:16px 18px 40px}}
+</style>
+
+<div id="xp" hidden role="dialog" aria-modal="true" aria-label="Разбор цифры">
+  <div class="veil" id="xveil"></div>
+  <div class="pane">
+    <div class="xhead">
+      <div class="xcrumb" id="xcrumb"></div>
+      <h3 id="xtitle"></h3>
+      <div class="xval" id="xval"></div>
+      <button class="btn ghost sm xclose" id="xclose">Закрыть</button>
+    </div>
+    <div class="xbody" id="xbody"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* Каждая цифра знает, из чего она сложена и из какой выгрузки пришла.
+   Узел: {t заголовок, v значение, f формула словами, src источник,
+          parts [{k ключ для перехода, l подпись, n примечание, v сумма}], note} */
+const XSRC = {
+  a60: "Обороты счёта 60 · «Оборот Дт», кор. счёт 51 · строки уровня контрагентов",
+  a51: "Обороты счёта 51 из 1С",
+  a57: "Обороты счёта 57 · «Оборот Дт», кор. счёт 62",
+  a50: "Обороты счёта 50 из 1С",
+  doc: "Отчёт по врачам (УК) · колонка «Фактическая оплата»",
+  tk:  "Такском-Касса · сводный отчёт по фискальным документам",
+  hand: "Введено вручную на этапе «Параметры месяца»",
+  book: "Справочник статей — он же помнит разнесение с прошлых месяцев"
+};
+function psrc(k){ return (st.psrc && st.psrc[k]) || XSRC.hand; }
+function xnode(key){
+  const c = window.__calc || calc(), p = st.params, tk = st.taksk;
+  const g0 = st.groups || {mal:0,pog:0,other:0,cosm:0,misc:0};
+  const RU = {mal:"Маланичев", pog:"Погосян", other:"Другие хирурги", cosm:"Косметология", misc:"Прочее"};
+
+  if (key.indexOf("ven:") === 0){
+    const nm = key.slice(4), v = st.vendors.find(x => x.name === nm);
+    const cl = book.vendors[nm] || ["",""];
+    return {t:nm, v:v ? v.paid : 0, f:"Сумма всех оплат этому контрагенту с расчётного счёта за месяц",
+      src:XSRC.a60, parts:[], note:cl[0] ? "Статья «" + cl[0] + "», блок «"
+        + (book.articles[cl[0]] || cl[1] || "не задан") + "». Разнесение хранится в справочнике и подставится в следующем месяце."
+        : "Статья не выбрана — эта сумма не попадает ни в медицинские, ни в управленческие."};
+  }
+  if (key.indexOf("art:") === 0){
+    const nm = key.slice(4), a = c.byArt[nm];
+    const vs = st.vendors.filter(v => (book.vendors[v.name] || [])[0] === nm && book.credit.indexOf(v.name) < 0)
+      .sort((x, y) => y.paid - x.paid);
+    return {t:nm, v:a ? a.sum : 0, f:"Сумма по всем контрагентам этой статьи",
+      src:XSRC.book, parts:vs.map(v => ({k:"ven:" + v.name, l:v.name, v:v.paid})),
+      note:"Блок «" + ((a && a.block) || "не задан") + "». Блок принадлежит статье, а не контрагенту — иначе доли по статьям расходятся."};
+  }
+  if (key.indexOf("grp:") === 0){
+    const g = key.slice(4);
+    const after = g === "other" ? c.otherNet : c.G[g];
+    const parts = [{l:"По отчёту врачей за месяц", v:g0[g]}];
+    if (Math.abs(c.scale - 1) > 1e-9)
+      parts.push({l:"Поправка до контрольной суммы", n:"коэффициент " + c.scale.toFixed(6), v:R2(c.G[g] - g0[g])});
+    if (g === "other" && p.refund) parts.push({l:"Возвраты пациентам", v:-p.refund});
+    return {t:"Выручка · " + RU[g], v:after,
+      f:"оплата по управленке × поправка" + (g === "other" ? " − возвраты" : ""),
+      src:XSRC.doc, parts, res:after,
+      note: g === "mal" || g === "pog"
+        ? "Личная выручка учредителя — она целиком его. Всё остальное делится пополам."
+        : "Эта группа делится между учредителями поровну."};
+  }
+  const T = {
+    rev: () => ({t:"Выручка за месяц", v:c.revNet, f:"контрольная сумма − возвраты пациентам",
+      src: p.revBank > 0 ? psrc("revBank") : XSRC.doc,
+      parts:[{k:"revbank", l:"Контрольная сумма выручки", v:c.target},
+             {k:"p:refund", l:"Возвраты пациентам", v:-p.refund}], res:c.revNet,
+      note:"Базис — зачисление на счёт. Разрез по врачам берётся из управленки по фактической оплате, разница разносится пропорционально."}),
+    revbank: () => ({t:"Контрольная сумма выручки", v:c.target,
+      f:"сумма по группам врачей" + (p.revBank > 0 ? ", приведённая к банку" : ""),
+      src: p.revBank > 0 ? psrc("revBank") : XSRC.doc,
+      parts:["mal","pog","other","cosm","misc"].map(g => ({k:"grp:" + g, l:RU[g], v:c.G[g]})), res:c.target,
+      note: tk ? "По чекам Такском живых денег за месяц — " + fmt(tk.live)
+        + " (нал " + fmt0(tk.cash) + " + безнал " + fmt0(tk.card) + "). Зачёт аванса " + fmt0(tk.adv) + " сюда не входит." : ""}),
+    cost: () => ({t:"Расходы за месяц", v:c.costAll, f:"общая часть + личные обоих учредителей",
+      src:"Складывается из выгрузок 1С и параметров месяца",
+      parts:[{k:"common", l:"Общая часть — делится пополам", v:c.common},
+             {k:"pers:mal", l:"Личные Маланичева", v:c.persM},
+             {k:"pers:pog", l:"Личные Погосяна", v:c.persP}], res:c.costAll,
+      note:"Если расписать до конца, личные сокращаются: расходы = счёт 60 + зарплата + налоги + банк + алименты + проценты + эквайринг."}),
+    common: () => ({t:"Общая часть расходов", v:c.common, f:"то, что делится между учредителями пополам",
+      src:"Обороты 51 и 60 плюс параметры месяца",
+      parts:[{k:"p:tax", l:"Налоги с ФОТ", v:p.tax},
+             {k:"salcommon", l:"Зарплата без ассистентов", v:c.salCommon},
+             {k:"p:bank", l:"Услуги банка", v:p.bank},
+             {k:"p:ali", l:"Алименты", v:p.ali},
+             {k:"p:int", l:"Проценты по кредиту", v:p.int},
+             {k:"common60", l:"Поставщики без личных", v:c.common60}], res:c.common}),
+    salcommon: () => ({t:"Зарплата без ассистентов", v:c.salCommon, f:"вся зарплата − личные ассистенты обоих",
+      src:psrc("sal"),
+      parts:[{k:"p:sal", l:"Зарплата по банку", v:p.sal},
+             {l:"Ассистенты Маланичева", v:-p.mAss}, {l:"Ассистенты Погосяна", v:-p.pAss}], res:c.salCommon,
+      note:"Ассистенты у каждого свои, поэтому вынимаются из общей зарплаты и садятся своему учредителю."}),
+    common60: () => ({t:"Поставщики без личных", v:c.common60, f:"база счёта 60 − личные, которые сидят внутри неё",
+      src:XSRC.a60,
+      parts:[{k:"base60", l:"База счёта 60", v:c.base60},
+             {l:"Анализы обоих", n:"внутри статьи «Анализы»", v:-R2(p.mAn + p.pAn)},
+             {l:"Материалы за операции обоих", v:-R2(p.mMat + p.pMat)}], res:c.common60,
+      note:"Личные анализы и материалы физически лежат внутри счёта 60, поэтому их надо вынуть, иначе они посчитаются дважды."}),
+    base60: () => ({t:"База счёта 60", v:c.base60, f:"оплаты контрагентам − возвраты поставщиков",
+      src:XSRC.a60,
+      parts:[{k:"base", l:"Сумма по контрагентам", v:c.base},
+             {k:"p:corr", l:"Возвраты поставщиков", v:-p.corr}], res:c.base60}),
+    base: () => ({t:"Сумма по контрагентам", v:c.base, f:"все оплаты с расчётного счёта, кроме стройки на кредит",
+      src:XSRC.a60,
+      parts:[{k:"med", l:"Медицинские", v:c.byBlock.m}, {k:"upr", l:"Управленческие", v:c.byBlock.u}]
+        .concat(c.unclass > 0 ? [{l:"Без статьи — " + c.unclassN + " контрагентов", v:c.unclass}] : []), res:c.base,
+      note:c.credit > 0 ? "За счёт кредитной линии исключено " + fmt(c.credit) + " — " + book.credit.join(", ") + "." : ""}),
+    med: () => ({t:"Медицинские расходы", v:c.byBlock.m, f:"сумма статей, отнесённых к медицинским",
+      src:XSRC.book,
+      parts:Object.entries(c.byArt).filter(a => a[1].block === "медицинские").sort((a,b) => b[1].sum - a[1].sum)
+        .map(a => ({k:"art:" + a[0], l:a[0], v:a[1].sum})), res:c.byBlock.m}),
+    upr: () => ({t:"Управленческие расходы", v:c.byBlock.u, f:"сумма статей, отнесённых к управленческим",
+      src:XSRC.book,
+      parts:Object.entries(c.byArt).filter(a => a[1].block === "управленческие").sort((a,b) => b[1].sum - a[1].sum)
+        .map(a => ({k:"art:" + a[0], l:a[0], v:a[1].sum})), res:c.byBlock.u}),
+    inc: () => ({t:"Доход учредителей", v:c.incAll, f:"выручка + проценты по депозитам − расходы",
+      src:"Итог расчёта",
+      parts:[{k:"rev", l:"Выручка за месяц", v:c.revNet},
+             {k:"p:dep", l:"Проценты по депозитам", v:p.dep},
+             {k:"cost", l:"Расходы за месяц", v:-c.costAll}], res:c.incAll}),
+    pay: () => ({t:"К выплате на конец месяца", v:c.payAll, f:"доход + остаток с прошлого месяца − дивиденды",
+      src:"Итог расчёта",
+      parts:[{k:"inc", l:"Доход за месяц", v:c.incAll},
+             {l:"Остаток с прошлого месяца", n:psrc("prevM"), v:c.prevAll},
+             {l:"Выплачены дивиденды", v:-c.divAll}], res:c.payAll})
+  };
+  for (const f of ["mal","pog"]){
+    const big = f === "mal", P = big ? "M" : "P";
+    T["pers:" + f] = () => ({t:"Личные расходы · " + (big ? "Маланичев" : "Погосян"),
+      v: big ? c.persM : c.persP, f:"то, что каждый несёт сам",
+      src:XSRC.hand,
+      parts:[{l:"Анализы", n:"внутри счёта 60", v:p[(big?"m":"p") + "An"]},
+             {l:"Материалы за операции", n:"внутри счёта 60", v:p[(big?"m":"p") + "Mat"]},
+             {l:"Ассистенты и СММ", n:"вынуты из общей зарплаты", v:p[(big?"m":"p") + "Ass"]},
+             {l:"Эквайринг с личной выручки", v:p[(big?"m":"p") + "Acq"]}], res: big ? c.persM : c.persP});
+    T["cost:" + f] = () => ({t:"Доля расходов · " + (big ? "Маланичев" : "Погосян"),
+      v: big ? c.costM : c.costP, f:"половина общей части + свои личные",
+      src:"Методика 50/50",
+      parts:[{k:"common", l:"Половина общей части", v:R2(c.common / 2)},
+             {k:"pers:" + f, l:"Свои личные расходы", v: big ? c.persM : c.persP}],
+      res: big ? c.costM : c.costP,
+      note:"Общая часть у обоих одинаковая до копейки. Вся разница между учредителями — в личных."});
+    T["inc:" + f] = () => ({t:"Доход · " + (big ? "Маланичев" : "Погосян"),
+      v: big ? c.incM : c.incP, f:"своя выручка + половина общей + половина процентов − своя доля расходов",
+      src:"Методика 50/50",
+      parts:[{k:"grp:" + f, l:"Своя выручка", v:c.G[f]},
+             {l:"Половина выручки других хирургов", v:R2(c.otherNet / 2)},
+             {l:"Половина косметологии", v:R2(c.G.cosm / 2)},
+             {l:"Половина прочего", v:R2(c.G.misc / 2)},
+             {l:"Половина процентов по депозитам", v:R2(p.dep / 2)},
+             {k:"cost:" + f, l:"Доля расходов", v: -(big ? c.costM : c.costP)}],
+      res: big ? c.incM : c.incP});
+    T["pay:" + f] = () => ({t:"К выплате · " + (big ? "Маланичев" : "Погосян"),
+      v: big ? c.payM : c.payP, f:"доход + остаток с прошлого месяца − дивиденды",
+      src:"Итог расчёта",
+      parts:[{k:"inc:" + f, l:"Доход за месяц", v: big ? c.incM : c.incP},
+             {l:"Остаток с прошлого месяца", n:psrc("prev" + P), v:p["prev" + P]},
+             {l:"Выплачены дивиденды", v:-p["div" + P]}], res: big ? c.payM : c.payP});
+  }
+  if (key.indexOf("p:") === 0){
+    const k = key.slice(2);
+    const NM = {tax:"Налоги с ФОТ", sal:"Зарплата по банку", bank:"Услуги банка", ali:"Алименты",
+      int:"Проценты по кредиту", corr:"Возвраты поставщиков", dep:"Проценты по депозитам",
+      refund:"Возвраты пациентам", revBank:"Контрольная сумма выручки"};
+    return {t:NM[k] || k, v:p[k], f:"Значение месяца", src:psrc(k), parts:[],
+      note:"Поле можно поправить руками на этапе «Параметры месяца» — расчёт пересчитается сразу."};
+  }
+  return T[key] ? T[key]() : null;
+}
+/* ---- панель ---- */
+let xstack = [];
+function xopen(key, reset){
+  const n = xnode(key);
+  if (!n) return;
+  if (reset) xstack = [];
+  if (xstack[xstack.length - 1] !== key) xstack.push(key);
+  $("xtitle").textContent = n.t;
+  $("xval").textContent = fmt(n.v) + " ₽";
+  if (xstack.length > 1){
+    const cr = xstack.map((k, i) => ({i, t:(xnode(k) || {t:k}).t}));
+    const show = cr.length > 4
+      ? [cr[0], {i:cr.length - 3, t:"…"}, cr[cr.length - 2], cr[cr.length - 1]]
+      : cr;
+    $("xcrumb").innerHTML = show.map((x, j) => j === show.length - 1
+      ? "<span>" + esc(x.t) + "</span>"
+      : "<b data-back=\"" + x.i + "\">" + esc(x.t) + "</b>").join("<span>›</span>");
+  } else $("xcrumb").innerHTML = "<span>разбор цифры</span>";
+  let h = n.f ? `<div class="xf">${esc(n.f)}</div>` : "";
+  h += `<dl class="xsrc"><dt>Откуда</dt><dd>${esc(n.src || "—")}</dd></dl>`;
+  if (n.parts && n.parts.length){
+    h += `<div class="xp-list">` + n.parts.map(x => `
+      <div class="xrow${x.k ? " link" : ""}"${x.k ? ' data-x="' + esc(x.k) + '"' : ""}>
+        <span class="l">${esc(x.l)}${x.n ? "<small>" + esc(x.n) + "</small>" : ""}</span>
+        <span class="v${x.v < 0 ? " neg" : ""}">${fmt(x.v)}${x.k ? '<span class="go">→</span>' : ""}</span>
+      </div>`).join("")
+      + (n.res != null ? `<div class="xrow res"><span class="l">Итого</span><span class="v">${fmt(n.res)}</span></div>` : "")
+      + `</div>`;
+  }
+  if (n.note) h += `<p class="xnote">${n.note}</p>`;
+  $("xbody").innerHTML = h;
+  $("xbody").scrollTop = 0;
+  $("xp").hidden = false;
+}
+function xclose(){ $("xp").hidden = true; xstack = []; }
+document.addEventListener("click", e => {
+  const back = e.target.closest("[data-back]");
+  if (back){ xstack = xstack.slice(0, +back.dataset.back + 1); xopen(xstack.pop()); return; }
+  const t = e.target.closest("[data-x]");
+  if (!t) return;
+  e.preventDefault();
+  xopen(t.dataset.x, !t.closest("#xp"));
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("xp").hidden) xclose(); });
+document.getElementById("xclose").addEventListener("click", xclose);
+document.getElementById("xveil").addEventListener("click", xclose);
 </script>
