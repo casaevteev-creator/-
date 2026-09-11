@@ -118,6 +118,15 @@
 .dnote{background:var(--green-soft);border-radius:16px;padding:20px 24px;margin-top:22px;
   font-size:14px;color:var(--ink2);line-height:1.6}
 .dnote b{color:var(--green)}
+/* выручка по дням */
+.dail{display:flex;align-items:flex-end;gap:2px;height:170px;border-bottom:1.5px solid var(--ink);padding:0 2px}
+.dail i{flex:1;display:block;background:var(--green);border-radius:3px 3px 0 0;position:relative;min-height:1px}
+.dail i:hover{background:var(--bronze2)}
+.dail i:hover::after{content:attr(data-v);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);background:var(--ink);color:#fff;font-size:11px;font-family:var(--mono);
+  padding:5px 10px;border-radius:7px;white-space:nowrap;z-index:5}
+.dx{display:flex;gap:2px;padding-top:9px}
+.dx span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--mute)}
 /* динамика по месяцам */
 .mbars{display:flex;align-items:flex-end;gap:0;height:230px;border-bottom:1.5px solid var(--ink);padding:22px 4px 0}
 @media(min-width:760px){.mbars{height:280px}}
@@ -199,6 +208,7 @@ function waterfall(steps){
 }
 function renderDash(){
   const c = calc(), p = st.params;
+  const K = t => "\u00a7\u00a7 · " + t;   // номер проставляется в конце, по порядку на странице
   const per = monthName(st.month);
   const G = c.G, den = c.revNet || 1;
   const revParts = [
@@ -222,6 +232,44 @@ function renderDash(){
     {n:"Банк, алименты, проценты", v:-R2(p.bank + p.ali + p.int + p.mAcq + p.pAcq)},
     {n:"Доход учредителей", v:c.incAll, end:true}
   ];
+  /* каналы поступления и выручка по дням — из чеков Такском */
+  const tk = st.taksk;
+  let chan = "", daily = "";
+  if (tk){
+    const rowsC = [["Наличными", tk.cash], ["Безналичными", tk.card], ["Зачёт ранее внесённого аванса", tk.adv]]
+      .filter(r => r[1] > 0);
+    chan = `<div class="tw" style="margin-top:18px"><table>
+      <tr><th>Канал поступления</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
+      ${rowsC.map(r => `<tr><td>${esc(r[0])}</td><td class="num">${fmt0(r[1])}</td>
+        <td class="num">${pct(tk.sum ? r[1] / tk.sum : 0)}</td></tr>`).join("")}
+      ${tk.refund > 0 ? `<tr><td>Возвраты по чекам</td><td class="num" style="color:var(--red)">−${fmt0(tk.refund)}</td><td class="num"></td></tr>` : ""}
+      <tr class="tot"><td>Пробито по чекам</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
+    </table></div>
+    <p class="sb" style="margin:12px 0 0;font-size:16px">Чеков за месяц — ${tk.checks}.
+    ${tk.adv > 0 ? "Зачёт аванса — это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
+
+    const dd = Object.keys(tk.byDay).sort();
+    if (dd.length > 3){
+      const peak = Math.max(...dd.map(k => tk.byDay[k])) || 1;
+      const best = dd.reduce((a, k) => tk.byDay[k] > tk.byDay[a] ? k : a, dd[0]);
+      const worst = dd.reduce((a, k) => tk.byDay[k] < tk.byDay[a] ? k : a, dd[0]);
+      const avg = dd.reduce((a, k) => a + tk.byDay[k], 0) / dd.length;
+      const dayN = k => +k.slice(8);
+      daily = `<section class="tight"><div class="w">
+        <div class="kick">${K("Ритм")}</div><h2>Выручка по дням</h2>
+        <div class="sb">млн ₽ в день, по чекам · наведите на столбец</div>
+        <div class="chartbox">
+          <div class="dail">${dd.map(k => `<i style="height:${(tk.byDay[k]/peak*100).toFixed(1)}%;opacity:${(0.55 + 0.45*tk.byDay[k]/peak).toFixed(2)}"
+            data-v="${dayN(k)} ${per.split(" ")[0]} · ${MLN(tk.byDay[k])} млн ₽"></i>`).join("")}</div>
+          <div class="dx">${dd.map((k,i) => `<span>${(dayN(k) % 5 === 0 || i === 0) ? dayN(k) : ""}</span>`).join("")}</div>
+        </div>
+        <div class="dnote"><b>Средний день — ${MLN(avg)} млн ₽.</b>
+          Сильнейший — ${dayN(best)} число (${MLN(tk.byDay[best])} млн),
+          самый тихий — ${dayN(worst)} (${MLN(tk.byDay[worst])} млн).</div>
+      </div></section>`;
+    }
+  }
+
   /* динамика: выручка по месяцам, текущий год против прошлого */
   const yr = +(st.month.slice(0, 4)), mo = +(st.month.slice(5, 7));
   const months = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
@@ -239,7 +287,7 @@ function renderDash(){
   const hasPrevY = ytdPrev > 0;
   const dyn = lastM >= 1 ? `
   <section class="tight"><div class="w">
-    <div class="kick">07 · Динамика</div><h2>Год к году</h2>
+    <div class="kick">${K("Динамика")}</div><h2>Год к году</h2>
     <div class="sb">Выручка по месяцам, млн ₽ · ${yr} против ${yr - 1}</div>
     <div class="chartbox">
       <div class="mbars">${months.slice(0, lastM + 1).map((_, i) => `<div class="mg">
@@ -290,7 +338,7 @@ function renderDash(){
   </div>`;
   const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
 
-  $("dashBody").innerHTML = `
+  const out = `
   <header class="dhero"><div class="w">
     <div class="bd">Ф О Р М А</div>
     <div class="tg">клиника пластической хирургии и эстетической косметологии</div>
@@ -305,7 +353,7 @@ function renderDash(){
   </div></header>
 
   <section><div class="w">
-    <div class="kick">01 · Резюме</div><h2>Итог месяца</h2>
+    <div class="kick">${K("Резюме")}</div><h2>Итог месяца</h2>
     <div class="sb">Четыре числа, которые описывают ${per} полностью</div>
     ${tez("01", "Выручка — " + MLN(c.revNet) + " млн ₽",
       "Свои операции хирургов-учредителей — <b>" + fmt0(R2(G.mal + G.pog)) + " ₽</b>, остальное делится пополам. Возвраты пациентам — " + fmt0(p.refund) + " ₽.")}
@@ -318,7 +366,7 @@ function renderDash(){
   </div></section>
 
   <section class="tight"><div class="w">
-    <div class="kick">02 · Показатели</div><h2>Ключевые цифры</h2>
+    <div class="kick">${K("Показатели")}</div><h2>Ключевые цифры</h2>
     <div class="sb">Шесть чисел, по которым видно месяц</div>
     <div class="kpi">
       <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
@@ -340,7 +388,7 @@ function renderDash(){
   </div></section>
 
   <section class="tight"><div class="w">
-    <div class="kick">03 · Выручка</div><h2>Откуда пришли деньги</h2>
+    <div class="kick">${K("Выручка")}</div><h2>Откуда пришли деньги</h2>
     <div class="sb">${fmt0(c.revNet)} ₽ — по группам врачей</div>
     <div class="dsplit">
       <div class="chartbox">${donut(revParts, MLN(c.revNet), "млн ₽ выручка")}</div>
@@ -351,10 +399,13 @@ function renderDash(){
         <tr class="tot"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
       </table></div>
     </div>
+    ${chan}
   </div></section>
 
+  ${daily}
+
   <section class="tight"><div class="w">
-    <div class="kick">04 · Расходы</div><h2>Куда ушли деньги</h2>
+    <div class="kick">${K("Расходы")}</div><h2>Куда ушли деньги</h2>
     <div class="sb">${fmt0(c.base)} ₽ оплат поставщикам — медицинские против управленческих</div>
     <div class="stackbar">
       <div style="background:#2E5E4E;width:${(mSh*100).toFixed(2)}%">Медицинские · ${pct(mSh)}</div>
@@ -369,13 +420,13 @@ function renderDash(){
   </div></section>
 
   <section class="tight"><div class="w">
-    <div class="kick">05 · Экономика</div><h2>Как выручка стала доходом</h2>
+    <div class="kick">${K("Экономика")}</div><h2>Как выручка стала доходом</h2>
     <div class="sb">млн ₽ · от поступлений к доходу учредителей</div>
     <div class="chartbox">${waterfall(wf)}</div>
   </div></section>
 
   <section class="dk"><div class="w">
-    <div class="kick">06 · Учредители</div><h2>Доли учредителей</h2>
+    <div class="kick">${K("Учредители")}</div><h2>Доли учредителей</h2>
     <div class="sb">Общие расходы пополам, личные — каждому свои</div>
     <div class="own">
       ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM)}
@@ -389,6 +440,8 @@ function renderDash(){
   ${dyn}
 
   <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
+  let sn = 0;
+  $("dashBody").innerHTML = out.replace(/\u00a7\u00a7/g, () => String(++sn).padStart(2, "0"));
 }
 document.getElementById("openDash").addEventListener("click", () => {
   renderDash();

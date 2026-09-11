@@ -7,7 +7,7 @@ const FIELD = {tax:"pTax", sal:"pSal", bank:"pBank", ali:"pAli", int:"pInt", cor
   mAn:"mAn", mMat:"mMat", mAss:"mAss", mAcq:"mAcq", pAn:"pAn", pMat:"pMat", pAss:"pAss", pAcq:"pAcq",
   dep:"pDep", prevM:"pPrevM", prevP:"pPrevP", divM:"pDivM", divP:"pDivP", revBank:"revBank", refund:"refund"};
 const st = {
-  month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null,
+  month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null, taksk: null,
   groups: null, params: {}, isExample: true, filter: "all", q: ""
 };
 PK.forEach(k => st.params[k] = 0);
@@ -115,6 +115,33 @@ function checks(c){
       sub:"перетащите «Отчёт по врачам (УК)» за нужный месяц", val: fmt(c.mgmt)});
   } else {
     out.push({ok:false, what:"Отчёт по врачам не загружен", sub:"разрез выручки по хирургам взять неоткуда", val:"—"});
+  }
+  if (st.taksk){
+    const k = st.taksk, a57 = st.acc["57"], a50 = st.acc["50"];
+    if (a57){
+      const acq = R2(N(a57.total.dtBy["62"]));
+      const d = Math.abs(R2(k.card - acq));
+      out.push({ok: d < 1 ? true : (acq && d / acq < 0.01 ? "warn" : false),
+        what:"Безнал по чекам против эквайринга в 1С",
+        sub: d < 1 ? "чеки Такском и счёт 57 сходятся" : "разница " + fmt(d) + " — сюда попадает СБП и интернет-эквайринг",
+        val: fmt(k.card) + " / " + fmt(acq)});
+      const bal = R2(N(a57.total.openDt - a57.total.openKt) + N(a57.total.dt) - N(a57.total.kt));
+      out.push({ok: Math.abs(bal) < 1 ? true : "warn", what:"Счёт 57 закрывается",
+        sub: Math.abs(bal) < 1 ? "всё пробитое зачислено на счёт"
+          : "остаток в пути " + fmt(Math.abs(bal)) + " — граница месяца либо выписка не вся залита в 1С",
+        val: fmt(bal)});
+    }
+    if (a50){
+      const cash50 = R2(N(a50.total.dtBy["62"]) || N(a50.total.dt));
+      const d = Math.abs(R2(k.cash - cash50));
+      out.push({ok: d < 1, what:"Наличные по чекам против кассы в 1С",
+        sub: d < 1 ? "чеки Такском и счёт 50 сходятся" : "разница " + fmt(d),
+        val: fmt(k.cash) + " / " + fmt(cash50)});
+    }
+    if (st.params.refund && Math.abs(R2(st.taksk.refund - st.params.refund)) > 1)
+      out.push({ok:"warn", what:"Возвраты: чеки против параметра",
+        sub:"по чекам " + fmt(st.taksk.refund) + ", в расчёте " + fmt(st.params.refund),
+        val: fmt(R2(st.taksk.refund - st.params.refund))});
   }
   if (st.payments && st.payments.notPostedRows){
     out.push({ok:false, what:"В реестре оплат есть строки без проведения в бухгалтерии",
@@ -282,12 +309,12 @@ function renderReport(c, list){
 }
 function renderNeeds(){
   const got = {"60": st.vendors.length > 0, "51": !!st.acc["51"], "doc": !!st.groups,
-    "50": !!st.acc["50"], "57": !!st.acc["57"], "pay": !!st.payments};
+    "50": !!st.acc["50"], "57": !!st.acc["57"], "tk": !!st.taksk};
   const ex = st.isExample ? "пример" : "";
   const note = {"60": st.vendors.length ? (ex || st.vendors.length + " контрагентов") : "",
     "51": st.acc["51"] ? "загружено" : "", "doc": st.groups ? (ex || "загружено") : "",
     "50": st.acc["50"] ? "загружено" : "", "57": st.acc["57"] ? "загружено" : "",
-    "pay": st.payments ? "загружено" : ""};
+    "tk": st.taksk ? "чеков " + st.taksk.checks : ""};
   for (const li of $("need").children){
     const k = li.dataset.k;
     li.classList.toggle("got", !!got[k]);

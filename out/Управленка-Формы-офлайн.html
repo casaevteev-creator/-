@@ -244,7 +244,7 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
   <!-- 1 -->
   <section id="s1">
     <div class="sec-head"><div class="kick">01 · Источник</div><h2>Выгрузки</h2></div>
-    <p class="sec-sub">Перетащите файлы как есть — имена не важны, программа читает заголовок внутри. Нужны обороты счетов 51 и 60 из 1С и «Отчёт по врачам (УК)» из управленки.</p>
+    <p class="sec-sub">Перетащите файлы как есть — имена не важны, программа читает заголовок внутри. Нужны обороты счетов из 1С, отчёт по врачам из управленки и сводный отчёт Такском.</p>
     <div class="card" style="margin-bottom:14px">
       <div class="sub">Что выгрузить</div>
       <ol class="need" id="need">
@@ -258,11 +258,11 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
           <span class="nw">1С · касса — с сентября, когда касса переедет в бухгалтерию</span><span class="nv"></span></li>
         <li data-k="57" class="opt"><span class="nd"></span><span class="nn">Обороты счёта 57</span>
           <span class="nw">1С · эквайринг и инкассация — для сверки границы месяца</span><span class="nv"></span></li>
-        <li data-k="pay" class="opt"><span class="nd"></span><span class="nn">Реестр оплат</span>
-          <span class="nw">управленка · каналы нал/безнал и колонка «Бух учет»</span><span class="nv"></span></li>
+        <li data-k="tk"><span class="nd"></span><span class="nn">Такском-Касса за месяц</span>
+          <span class="nw">ОФД · чеки с раздельными наличными, безналом и авансом — сводный отчёт по фискальным документам</span><span class="nv"></span></li>
       </ol>
       <p class="needfoot">В 1С: <b>Отчёты → Обороты счёта</b>, период — месяц, группировка по субконто.
-      Для счёта 60 обязательно разверните контрагентов. Первые три строки нужны, остальные три уточняют сверки.</p>
+      Для счёта 60 обязательно разверните контрагентов. Первые четыре строки нужны, обороты 50 и 57 уточняют сверки. Такском — в личном кабинете, сводный отчёт по фискальным документам за месяц.</p>
     </div>
     <div class="drop" id="drop">
       <h3>Перетащите выгрузки сюда</h3>
@@ -503,6 +503,15 @@ td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px 
 .dnote{background:var(--green-soft);border-radius:16px;padding:20px 24px;margin-top:22px;
   font-size:14px;color:var(--ink2);line-height:1.6}
 .dnote b{color:var(--green)}
+/* выручка по дням */
+.dail{display:flex;align-items:flex-end;gap:2px;height:170px;border-bottom:1.5px solid var(--ink);padding:0 2px}
+.dail i{flex:1;display:block;background:var(--green);border-radius:3px 3px 0 0;position:relative;min-height:1px}
+.dail i:hover{background:var(--bronze2)}
+.dail i:hover::after{content:attr(data-v);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);background:var(--ink);color:#fff;font-size:11px;font-family:var(--mono);
+  padding:5px 10px;border-radius:7px;white-space:nowrap;z-index:5}
+.dx{display:flex;gap:2px;padding-top:9px}
+.dx span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--mute)}
 /* динамика по месяцам */
 .mbars{display:flex;align-items:flex-end;gap:0;height:230px;border-bottom:1.5px solid var(--ink);padding:22px 4px 0}
 @media(min-width:760px){.mbars{height:280px}}
@@ -584,6 +593,7 @@ function waterfall(steps){
 }
 function renderDash(){
   const c = calc(), p = st.params;
+  const K = t => "\u00a7\u00a7 · " + t;   // номер проставляется в конце, по порядку на странице
   const per = monthName(st.month);
   const G = c.G, den = c.revNet || 1;
   const revParts = [
@@ -607,6 +617,44 @@ function renderDash(){
     {n:"Банк, алименты, проценты", v:-R2(p.bank + p.ali + p.int + p.mAcq + p.pAcq)},
     {n:"Доход учредителей", v:c.incAll, end:true}
   ];
+  /* каналы поступления и выручка по дням — из чеков Такском */
+  const tk = st.taksk;
+  let chan = "", daily = "";
+  if (tk){
+    const rowsC = [["Наличными", tk.cash], ["Безналичными", tk.card], ["Зачёт ранее внесённого аванса", tk.adv]]
+      .filter(r => r[1] > 0);
+    chan = `<div class="tw" style="margin-top:18px"><table>
+      <tr><th>Канал поступления</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
+      ${rowsC.map(r => `<tr><td>${esc(r[0])}</td><td class="num">${fmt0(r[1])}</td>
+        <td class="num">${pct(tk.sum ? r[1] / tk.sum : 0)}</td></tr>`).join("")}
+      ${tk.refund > 0 ? `<tr><td>Возвраты по чекам</td><td class="num" style="color:var(--red)">−${fmt0(tk.refund)}</td><td class="num"></td></tr>` : ""}
+      <tr class="tot"><td>Пробито по чекам</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
+    </table></div>
+    <p class="sb" style="margin:12px 0 0;font-size:16px">Чеков за месяц — ${tk.checks}.
+    ${tk.adv > 0 ? "Зачёт аванса — это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
+
+    const dd = Object.keys(tk.byDay).sort();
+    if (dd.length > 3){
+      const peak = Math.max(...dd.map(k => tk.byDay[k])) || 1;
+      const best = dd.reduce((a, k) => tk.byDay[k] > tk.byDay[a] ? k : a, dd[0]);
+      const worst = dd.reduce((a, k) => tk.byDay[k] < tk.byDay[a] ? k : a, dd[0]);
+      const avg = dd.reduce((a, k) => a + tk.byDay[k], 0) / dd.length;
+      const dayN = k => +k.slice(8);
+      daily = `<section class="tight"><div class="w">
+        <div class="kick">${K("Ритм")}</div><h2>Выручка по дням</h2>
+        <div class="sb">млн ₽ в день, по чекам · наведите на столбец</div>
+        <div class="chartbox">
+          <div class="dail">${dd.map(k => `<i style="height:${(tk.byDay[k]/peak*100).toFixed(1)}%;opacity:${(0.55 + 0.45*tk.byDay[k]/peak).toFixed(2)}"
+            data-v="${dayN(k)} ${per.split(" ")[0]} · ${MLN(tk.byDay[k])} млн ₽"></i>`).join("")}</div>
+          <div class="dx">${dd.map((k,i) => `<span>${(dayN(k) % 5 === 0 || i === 0) ? dayN(k) : ""}</span>`).join("")}</div>
+        </div>
+        <div class="dnote"><b>Средний день — ${MLN(avg)} млн ₽.</b>
+          Сильнейший — ${dayN(best)} число (${MLN(tk.byDay[best])} млн),
+          самый тихий — ${dayN(worst)} (${MLN(tk.byDay[worst])} млн).</div>
+      </div></section>`;
+    }
+  }
+
   /* динамика: выручка по месяцам, текущий год против прошлого */
   const yr = +(st.month.slice(0, 4)), mo = +(st.month.slice(5, 7));
   const months = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
@@ -624,7 +672,7 @@ function renderDash(){
   const hasPrevY = ytdPrev > 0;
   const dyn = lastM >= 1 ? `
   <section class="tight"><div class="w">
-    <div class="kick">07 · Динамика</div><h2>Год к году</h2>
+    <div class="kick">${K("Динамика")}</div><h2>Год к году</h2>
     <div class="sb">Выручка по месяцам, млн ₽ · ${yr} против ${yr - 1}</div>
     <div class="chartbox">
       <div class="mbars">${months.slice(0, lastM + 1).map((_, i) => `<div class="mg">
@@ -675,7 +723,7 @@ function renderDash(){
   </div>`;
   const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
 
-  $("dashBody").innerHTML = `
+  const out = `
   <header class="dhero"><div class="w">
     <div class="bd">Ф О Р М А</div>
     <div class="tg">клиника пластической хирургии и эстетической косметологии</div>
@@ -690,7 +738,7 @@ function renderDash(){
   </div></header>
 
   <section><div class="w">
-    <div class="kick">01 · Резюме</div><h2>Итог месяца</h2>
+    <div class="kick">${K("Резюме")}</div><h2>Итог месяца</h2>
     <div class="sb">Четыре числа, которые описывают ${per} полностью</div>
     ${tez("01", "Выручка — " + MLN(c.revNet) + " млн ₽",
       "Свои операции хирургов-учредителей — <b>" + fmt0(R2(G.mal + G.pog)) + " ₽</b>, остальное делится пополам. Возвраты пациентам — " + fmt0(p.refund) + " ₽.")}
@@ -703,7 +751,7 @@ function renderDash(){
   </div></section>
 
   <section class="tight"><div class="w">
-    <div class="kick">02 · Показатели</div><h2>Ключевые цифры</h2>
+    <div class="kick">${K("Показатели")}</div><h2>Ключевые цифры</h2>
     <div class="sb">Шесть чисел, по которым видно месяц</div>
     <div class="kpi">
       <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
@@ -725,7 +773,7 @@ function renderDash(){
   </div></section>
 
   <section class="tight"><div class="w">
-    <div class="kick">03 · Выручка</div><h2>Откуда пришли деньги</h2>
+    <div class="kick">${K("Выручка")}</div><h2>Откуда пришли деньги</h2>
     <div class="sb">${fmt0(c.revNet)} ₽ — по группам врачей</div>
     <div class="dsplit">
       <div class="chartbox">${donut(revParts, MLN(c.revNet), "млн ₽ выручка")}</div>
@@ -736,10 +784,13 @@ function renderDash(){
         <tr class="tot"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
       </table></div>
     </div>
+    ${chan}
   </div></section>
 
+  ${daily}
+
   <section class="tight"><div class="w">
-    <div class="kick">04 · Расходы</div><h2>Куда ушли деньги</h2>
+    <div class="kick">${K("Расходы")}</div><h2>Куда ушли деньги</h2>
     <div class="sb">${fmt0(c.base)} ₽ оплат поставщикам — медицинские против управленческих</div>
     <div class="stackbar">
       <div style="background:#2E5E4E;width:${(mSh*100).toFixed(2)}%">Медицинские · ${pct(mSh)}</div>
@@ -754,13 +805,13 @@ function renderDash(){
   </div></section>
 
   <section class="tight"><div class="w">
-    <div class="kick">05 · Экономика</div><h2>Как выручка стала доходом</h2>
+    <div class="kick">${K("Экономика")}</div><h2>Как выручка стала доходом</h2>
     <div class="sb">млн ₽ · от поступлений к доходу учредителей</div>
     <div class="chartbox">${waterfall(wf)}</div>
   </div></section>
 
   <section class="dk"><div class="w">
-    <div class="kick">06 · Учредители</div><h2>Доли учредителей</h2>
+    <div class="kick">${K("Учредители")}</div><h2>Доли учредителей</h2>
     <div class="sb">Общие расходы пополам, личные — каждому свои</div>
     <div class="own">
       ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM)}
@@ -774,6 +825,8 @@ function renderDash(){
   ${dyn}
 
   <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per} · ${hist[st.month] && hist[st.month].closed ? "закрыт " + hist[st.month].closed.split("-").reverse().join(".") : "черновик"}</span></div></footer>`;
+  let sn = 0;
+  $("dashBody").innerHTML = out.replace(/\u00a7\u00a7/g, () => String(++sn).padStart(2, "0"));
 }
 document.getElementById("openDash").addEventListener("click", () => {
   renderDash();
@@ -907,8 +960,23 @@ async function loadParams(month){
 }
 
 /* ============================ разбор выгрузок ============================ */
+/* Такском объявляет в листе обрезанный диапазон (A1:AT13 при 52 строках),
+   поэтому границы считаем по реально существующим ячейкам, а не по «!ref». */
+function realRange(ws){
+  const r0 = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  let sr = r0.s.r, sc = r0.s.c, er = r0.e.r, ec = r0.e.c;
+  for (const k in ws){
+    if (k.charCodeAt(0) === 33) continue;              // служебные ключи «!…»
+    const a = XLSX.utils.decode_cell(k);
+    if (a.r < sr) sr = a.r;
+    if (a.c < sc) sc = a.c;
+    if (a.r > er) er = a.r;
+    if (a.c > ec) ec = a.c;
+  }
+  return {s:{r:sr, c:sc}, e:{r:er, c:ec}};
+}
 function gridOf(ws){
-  const rng = XLSX.utils.decode_range(ws["!ref"]);
+  const rng = realRange(ws);
   const rows = [], levels = [], rr = ws["!rows"] || [];
   for (let r = rng.s.r; r <= rng.e.r; r++){
     const row = [];
@@ -990,6 +1058,37 @@ function parseDoctors(rows){
   }
   return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total};
 }
+/* «Такском-Касса», сводный отчёт по фискальным документам — чеки ККТ */
+function parseTaksk(rows){
+  const H = findHead(rows, ["Наличными", "Безналичными", "Сумма"]);
+  if (!H) return null;
+  const ci = {};
+  ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","В кредит","Сумма"]
+    .forEach(k => ci[k] = H.h.indexOf(k));
+  if (ci["Документ"] < 0 || ci["Тип операции"] < 0) return null;
+  const t = {cash:0, card:0, adv:0, credit:0, sum:0, refund:0, checks:0, byDay:{}, days:0};
+  for (let r = H.r + 1; r < rows.length; r++){
+    if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;   // отчёты о сменах — служебные
+    const op = S(rows[r][ci["Тип операции"]]);
+    const sum = N(rows[r][ci["Сумма"]]);
+    if (!sum) continue;
+    t.checks++;
+    t.cash += N(rows[r][ci["Наличными"]]);
+    t.card += N(rows[r][ci["Безналичными"]]);
+    t.adv  += N(rows[r][ci["Аванс"]]);
+    t.credit += N(rows[r][ci["В кредит"]]);
+    t.sum += sum;
+    if (/Возврат/i.test(op)) t.refund += Math.abs(sum);
+    const d = rows[r][ci["Дата и время"]];
+    let key = "";
+    if (d instanceof Date) key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+    else { const m = /(\d{2})\.(\d{2})\.(\d{4})/.exec(S(d)); if (m) key = m[3] + "-" + m[2] + "-" + m[1]; }
+    if (key) t.byDay[key] = R2((t.byDay[key] || 0) + sum);
+  }
+  t.days = Object.keys(t.byDay).length;
+  ["cash","card","adv","credit","sum","refund"].forEach(k => t[k] = R2(t[k]));
+  return {kind:"taksk", t};
+}
 /* Реестр оплат управленки — каналы и признак проведения в бухгалтерии */
 function parsePayments(rows){
   const H = findHead(rows, ["Специалист", "Сумма руб"]);
@@ -1011,6 +1110,7 @@ function detect(wb){
     const {rows, levels} = gridOf(wb.Sheets[name]);
     if (!rows.length) continue;
     const o = parseOboroty(rows, levels); if (o) return o;
+    const k = parseTaksk(rows);           if (k) return k;
     const d = parseDoctors(rows);         if (d) return d;
     const p = parsePayments(rows);        if (p) return p;
   }
@@ -1027,7 +1127,7 @@ const FIELD = {tax:"pTax", sal:"pSal", bank:"pBank", ali:"pAli", int:"pInt", cor
   mAn:"mAn", mMat:"mMat", mAss:"mAss", mAcq:"mAcq", pAn:"pAn", pMat:"pMat", pAss:"pAss", pAcq:"pAcq",
   dep:"pDep", prevM:"pPrevM", prevP:"pPrevP", divM:"pDivM", divP:"pDivP", revBank:"revBank", refund:"refund"};
 const st = {
-  month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null,
+  month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null, taksk: null,
   groups: null, params: {}, isExample: true, filter: "all", q: ""
 };
 PK.forEach(k => st.params[k] = 0);
@@ -1135,6 +1235,33 @@ function checks(c){
       sub:"перетащите «Отчёт по врачам (УК)» за нужный месяц", val: fmt(c.mgmt)});
   } else {
     out.push({ok:false, what:"Отчёт по врачам не загружен", sub:"разрез выручки по хирургам взять неоткуда", val:"—"});
+  }
+  if (st.taksk){
+    const k = st.taksk, a57 = st.acc["57"], a50 = st.acc["50"];
+    if (a57){
+      const acq = R2(N(a57.total.dtBy["62"]));
+      const d = Math.abs(R2(k.card - acq));
+      out.push({ok: d < 1 ? true : (acq && d / acq < 0.01 ? "warn" : false),
+        what:"Безнал по чекам против эквайринга в 1С",
+        sub: d < 1 ? "чеки Такском и счёт 57 сходятся" : "разница " + fmt(d) + " — сюда попадает СБП и интернет-эквайринг",
+        val: fmt(k.card) + " / " + fmt(acq)});
+      const bal = R2(N(a57.total.openDt - a57.total.openKt) + N(a57.total.dt) - N(a57.total.kt));
+      out.push({ok: Math.abs(bal) < 1 ? true : "warn", what:"Счёт 57 закрывается",
+        sub: Math.abs(bal) < 1 ? "всё пробитое зачислено на счёт"
+          : "остаток в пути " + fmt(Math.abs(bal)) + " — граница месяца либо выписка не вся залита в 1С",
+        val: fmt(bal)});
+    }
+    if (a50){
+      const cash50 = R2(N(a50.total.dtBy["62"]) || N(a50.total.dt));
+      const d = Math.abs(R2(k.cash - cash50));
+      out.push({ok: d < 1, what:"Наличные по чекам против кассы в 1С",
+        sub: d < 1 ? "чеки Такском и счёт 50 сходятся" : "разница " + fmt(d),
+        val: fmt(k.cash) + " / " + fmt(cash50)});
+    }
+    if (st.params.refund && Math.abs(R2(st.taksk.refund - st.params.refund)) > 1)
+      out.push({ok:"warn", what:"Возвраты: чеки против параметра",
+        sub:"по чекам " + fmt(st.taksk.refund) + ", в расчёте " + fmt(st.params.refund),
+        val: fmt(R2(st.taksk.refund - st.params.refund))});
   }
   if (st.payments && st.payments.notPostedRows){
     out.push({ok:false, what:"В реестре оплат есть строки без проведения в бухгалтерии",
@@ -1302,12 +1429,12 @@ function renderReport(c, list){
 }
 function renderNeeds(){
   const got = {"60": st.vendors.length > 0, "51": !!st.acc["51"], "doc": !!st.groups,
-    "50": !!st.acc["50"], "57": !!st.acc["57"], "pay": !!st.payments};
+    "50": !!st.acc["50"], "57": !!st.acc["57"], "tk": !!st.taksk};
   const ex = st.isExample ? "пример" : "";
   const note = {"60": st.vendors.length ? (ex || st.vendors.length + " контрагентов") : "",
     "51": st.acc["51"] ? "загружено" : "", "doc": st.groups ? (ex || "загружено") : "",
     "50": st.acc["50"] ? "загружено" : "", "57": st.acc["57"] ? "загружено" : "",
-    "pay": st.payments ? "загружено" : ""};
+    "tk": st.taksk ? "чеков " + st.taksk.checks : ""};
   for (const li of $("need").children){
     const k = li.dataset.k;
     li.classList.toggle("got", !!got[k]);
@@ -1351,7 +1478,7 @@ async function takeFiles(list){
   const files = Array.from(list);          // input.value очищается сразу, FileList к концу цикла пуст
   if (st.isExample){                       // первый настоящий файл вытесняет августовский пример
     st.isExample = false;
-    st.vendors = []; st.groups = null; st.acc = {}; st.doctors = null; st.payments = null; st.files = [];
+    st.vendors = []; st.groups = null; st.acc = {}; st.doctors = null; st.payments = null; st.taksk = null; st.files = [];
     PK.forEach(k => st.params[k] = 0);
     fillParams();
   }
@@ -1373,7 +1500,7 @@ async function takeFiles(list){
     }
     try {
       const buf = await f.arrayBuffer();
-      const wb = XLSX.read(new Uint8Array(buf), {type:"array", cellStyles:true});
+      const wb = XLSX.read(new Uint8Array(buf), {type:"array", cellStyles:true, cellDates:true});
       const p = detect(wb);
       if (!p){ rec.note = "не похоже на обороты счёта или отчёт по врачам"; }
       else if (p.kind === "oborot"){
@@ -1397,6 +1524,15 @@ async function takeFiles(list){
         st.doctors = p; rec.ok = true; rec.tag = "врачи";
         rec.note = "фактическая оплата: " + fmt(p.total);
         fillFounders(); regroup();
+      }
+      else if (p.kind === "taksk"){
+        st.taksk = p.t; rec.ok = true; rec.tag = "такском";
+        rec.note = "чеков " + p.t.checks + " · нал " + fmt0(p.t.cash) + " · безнал " + fmt0(p.t.card)
+          + " · аванс " + fmt0(p.t.adv);
+        if (!st.params.refund && p.t.refund) st.params.refund = p.t.refund;
+        say("revHint", "по чекам Такском: " + fmt(p.t.sum) + " — нал " + fmt0(p.t.cash)
+          + ", безнал " + fmt0(p.t.card) + ", зачёт аванса " + fmt0(p.t.adv));
+        fillParams();
       }
       else if (p.kind === "payments"){
         st.payments = p; rec.ok = true; rec.tag = "оплаты";
@@ -1577,7 +1713,7 @@ function wire(){
     st.month = e.target.value;
     const saved = await loadParams(st.month);
     if (saved){ PK.forEach(k => st.params[k] = N(saved[k])); }
-    else if (st.month !== "2026-08"){ PK.forEach(k => st.params[k] = 0); st.isExample = false; st.vendors = []; st.groups = null; st.files = []; st.acc = {}; st.doctors = null; st.payments = null; }
+    else if (st.month !== "2026-08"){ PK.forEach(k => st.params[k] = 0); st.isExample = false; st.vendors = []; st.groups = null; st.files = []; st.acc = {}; st.doctors = null; st.payments = null; st.taksk = null; }
     fillParams(); pullPrevBalance(); render();
   });
 
@@ -1644,7 +1780,7 @@ function wire(){
   });
   $("reset").addEventListener("click", () => {
     if (!confirm("Убрать загруженные выгрузки и цифры месяца? Справочник статей сохранится.")) return;
-    st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null; st.groups = null;
+    st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null; st.taksk = null; st.groups = null;
     st.isExample = false; PK.forEach(k => st.params[k] = 0);
     fillParams(); render();
   });

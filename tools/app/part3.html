@@ -88,8 +88,23 @@ async function loadParams(month){
 }
 
 /* ============================ разбор выгрузок ============================ */
+/* Такском объявляет в листе обрезанный диапазон (A1:AT13 при 52 строках),
+   поэтому границы считаем по реально существующим ячейкам, а не по «!ref». */
+function realRange(ws){
+  const r0 = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  let sr = r0.s.r, sc = r0.s.c, er = r0.e.r, ec = r0.e.c;
+  for (const k in ws){
+    if (k.charCodeAt(0) === 33) continue;              // служебные ключи «!…»
+    const a = XLSX.utils.decode_cell(k);
+    if (a.r < sr) sr = a.r;
+    if (a.c < sc) sc = a.c;
+    if (a.r > er) er = a.r;
+    if (a.c > ec) ec = a.c;
+  }
+  return {s:{r:sr, c:sc}, e:{r:er, c:ec}};
+}
 function gridOf(ws){
-  const rng = XLSX.utils.decode_range(ws["!ref"]);
+  const rng = realRange(ws);
   const rows = [], levels = [], rr = ws["!rows"] || [];
   for (let r = rng.s.r; r <= rng.e.r; r++){
     const row = [];
@@ -171,6 +186,37 @@ function parseDoctors(rows){
   }
   return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total};
 }
+/* «Такском-Касса», сводный отчёт по фискальным документам — чеки ККТ */
+function parseTaksk(rows){
+  const H = findHead(rows, ["Наличными", "Безналичными", "Сумма"]);
+  if (!H) return null;
+  const ci = {};
+  ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","В кредит","Сумма"]
+    .forEach(k => ci[k] = H.h.indexOf(k));
+  if (ci["Документ"] < 0 || ci["Тип операции"] < 0) return null;
+  const t = {cash:0, card:0, adv:0, credit:0, sum:0, refund:0, checks:0, byDay:{}, days:0};
+  for (let r = H.r + 1; r < rows.length; r++){
+    if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;   // отчёты о сменах — служебные
+    const op = S(rows[r][ci["Тип операции"]]);
+    const sum = N(rows[r][ci["Сумма"]]);
+    if (!sum) continue;
+    t.checks++;
+    t.cash += N(rows[r][ci["Наличными"]]);
+    t.card += N(rows[r][ci["Безналичными"]]);
+    t.adv  += N(rows[r][ci["Аванс"]]);
+    t.credit += N(rows[r][ci["В кредит"]]);
+    t.sum += sum;
+    if (/Возврат/i.test(op)) t.refund += Math.abs(sum);
+    const d = rows[r][ci["Дата и время"]];
+    let key = "";
+    if (d instanceof Date) key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+    else { const m = /(\d{2})\.(\d{2})\.(\d{4})/.exec(S(d)); if (m) key = m[3] + "-" + m[2] + "-" + m[1]; }
+    if (key) t.byDay[key] = R2((t.byDay[key] || 0) + sum);
+  }
+  t.days = Object.keys(t.byDay).length;
+  ["cash","card","adv","credit","sum","refund"].forEach(k => t[k] = R2(t[k]));
+  return {kind:"taksk", t};
+}
 /* Реестр оплат управленки — каналы и признак проведения в бухгалтерии */
 function parsePayments(rows){
   const H = findHead(rows, ["Специалист", "Сумма руб"]);
@@ -192,6 +238,7 @@ function detect(wb){
     const {rows, levels} = gridOf(wb.Sheets[name]);
     if (!rows.length) continue;
     const o = parseOboroty(rows, levels); if (o) return o;
+    const k = parseTaksk(rows);           if (k) return k;
     const d = parseDoctors(rows);         if (d) return d;
     const p = parsePayments(rows);        if (p) return p;
   }
