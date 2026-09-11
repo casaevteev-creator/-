@@ -1,5 +1,5 @@
 <style>
-/* ======================= советчик ======================= */
+/* ======================= разбор месяца ======================= */
 .adv{background:var(--ink);color:#fff;border-radius:20px;padding:28px 26px}
 @media(min-width:760px){.adv{padding:34px 36px}}
 .adv h3{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:6px}
@@ -39,7 +39,7 @@ async function advisor(){
   }
   return ADV;
 }
-/* Сводка месяца: всё, на что советчик может опираться. Никаких пациентов. */
+/* Сводка месяца: всё, на что опирается разбор. Никаких пациентов. */
 function monthDigest(){
   const c = calc(), p = st.params, tk = st.taksk, L = [];
   const R = (k, v) => L.push(k + ": " + fmt(v));
@@ -153,11 +153,11 @@ async function advAsk(q){
   const out = $("advout");
   const s = await advisor();
   if (!s){ out.hidden = false; out.innerHTML =
-    '<p class="advwait" style="animation:none">Советчик доступен только когда программа открыта по ссылке. ' +
-    'В автономном файле и в выгруженном отчёте его нет — там остаются посчитанные наблюдения выше.</p>'; return; }
+    '<p class="advwait" style="animation:none">Разбор доступен только когда программа открыта по ссылке. ' +
+    'В автономном файле и в выгруженном отчёте его нет — там остаются посчитанные выводы выше.</p>'; return; }
   advBusy = true;
   out.hidden = false;
-  out.innerHTML = '<p class="advwait">Смотрю цифры месяца</p>';
+  out.innerHTML = '<p class="advwait">Считаю по цифрам месяца</p>';
   try {
     await s(ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest() + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: " + q,
       {modelTier:"complex", onText:({text}) => { lastAnswer = text; out.innerHTML = advFormat(text); }});
@@ -165,10 +165,10 @@ async function advAsk(q){
       '<button class="btn gold sm" id="advtake" type="button" style="margin-top:18px">' +
       'Взять в комментарий к месяцу</button>' +
       '<p class="advfoot">Комментарий попадёт в отчёт и в файл, который вы отправите учредителям — ' +
-      'им ни Claude, ни интернет не понадобятся. Текст можно поправить на рабочем экране.</p>');
+      'ни программы, ни интернета им не понадобится. Текст можно поправить на рабочем экране.</p>');
   } catch(e){
     const code = e && e.code;
-    out.innerHTML = "<p>" + (code === "not_granted" ? "Доступ к советчику не разрешён в этом окне."
+    out.innerHTML = "<p>" + (code === "not_granted" ? "Разбор в этом окне не разрешён."
       : code === "rate_limited" ? "Слишком часто — подождите минуту и спросите снова."
       : "Не получилось спросить: " + ((e && e.message) || code || "ошибка")) + "</p>"
       + (e && e.text ? advFormat(e.text) : "");
@@ -176,13 +176,13 @@ async function advAsk(q){
   advBusy = false;
 }
 /* Комментарий владельца к месяцу. Едет в отчёт и в файл учредителям —
-   им Claude не нужен, они читают готовый текст. */
+   они читают готовый текст, программа им не нужна. */
 function noteSection(){
   const t = (st.note || "").trim();          // S() схлопнул бы абзацы в одну строку
   if (!t) return "";
   return `<section class="tight"><div class="w">
     <div class="kick">\u00a7\u00a7 · Комментарий</div><h2>Слово к месяцу</h2>
-    <div class="sb">От управляющего партнёра</div>
+    <div class="sb">Что важно знать про этот месяц</div>
     <div class="note-sec">${advFormat(t)}</div>
   </div></section>`;
 }
@@ -191,19 +191,19 @@ function advSection(){
     "Что изменилось против прошлого месяца?", "Как поднять доходность?",
     "Что спросить у бухгалтера?"];
   return `<section class="tight advisor"><div class="w">
-    <div class="kick">§§ · Советчик</div><h2>Спросить финдиректора</h2>
-    <div class="sb">Он смотрит именно на этот месяц — все цифры выше, история и незакрытые сверки</div>
+    <div class="kick">§§ · Вопросы</div><h2>Разобрать месяц</h2>
+    <div class="sb">Разбор строится по цифрам именно этого месяца — с историей и незакрытыми сверками</div>
     <div class="adv">
       <h3>О чём спросить</h3>
-      <div class="lead">Ответ считается заново каждый раз, под цифры загруженного месяца</div>
+      <div class="lead">Ответ строится заново каждый раз, под цифры загруженного месяца</div>
       <div class="advq">${Q.map(q => `<button type="button" data-ask="${esc(q)}">${esc(q)}</button>`).join("")}</div>
       <div class="advbox">
         <textarea id="advq" rows="2" placeholder="Или спросите своими словами: почему доход упал, стоит ли гасить кредит, что с загрузкой по дням…"></textarea>
         <button class="btn gold" id="advgo">Спросить</button>
       </div>
       <div class="advout" id="advout" hidden></div>
-      <p class="advfoot">Советчик видит только цифры этого отчёта: выручку, статьи расходов, историю по месяцам и сверки.
-      Данных пациентов в программе нет и никуда не уходит.</p>
+      <p class="advfoot">В разбор уходят только цифры этого отчёта: выручка, статьи расходов, история по месяцам и сверки.
+      Данных пациентов в программе нет.</p>
     </div>
   </div></section>`;
 }

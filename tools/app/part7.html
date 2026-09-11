@@ -336,7 +336,7 @@ function xopen(key, reset){
   if (typeof ADV !== "undefined" && ADV !== null && document.querySelector(".advisor"))
     h += `<button class="btn ghost sm xask" id="xaskbtn" type="button"
       data-q="Разбери подробно: ${esc(n.t)} — ${fmt(n.v)} ₽. Почему столько, что это значит и что с этим делать?">
-      Спросить финдиректора про эту цифру</button>`;
+      Разобрать эту цифру подробно</button>`;
   $("xbody").innerHTML = h;
   $("xbody").scrollTop = 0;
   $("xp").hidden = false;

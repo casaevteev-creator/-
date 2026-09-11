@@ -247,9 +247,9 @@ const EXPORT_ASSETS = __EXPORT__;
 function bodyForExport(){
   const tmp = document.createElement("div");
   tmp.innerHTML = $("dashBody").innerHTML;
-  tmp.querySelectorAll(".advisor").forEach(n => n.remove());   // советчику нужен Claude, в файле его нет
+  tmp.querySelectorAll(".advisor").forEach(n => n.remove());   // разбор в файле не работает — вырезаем
   let i = 0;
-  tmp.querySelectorAll(".kick").forEach(n => {                 // перенумеровать без раздела советчика
+  tmp.querySelectorAll(".kick").forEach(n => {                 // перенумеровать без вырезанного раздела
     n.textContent = n.textContent.replace(/^\d+/, () => String(++i).padStart(2, "0"));
   });
   return tmp.innerHTML;
@@ -352,8 +352,8 @@ function wire(){
     try { await navigator.clipboard.writeText(txt); copied = true; } catch(e){}
     await offer("Сводка месяца — " + monthName(st.month) + ".txt",
       new Blob([txt], {type:"text/plain;charset=utf-8"}));
-    toast(copied ? "Сводка скопирована и сохранена файлом — вставьте её в чат с Claude"
-                 : "Сводка сохранена файлом — откройте и вставьте в чат с Claude");
+    toast(copied ? "Сводка месяца скопирована и сохранена файлом"
+                 : "Сводка месяца сохранена файлом");
   });
   $("printRep").addEventListener("click", () => { renderDash(); $("dash").hidden = false; setTimeout(() => window.print(), 120); });
   const cl = $("copyLink");
@@ -394,7 +394,7 @@ async function start(){
   if (savedNow){ PK.forEach(k => st.params[k] = N(savedNow.p[k])); st.note = savedNow.note || ""; }
   $("mnote").value = st.note;
   fillParams(); bindParams(); wire(); pullPrevBalance(); render();
-  // советчик описан в следующем скрипте — спрашиваем после разбора страницы
+  // функция описана в следующем скрипте — вызываем после разбора страницы
   setTimeout(() => { if (typeof advisor === "function") advisor(); }, 0);
   if (/report|отч/i.test(decodeURIComponent(location.hash))) $("openDash").click();
 
