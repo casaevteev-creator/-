@@ -264,9 +264,9 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
     </div>
     <div class="drop" id="drop">
       <h3>Перетащите выгрузки сюда</h3>
-      <p>xlsx из 1С и управленки · можно несколько сразу</p>
+      <p>xlsx из 1С и управленки · можно несколько сразу · сюда же кладётся сохранённый справочник</p>
       <button class="btn" id="pick">Выбрать файлы</button>
-      <input type="file" id="file" multiple accept=".xlsx,.xls" hidden>
+      <input type="file" id="file" multiple accept=".xlsx,.xls,.json" hidden>
     </div>
     <ul class="filelist" id="files"></ul>
   </section>
@@ -321,9 +321,9 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
     <div class="card">
       <div class="sub">Общие расходы</div>
       <div class="fields">
-        <div class="f"><label for="pTax">Налоги с ФОТ (68.90 и 69)</label><input id="pTax" inputmode="decimal"></div>
+        <div class="f"><label for="pTax">Налоги с ФОТ (68.90 и 69)</label><input id="pTax" inputmode="decimal"><div class="hint" id="hTax"></div></div>
         <div class="f"><label for="pSal">Зарплата по банку (счёт 70)</label><input id="pSal" inputmode="decimal"></div>
-        <div class="f"><label for="pBank">Услуги банка, общие</label><input id="pBank" inputmode="decimal"></div>
+        <div class="f"><label for="pBank">Услуги банка, общие</label><input id="pBank" inputmode="decimal"><div class="hint" id="hBank"></div></div>
         <div class="f"><label for="pAli">Алименты</label><input id="pAli" inputmode="decimal"></div>
         <div class="f"><label for="pInt">Проценты по кредиту</label><input id="pInt" inputmode="decimal"></div>
         <div class="f"><label for="pCorr">Возвраты поставщиков</label><input id="pCorr" inputmode="decimal">
@@ -351,7 +351,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
         <div class="f"><label for="pDep">Проценты по депозитам</label><input id="pDep" inputmode="decimal"></div>
         <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"></div>
         <div class="f"><label for="pPrevP">Остаток прошлого месяца — Погосян</label><input id="pPrevP" inputmode="decimal"></div>
-        <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"></div>
+        <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"><div class="hint" id="hDiv"></div></div>
         <div class="f"><label for="pDivP">Дивиденды — Погосян</label><input id="pDivP" inputmode="decimal"></div>
       </div>
     </div>
@@ -366,7 +366,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
     <div class="actions">
       <button class="btn" id="openDash">Дашборд учредителям</button>
       <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
-      <button class="btn ghost" id="dlBook">Выгрузить справочник</button>
+      <button class="btn ghost" id="dlBook">Сохранить справочник</button>
       <button class="btn ghost" id="reset">Очистить месяц</button>
     </div>
     <p class="foot">Справочник статей, состав ассистентов и подрядчики по стройке сохраняются между месяцами и общие для всех, кто открывает эту ссылку. Выгрузки нигде не сохраняются.</p>
@@ -662,12 +662,13 @@ function parseDoctors(rows){
   if (!H) return null;
   const ci = {};
   ["Направление","Пациент","Врач","Дата","Сумма выручки","Фактическая оплата"].forEach(k => ci[k] = H.h.indexOf(k));
-  const byDoc = {}, byDir = {};
+  const byDoc = {}, byDir = {}, allDocs = {};
   let total = 0;
   for (let r = H.r + 1; r < rows.length; r++){
     const dir = S(rows[r][ci["Направление"]]);
     if (dir === "Итог") continue;                       // строка-итог отчёта, иначе двойной счёт
     const doc = S(rows[r][ci["Врач"]]);
+    if (doc) allDocs[doc] = 1;
     const pay = N(rows[r][ci["Фактическая оплата"]]);
     if (!pay) continue;
     byDoc[doc] = (byDoc[doc] || 0) + pay;
@@ -679,7 +680,7 @@ function parseDoctors(rows){
     const dir = S(rows[r][ci["Направление"]]), doc = S(rows[r][ci["Врач"]]);
     if (dir && dir !== "Итог" && doc && !dirOf[doc]) dirOf[doc] = dir;
   }
-  return {kind:"doctors", byDoc, byDir, dirOf, total};
+  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total};
 }
 /* Реестр оплат управленки — каналы и признак проведения в бухгалтерии */
 function parsePayments(rows){
@@ -1005,8 +1006,29 @@ function bindParams(){
 const ACC_RU = {"50":"касса","51":"расчётный счёт","57":"эквайринг и инкассация","60":"поставщики",
   "62":"расчёты с пациентами","67":"кредиты","68":"налоги","69":"взносы","70":"зарплата","91":"прочее"};
 async function takeFiles(list){
-  for (const f of list){
+  const files = Array.from(list);          // input.value очищается сразу, FileList к концу цикла пуст
+  if (st.isExample){                       // первый настоящий файл вытесняет августовский пример
+    st.isExample = false;
+    st.vendors = []; st.groups = null; st.acc = {}; st.doctors = null; st.payments = null; st.files = [];
+    PK.forEach(k => st.params[k] = 0);
+    fillParams();
+  }
+  for (const f of files){
     let rec = {name:f.name, tag:"не распознан", note:"—", ok:false};
+    if (/\.json$/i.test(f.name)){
+      try {
+        const raw = JSON.parse(await f.text());
+        let n = 0;
+        for (const k in (raw.vendors || {})){ book.vendors[k] = raw.vendors[k]; n++; }
+        for (const k in (raw.articles || {})) book.articles[k] = raw.articles[k];
+        if (raw.credit) book.credit = raw.credit;
+        if (raw.founders) book.founders = raw.founders;
+        saveBook();
+        rec.ok = true; rec.tag = "справочник"; rec.note = "принято контрагентов: " + n;
+      } catch(e){ rec.note = "справочник не читается"; }
+      st.files = st.files.filter(x => x.name !== rec.name).concat([rec]);
+      continue;
+    }
     try {
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(new Uint8Array(buf), {type:"array", cellStyles:true});
@@ -1017,8 +1039,12 @@ async function takeFiles(list){
         rec.ok = true; rec.tag = "счёт " + p.account;
         rec.note = ACC_RU[p.account] || "";
         if (p.account === "60"){
-          st.vendors = p.items.filter(x => N(x.dtBy["51"]) > 0)
-            .map(x => ({name:x.name, paid:R2(N(x.dtBy["51"]))}))
+          const byName = {};                       // один контрагент может идти по нескольким подразделениям
+          for (const x of p.items){
+            const v = N(x.dtBy["51"]);
+            if (v > 0) byName[x.name] = R2((byName[x.name] || 0) + v);
+          }
+          st.vendors = Object.keys(byName).map(n => ({name:n, paid:byName[n]}))
             .sort((a,b) => b.paid - a.paid);
           rec.note = "контрагентов: " + st.vendors.length + " · " + fmt(st.vendors.reduce((s,v)=>s+v.paid,0));
           pullFrom60(p);
@@ -1037,19 +1063,22 @@ async function takeFiles(list){
     } catch(e){ rec.note = "не открылся: " + (e && e.message ? e.message : "ошибка"); }
     st.files = st.files.filter(x => x.name !== rec.name).concat([rec]);
   }
-  if (st.files.some(f => f.ok)) st.isExample = false;
   render();
 }
 /* подсказки из выгрузок — заполняем пустые поля, заполненные не трогаем */
 function hint(k, v){ if (!st.params[k] && v) { st.params[k] = R2(v); } }
+function say(id, text){ const el = $(id); if (el) el.textContent = text; }
 function pullFrom51(p){
   const kt = p.total.ktBy || {}, dt = p.total.dtBy || {};
-  hint("sal", kt["70"]);
-  hint("ali", kt["76"]);
-  hint("tax", R2(N(kt["68"]) + N(kt["69"])));
-  hint("refund", kt["62"]);
-  hint("dep", dt["91"]);
-  hint("divM", N(kt["75"]) / 2); hint("divP", N(kt["75"]) / 2);
+  hint("sal", kt["70"]);            // счёт 70 — ровно зарплата
+  hint("ali", kt["76"]);            // счёт 76 — алименты
+  hint("refund", kt["62"]);         // счёт 62 — возвраты пациентам
+  hint("dep", dt["91"]);            // проценты банка на остатки
+  // ниже — только подсказки: цифры из банка не равны нужным, вычитать надо руками
+  if (N(kt["68"]) + N(kt["69"]))
+    say("hTax", "по банку счета 68 и 69: " + fmt(R2(N(kt["68"]) + N(kt["69"]))) + " — вычтите НДФЛ с дивидендов");
+  if (N(kt["75"])) say("hDiv", "выплачено с расчётного счёта: " + fmt(N(kt["75"])) + " — здесь ставится начисленное, с НДФЛ");
+  if (N(kt["91"])) say("hBank", "списано по счёту 91: " + fmt(N(kt["91"])));
   fillParams();
 }
 function pullFrom60(p){
@@ -1058,7 +1087,7 @@ function pullFrom60(p){
   fillParams();
 }
 function fillFounders(){
-  const names = Object.keys(st.doctors.byDoc).filter(Boolean).sort((a,b) => a.localeCompare(b, "ru"));
+  const names = Object.keys(st.doctors.allDocs || st.doctors.byDoc).filter(Boolean).sort((a,b) => a.localeCompare(b, "ru"));
   const guess = re => names.find(n => re.test(n)) || "";
   if (!book.founders.mal) book.founders.mal = guess(/Маланич/i);
   if (!book.founders.pog) book.founders.pog = guess(/Погос/i);
@@ -1148,16 +1177,18 @@ function buildWorkbook(c){
   XLSX.utils.book_append_sheet(wb, ws3, "Статьи");
   return wb;
 }
+/*OFFER*/
 async function offer(filename, blob){
   const d = await claude.use("downloads").catch(() => null);
   if (!d){ alert("Сохранение файлов недоступно в этом окне. Откройте ссылку в браузере на компьютере."); return; }
   try { await d.save({filename, data: blob}); }
   catch(e){ if (e && e.code !== "declined") alert("Не сохранилось: " + (e.message || e.code)); }
 }
+/*ENDOFFER*/
 /* ============================ события ============================ */
 function wire(){
   $("pick").addEventListener("click", () => $("file").click());
-  $("file").addEventListener("change", e => { takeFiles(e.target.files); e.target.value = ""; });
+  $("file").addEventListener("change", e => { const f = Array.from(e.target.files); e.target.value = ""; takeFiles(f); });
   const dz = $("drop");
   ["dragenter","dragover"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add("hot"); }));
   ["dragleave","drop"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove("hot"); }));
@@ -1219,13 +1250,10 @@ function wire(){
     await offer("Расчёт-" + st.month + ".xlsx", new Blob([out]));
   });
   $("dlBook").addEventListener("click", async () => {
-    const rows = [["Контрагент", "Статья", "Блок"]];
-    Object.keys(book.vendors).sort((a,b) => a.localeCompare(b,"ru"))
-      .forEach(k => rows.push([k, book.vendors[k][0], book.vendors[k][1]]));
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{wch:50},{wch:34},{wch:18}];
-    XLSX.utils.book_append_sheet(wb, ws, "Справочник");
-    await offer("Справочник-статей.xlsx", new Blob([XLSX.write(wb, {bookType:"xlsx", type:"array"})]));
+    const dump = {vendors: book.vendors, articles: book.articles,
+      credit: book.credit, founders: book.founders};
+    await offer("Справочник-статей.json",
+      new Blob([JSON.stringify(dump, null, 1)], {type:"application/json"}));
   });
   $("reset").addEventListener("click", () => {
     if (!confirm("Убрать загруженные выгрузки и цифры месяца? Справочник статей сохранится.")) return;

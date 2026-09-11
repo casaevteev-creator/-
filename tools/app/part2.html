@@ -47,9 +47,9 @@
     </div>
     <div class="drop" id="drop">
       <h3>Перетащите выгрузки сюда</h3>
-      <p>xlsx из 1С и управленки · можно несколько сразу</p>
+      <p>xlsx из 1С и управленки · можно несколько сразу · сюда же кладётся сохранённый справочник</p>
       <button class="btn" id="pick">Выбрать файлы</button>
-      <input type="file" id="file" multiple accept=".xlsx,.xls" hidden>
+      <input type="file" id="file" multiple accept=".xlsx,.xls,.json" hidden>
     </div>
     <ul class="filelist" id="files"></ul>
   </section>
@@ -104,9 +104,9 @@
     <div class="card">
       <div class="sub">Общие расходы</div>
       <div class="fields">
-        <div class="f"><label for="pTax">Налоги с ФОТ (68.90 и 69)</label><input id="pTax" inputmode="decimal"></div>
+        <div class="f"><label for="pTax">Налоги с ФОТ (68.90 и 69)</label><input id="pTax" inputmode="decimal"><div class="hint" id="hTax"></div></div>
         <div class="f"><label for="pSal">Зарплата по банку (счёт 70)</label><input id="pSal" inputmode="decimal"></div>
-        <div class="f"><label for="pBank">Услуги банка, общие</label><input id="pBank" inputmode="decimal"></div>
+        <div class="f"><label for="pBank">Услуги банка, общие</label><input id="pBank" inputmode="decimal"><div class="hint" id="hBank"></div></div>
         <div class="f"><label for="pAli">Алименты</label><input id="pAli" inputmode="decimal"></div>
         <div class="f"><label for="pInt">Проценты по кредиту</label><input id="pInt" inputmode="decimal"></div>
         <div class="f"><label for="pCorr">Возвраты поставщиков</label><input id="pCorr" inputmode="decimal">
@@ -134,7 +134,7 @@
         <div class="f"><label for="pDep">Проценты по депозитам</label><input id="pDep" inputmode="decimal"></div>
         <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"></div>
         <div class="f"><label for="pPrevP">Остаток прошлого месяца — Погосян</label><input id="pPrevP" inputmode="decimal"></div>
-        <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"></div>
+        <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"><div class="hint" id="hDiv"></div></div>
         <div class="f"><label for="pDivP">Дивиденды — Погосян</label><input id="pDivP" inputmode="decimal"></div>
       </div>
     </div>
@@ -149,7 +149,7 @@
     <div class="actions">
       <button class="btn" id="openDash">Дашборд учредителям</button>
       <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
-      <button class="btn ghost" id="dlBook">Выгрузить справочник</button>
+      <button class="btn ghost" id="dlBook">Сохранить справочник</button>
       <button class="btn ghost" id="reset">Очистить месяц</button>
     </div>
     <p class="foot">Справочник статей, состав ассистентов и подрядчики по стройке сохраняются между месяцами и общие для всех, кто открывает эту ссылку. Выгрузки нигде не сохраняются.</p>
