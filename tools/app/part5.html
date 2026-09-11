@@ -66,11 +66,12 @@ async function takeFiles(list){
       }
       else if (p.kind === "taksk"){
         st.taksk = p.t; rec.ok = true; rec.tag = "такском";
-        rec.note = "чеков " + p.t.checks + " · нал " + fmt0(p.t.cash) + " · безнал " + fmt0(p.t.card)
-          + " · аванс " + fmt0(p.t.adv);
+        rec.note = "чеков " + p.t.checks + " · живые деньги " + fmt0(p.t.live)
+          + " · зачёт аванса " + fmt0(p.t.adv);
         if (!st.params.refund && p.t.refund) st.params.refund = p.t.refund;
-        say("revHint", "по чекам Такском: " + fmt(p.t.sum) + " — нал " + fmt0(p.t.cash)
-          + ", безнал " + fmt0(p.t.card) + ", зачёт аванса " + fmt0(p.t.adv));
+        say("revHint", "живые деньги по чекам: " + fmt(p.t.live) + " (нал " + fmt0(p.t.cash)
+          + " + безнал " + fmt0(p.t.card) + "). Зачёт аванса " + fmt0(p.t.adv)
+          + " новых поступлений не даёт.");
         fillParams();
       }
       else if (p.kind === "payments"){

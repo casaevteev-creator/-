@@ -628,10 +628,12 @@ function renderDash(){
       ${rowsC.map(r => `<tr><td>${esc(r[0])}</td><td class="num">${fmt0(r[1])}</td>
         <td class="num">${pct(tk.sum ? r[1] / tk.sum : 0)}</td></tr>`).join("")}
       ${tk.refund > 0 ? `<tr><td>Возвраты по чекам</td><td class="num" style="color:var(--red)">−${fmt0(tk.refund)}</td><td class="num"></td></tr>` : ""}
-      <tr class="tot"><td>Пробито по чекам</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
+      <tr class="tot"><td>Живые деньги — нал плюс безнал</td><td class="num">${fmt0(tk.live)}</td>
+        <td class="num">${pct(tk.sum ? tk.live / tk.sum : 0)}</td></tr>
+      <tr><td>Пробито по чекам всего</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
     </table></div>
     <p class="sb" style="margin:12px 0 0;font-size:16px">Чеков за месяц — ${tk.checks}.
-    ${tk.adv > 0 ? "Зачёт аванса — это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
+    ${tk.adv > 0 ? "Зачёт аванса — " + pct(tk.sum ? tk.adv / tk.sum : 0) + " от пробитого: это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
 
     const dd = Object.keys(tk.byDay).sort();
     if (dd.length > 3){
@@ -642,7 +644,7 @@ function renderDash(){
       const dayN = k => +k.slice(8);
       daily = `<section class="tight"><div class="w">
         <div class="kick">${K("Ритм")}</div><h2>Выручка по дням</h2>
-        <div class="sb">млн ₽ в день, по чекам · наведите на столбец</div>
+        <div class="sb">млн ₽ в день · наличные и безнал по чекам, без зачёта аванса · наведите на столбец</div>
         <div class="chartbox">
           <div class="dail">${dd.map(k => `<i style="height:${(tk.byDay[k]/peak*100).toFixed(1)}%;opacity:${(0.55 + 0.45*tk.byDay[k]/peak).toFixed(2)}"
             data-v="${dayN(k)} ${per.split(" ")[0]} · ${MLN(tk.byDay[k])} млн ₽"></i>`).join("")}</div>
@@ -1066,15 +1068,16 @@ function parseTaksk(rows){
   ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","В кредит","Сумма"]
     .forEach(k => ci[k] = H.h.indexOf(k));
   if (ci["Документ"] < 0 || ci["Тип операции"] < 0) return null;
-  const t = {cash:0, card:0, adv:0, credit:0, sum:0, refund:0, checks:0, byDay:{}, days:0};
+  const t = {cash:0, card:0, adv:0, credit:0, sum:0, live:0, refund:0, checks:0, byDay:{}, days:0};
   for (let r = H.r + 1; r < rows.length; r++){
     if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;   // отчёты о сменах — служебные
     const op = S(rows[r][ci["Тип операции"]]);
     const sum = N(rows[r][ci["Сумма"]]);
     if (!sum) continue;
     t.checks++;
-    t.cash += N(rows[r][ci["Наличными"]]);
-    t.card += N(rows[r][ci["Безналичными"]]);
+    const cash = N(rows[r][ci["Наличными"]]), card = N(rows[r][ci["Безналичными"]]);
+    t.cash += cash;
+    t.card += card;
     t.adv  += N(rows[r][ci["Аванс"]]);
     t.credit += N(rows[r][ci["В кредит"]]);
     t.sum += sum;
@@ -1083,9 +1086,11 @@ function parseTaksk(rows){
     let key = "";
     if (d instanceof Date) key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
     else { const m = /(\d{2})\.(\d{2})\.(\d{4})/.exec(S(d)); if (m) key = m[3] + "-" + m[2] + "-" + m[1]; }
-    if (key) t.byDay[key] = R2((t.byDay[key] || 0) + sum);
+    /* по дням копим живые деньги: зачёт аванса новых поступлений не даёт */
+    if (key) t.byDay[key] = R2((t.byDay[key] || 0) + cash + card);
   }
   t.days = Object.keys(t.byDay).length;
+  t.live = R2(t.cash + t.card);
   ["cash","card","adv","credit","sum","refund"].forEach(k => t[k] = R2(t[k]));
   return {kind:"taksk", t};
 }
@@ -1527,11 +1532,12 @@ async function takeFiles(list){
       }
       else if (p.kind === "taksk"){
         st.taksk = p.t; rec.ok = true; rec.tag = "такском";
-        rec.note = "чеков " + p.t.checks + " · нал " + fmt0(p.t.cash) + " · безнал " + fmt0(p.t.card)
-          + " · аванс " + fmt0(p.t.adv);
+        rec.note = "чеков " + p.t.checks + " · живые деньги " + fmt0(p.t.live)
+          + " · зачёт аванса " + fmt0(p.t.adv);
         if (!st.params.refund && p.t.refund) st.params.refund = p.t.refund;
-        say("revHint", "по чекам Такском: " + fmt(p.t.sum) + " — нал " + fmt0(p.t.cash)
-          + ", безнал " + fmt0(p.t.card) + ", зачёт аванса " + fmt0(p.t.adv));
+        say("revHint", "живые деньги по чекам: " + fmt(p.t.live) + " (нал " + fmt0(p.t.cash)
+          + " + безнал " + fmt0(p.t.card) + "). Зачёт аванса " + fmt0(p.t.adv)
+          + " новых поступлений не даёт.");
         fillParams();
       }
       else if (p.kind === "payments"){

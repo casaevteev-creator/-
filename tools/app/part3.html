@@ -194,15 +194,16 @@ function parseTaksk(rows){
   ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","В кредит","Сумма"]
     .forEach(k => ci[k] = H.h.indexOf(k));
   if (ci["Документ"] < 0 || ci["Тип операции"] < 0) return null;
-  const t = {cash:0, card:0, adv:0, credit:0, sum:0, refund:0, checks:0, byDay:{}, days:0};
+  const t = {cash:0, card:0, adv:0, credit:0, sum:0, live:0, refund:0, checks:0, byDay:{}, days:0};
   for (let r = H.r + 1; r < rows.length; r++){
     if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;   // отчёты о сменах — служебные
     const op = S(rows[r][ci["Тип операции"]]);
     const sum = N(rows[r][ci["Сумма"]]);
     if (!sum) continue;
     t.checks++;
-    t.cash += N(rows[r][ci["Наличными"]]);
-    t.card += N(rows[r][ci["Безналичными"]]);
+    const cash = N(rows[r][ci["Наличными"]]), card = N(rows[r][ci["Безналичными"]]);
+    t.cash += cash;
+    t.card += card;
     t.adv  += N(rows[r][ci["Аванс"]]);
     t.credit += N(rows[r][ci["В кредит"]]);
     t.sum += sum;
@@ -211,9 +212,11 @@ function parseTaksk(rows){
     let key = "";
     if (d instanceof Date) key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
     else { const m = /(\d{2})\.(\d{2})\.(\d{4})/.exec(S(d)); if (m) key = m[3] + "-" + m[2] + "-" + m[1]; }
-    if (key) t.byDay[key] = R2((t.byDay[key] || 0) + sum);
+    /* по дням копим живые деньги: зачёт аванса новых поступлений не даёт */
+    if (key) t.byDay[key] = R2((t.byDay[key] || 0) + cash + card);
   }
   t.days = Object.keys(t.byDay).length;
+  t.live = R2(t.cash + t.card);
   ["cash","card","adv","credit","sum","refund"].forEach(k => t[k] = R2(t[k]));
   return {kind:"taksk", t};
 }

@@ -243,10 +243,12 @@ function renderDash(){
       ${rowsC.map(r => `<tr><td>${esc(r[0])}</td><td class="num">${fmt0(r[1])}</td>
         <td class="num">${pct(tk.sum ? r[1] / tk.sum : 0)}</td></tr>`).join("")}
       ${tk.refund > 0 ? `<tr><td>Возвраты по чекам</td><td class="num" style="color:var(--red)">−${fmt0(tk.refund)}</td><td class="num"></td></tr>` : ""}
-      <tr class="tot"><td>Пробито по чекам</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
+      <tr class="tot"><td>Живые деньги — нал плюс безнал</td><td class="num">${fmt0(tk.live)}</td>
+        <td class="num">${pct(tk.sum ? tk.live / tk.sum : 0)}</td></tr>
+      <tr><td>Пробито по чекам всего</td><td class="num">${fmt0(tk.sum)}</td><td class="num">100,0 %</td></tr>
     </table></div>
     <p class="sb" style="margin:12px 0 0;font-size:16px">Чеков за месяц — ${tk.checks}.
-    ${tk.adv > 0 ? "Зачёт аванса — это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
+    ${tk.adv > 0 ? "Зачёт аванса — " + pct(tk.sum ? tk.adv / tk.sum : 0) + " от пробитого: это деньги, внесённые раньше, новых поступлений он не даёт." : ""}</p>`;
 
     const dd = Object.keys(tk.byDay).sort();
     if (dd.length > 3){
@@ -257,7 +259,7 @@ function renderDash(){
       const dayN = k => +k.slice(8);
       daily = `<section class="tight"><div class="w">
         <div class="kick">${K("Ритм")}</div><h2>Выручка по дням</h2>
-        <div class="sb">млн ₽ в день, по чекам · наведите на столбец</div>
+        <div class="sb">млн ₽ в день · наличные и безнал по чекам, без зачёта аванса · наведите на столбец</div>
         <div class="chartbox">
           <div class="dail">${dd.map(k => `<i style="height:${(tk.byDay[k]/peak*100).toFixed(1)}%;opacity:${(0.55 + 0.45*tk.byDay[k]/peak).toFixed(2)}"
             data-v="${dayN(k)} ${per.split(" ")[0]} · ${MLN(tk.byDay[k])} млн ₽"></i>`).join("")}</div>
