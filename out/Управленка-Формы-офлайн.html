@@ -1109,13 +1109,19 @@ function parseDoctors(rows){
   if (!H) return null;
   const ci = {};
   ["Направление","Пациент","Врач","Дата","Сумма выручки","Фактическая оплата"].forEach(k => ci[k] = H.h.indexOf(k));
-  const byDoc = {}, byDir = {}, allDocs = {};
+  ci["Кол-во"] = H.h.findIndex(x => /^Кол-во/.test(x));
+  const byDoc = {}, byDir = {}, allDocs = {}, cnt = {}, cntSurg = {};
   let total = 0;
   for (let r = H.r + 1; r < rows.length; r++){
     const dir = S(rows[r][ci["Направление"]]);
     if (dir === "Итог") continue;                       // строка-итог отчёта, иначе двойной счёт
     const doc = S(rows[r][ci["Врач"]]);
     if (doc) allDocs[doc] = 1;
+    const n = ci["Кол-во"] >= 0 ? N(rows[r][ci["Кол-во"]]) : 0;
+    if (doc && n){
+      cnt[doc] = (cnt[doc] || 0) + n;
+      if (/хирург/i.test(dir)) cntSurg[doc] = (cntSurg[doc] || 0) + n;
+    }
     const pay = N(rows[r][ci["Фактическая оплата"]]);
     if (!pay) continue;
     byDoc[doc] = (byDoc[doc] || 0) + pay;
@@ -1127,7 +1133,7 @@ function parseDoctors(rows){
     const dir = S(rows[r][ci["Направление"]]), doc = S(rows[r][ci["Врач"]]);
     if (dir && dir !== "Итог" && doc && !dirOf[doc]) dirOf[doc] = dir;
   }
-  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total, period:findPeriod(rows, 8)};
+  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, cnt, cntSurg, total, period:findPeriod(rows, 8)};
 }
 /* «Такском-Касса», сводный отчёт по фискальным документам — чеки ККТ */
 function parseTaksk(rows){
@@ -2543,11 +2549,23 @@ function cfoCards(c){
   const lo = Math.min(c.persM, c.persP), hi = Math.max(c.persM, c.persP);
   if (lo > 0 && hi / lo > 2.5){
     const who = c.persP > c.persM ? "Погосяна" : "Маланичева";
-    card("obs", "Личные", "Личные расходы отличаются в " + (hi / lo).toFixed(1).replace(".", ",") + " раза",
+    /* личные расходы идут за операциями, поэтому «выровнять» их нельзя —
+       считаем на процедуру, а не к выручке */
+    const cnt = (st.doctors && st.doctors.cnt) || {}, cs = (st.doctors && st.doctors.cntSurg) || {};
+    const nOf = w => cs[w] || cnt[w] || 0;
+    const nM = nOf(book.founders.mal), nP = nOf(book.founders.pog);
+    const prc = n => n + " " + (n % 10 === 1 && n % 100 !== 11 ? "процедура"
+      : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "процедуры" : "процедур"));
+    const foot = (nM && nP)
+      ? "На одну процедуру: Маланичев <b>" + fmt0(c.persM / nM) + " ₽</b> (" + prc(nM) + "), " +
+        "Погосян <b>" + fmt0(c.persP / nP) + " ₽</b> (" + prc(nP) + "). Сравнивать корректно только так."
+      : "Сравнивать эти суммы имеет смысл только в расчёте на одну операцию, а не к выручке.";
+    card("obs", "Личные", "Личные расходы учредителей различаются в " + (hi / lo).toFixed(1).replace(".", ",") + " раза",
       fmt0(R2(hi - lo)) + " ₽",
-      "У " + who + " личных расходов на " + fmt0(R2(hi - lo)) + " ₽ больше. Именно эта разница и делает доходы разными: " +
-      "общая часть у обоих одинаковая до копейки.",
-      "Стоит убедиться, что материалы и анализы разнесены по учредителям правильно.", R2(hi - lo) / 2);
+      "У " + who + " личных расходов на " + fmt0(R2(hi - lo)) + " ₽ больше — и именно эта разница делает доходы разными: " +
+      "общая часть у обоих одинаковая до копейки. Личные расходы (материалы за операции, анализы, свой ассистент) " +
+      "идут за операциями: чем их больше и чем они сложнее, тем выше сумма, а ставки ассистентов у каждого свои.",
+      foot, R2(hi - lo) / 2);
   }
   /* запас прочности */
   if (bank51 != null && c.costAll > 0){
@@ -2664,6 +2682,20 @@ async function advisor(){
 function monthDigest(full){
   const c = calc(), p = st.params, tk = st.taksk, L = [];
   const R = (k, v) => L.push(k + ": " + fmt(v));
+  L.push("КАК УСТРОЕНА КЛИНИКА — учитывай это, иначе выводы будут неверными");
+  L.push("  • Маланичев и Погосян сами оперируют. Объём и сложность операций у них разные.");
+  L.push("  • Личные расходы учредителя — материалы за операции, анализы, свой ассистент —");
+  L.push("    прямо зависят от того, сколько и каких операций он сделал: сложная операция");
+  L.push("    требует больше материала и дольше держит ассистента.");
+  L.push("  • Ассистенты у каждого свои и со своими ставками. Разные суммы — это норма,");
+  L.push("    а не ошибка разнесения.");
+  L.push("  • ПОЭТОМУ сравнивать долю личных расходов к личной выручке между учредителями");
+  L.push("    и предлагать «привести к единому нормативу» НЕЛЬЗЯ. Если сравниваешь — только");
+  L.push("    в расчёте на одну операцию и только как вопрос, а не как найденную ошибку.");
+  L.push("  • Другие хирурги работают как ИП и получают гонорар. Импланты, медматериалы");
+  L.push("    и расходку клиника оплачивает отдельно, сверх гонорара.");
+  L.push("  • Выручка учитывается по зачислению на счёт, гонорары выплачиваются со сдвигом.");
+  L.push("");
   L.push("МЕСЯЦ: " + monthName(st.month) + (hist[st.month] && hist[st.month].closed ? " (закрыт)" : " (черновик)"));
   L.push("");
   L.push("ВЫРУЧКА");
@@ -2763,6 +2795,33 @@ function monthDigest(full){
                   : ", гонорар " + fmt0(x.f))));
       if (orphan.length) L.push("  гонорары, которые не удалось связать с врачом: "
         + orphan.map(v => v.name + " " + fmt0(v.paid)).join("; "));
+    }
+  }
+  if (st.doctors && st.doctors.cnt && Object.keys(st.doctors.cnt).length){
+    const cs = st.doctors.cntSurg || {};
+    const fm = book.founders.mal, fp = book.founders.pog;
+    L.push("");
+    L.push("КОЛИЧЕСТВО ПРОЦЕДУР ПО ВРАЧАМ (из отчёта по врачам)");
+    Object.entries(st.doctors.cnt).sort((a, b) => b[1] - a[1]).slice(0, 14)
+      .forEach(d => L.push("  " + d[0] + ": процедур " + d[1]
+        + (cs[d[0]] ? ", из них по направлению «Хирургия» " + cs[d[0]] : "")));
+    const P = [];
+    /* 1 процедура, 2 процедуры, 5 процедур */
+    const prc = n => n + " " + (n % 10 === 1 && n % 100 !== 11 ? "процедура"
+      : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "процедуры" : "процедур"));
+    const per = (nm, who, mat, ass) => {
+      const n = cs[who] || st.doctors.cnt[who];
+      if (!who || !n || !(mat + ass)) return;
+      P.push("  " + nm + ": " + prc(n) + "; материалы " + fmt0(mat)
+        + " (" + fmt0(mat / n) + " на процедуру), ассистент " + fmt0(ass)
+        + " (" + fmt0(ass / n) + " на процедуру)");
+    };
+    per("Маланичев", fm, p.mMat, p.mAss);
+    per("Погосян", fp, p.pMat, p.pAss);
+    if (P.length){
+      L.push("  расходы учредителей в расчёте на одну процедуру — так сравнивать можно,");
+      L.push("  к выручке — нельзя; ставки ассистентов у каждого свои:");
+      P.forEach(x => L.push(x));
     }
   }
   if (st.doctors && st.doctors.byDir){

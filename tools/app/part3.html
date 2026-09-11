@@ -198,13 +198,19 @@ function parseDoctors(rows){
   if (!H) return null;
   const ci = {};
   ["Направление","Пациент","Врач","Дата","Сумма выручки","Фактическая оплата"].forEach(k => ci[k] = H.h.indexOf(k));
-  const byDoc = {}, byDir = {}, allDocs = {};
+  ci["Кол-во"] = H.h.findIndex(x => /^Кол-во/.test(x));
+  const byDoc = {}, byDir = {}, allDocs = {}, cnt = {}, cntSurg = {};
   let total = 0;
   for (let r = H.r + 1; r < rows.length; r++){
     const dir = S(rows[r][ci["Направление"]]);
     if (dir === "Итог") continue;                       // строка-итог отчёта, иначе двойной счёт
     const doc = S(rows[r][ci["Врач"]]);
     if (doc) allDocs[doc] = 1;
+    const n = ci["Кол-во"] >= 0 ? N(rows[r][ci["Кол-во"]]) : 0;
+    if (doc && n){
+      cnt[doc] = (cnt[doc] || 0) + n;
+      if (/хирург/i.test(dir)) cntSurg[doc] = (cntSurg[doc] || 0) + n;
+    }
     const pay = N(rows[r][ci["Фактическая оплата"]]);
     if (!pay) continue;
     byDoc[doc] = (byDoc[doc] || 0) + pay;
@@ -216,7 +222,7 @@ function parseDoctors(rows){
     const dir = S(rows[r][ci["Направление"]]), doc = S(rows[r][ci["Врач"]]);
     if (dir && dir !== "Итог" && doc && !dirOf[doc]) dirOf[doc] = dir;
   }
-  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, total, period:findPeriod(rows, 8)};
+  return {kind:"doctors", byDoc, byDir, dirOf, allDocs, cnt, cntSurg, total, period:findPeriod(rows, 8)};
 }
 /* «Такском-Касса», сводный отчёт по фискальным документам — чеки ККТ */
 function parseTaksk(rows){
