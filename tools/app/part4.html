@@ -1,0 +1,264 @@
+<script>
+"use strict";
+/* ============================ состояние ============================ */
+let book = {vendors:{}, articles:{}, credit:["КВАЛИТЕТ ООО"], founders:{mal:"",pog:""}};
+const PK = ["tax","sal","bank","ali","int","corr","mAn","mMat","mAss","mAcq","pAn","pMat","pAss","pAcq","dep","prevM","prevP","divM","divP","revBank","refund"];
+const FIELD = {tax:"pTax", sal:"pSal", bank:"pBank", ali:"pAli", int:"pInt", corr:"pCorr",
+  mAn:"mAn", mMat:"mMat", mAss:"mAss", mAcq:"mAcq", pAn:"pAn", pMat:"pMat", pAss:"pAss", pAcq:"pAcq",
+  dep:"pDep", prevM:"pPrevM", prevP:"pPrevP", divM:"pDivM", divP:"pDivP", revBank:"revBank", refund:"refund"};
+const st = {
+  month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null,
+  groups: null, params: {}, isExample: true, filter: "all", q: ""
+};
+PK.forEach(k => st.params[k] = 0);
+
+/* ============================ расчёт ============================ */
+function calc(){
+  const p = st.params;
+  let base = 0, credit = 0, unclass = 0, unclassN = 0;
+  const byArt = {}, byBlock = {m:0, u:0};
+  for (const v of st.vendors){
+    if (book.credit.indexOf(v.name) >= 0){ credit += v.paid; continue; }
+    base += v.paid;
+    const cl = book.vendors[v.name];
+    if (!cl || !cl[0]){ unclass += v.paid; unclassN++; continue; }
+    const art = cl[0], blk = book.articles[art] || cl[1] || "";   // блок принадлежит статье, а не контрагенту
+    if (!byArt[art]) byArt[art] = {sum:0, block:blk};
+    byArt[art].sum += v.paid;
+    if (blk === "медицинские") byBlock.m += v.paid;
+    else if (blk === "управленческие") byBlock.u += v.paid;
+    else { unclass += v.paid; unclassN++; }
+  }
+  base = R2(base); credit = R2(credit);
+  const base60 = R2(base - p.corr);
+  const persIn60 = R2(p.mAn + p.mMat + p.pAn + p.pMat);
+  const common60 = R2(base60 - persIn60);
+  const salCommon = R2(p.sal - p.mAss - p.pAss);
+  const common = R2(p.tax + salCommon + p.bank + p.ali + p.int + common60);
+  const persM = R2(p.mAn + p.mMat + p.mAss + p.mAcq);
+  const persP = R2(p.pAn + p.pMat + p.pAss + p.pAcq);
+  const costAll = R2(common + persM + persP);
+  const costM = R2(common / 2 + persM);
+  const costP = R2(costAll - costM);
+
+  const g0 = st.groups || {mal:0, pog:0, other:0, cosm:0, misc:0};
+  const mgmt = R2(g0.mal + g0.pog + g0.other + g0.cosm + g0.misc);
+  const target = p.revBank > 0 ? p.revBank : mgmt;
+  const k = mgmt ? target / mgmt : 1;
+  const G = {mal:R2(g0.mal*k), pog:R2(g0.pog*k), cosm:R2(g0.cosm*k), misc:R2(g0.misc*k)};
+  G.other = R2(target - G.mal - G.pog - G.cosm - G.misc);
+  const otherNet = R2(G.other - p.refund);
+  const revNet = R2(target - p.refund);
+  const shared = R2(otherNet + G.cosm + G.misc + p.dep);
+  const incAll = R2(revNet + p.dep - costAll);
+  const incM = R2(G.mal + shared/2 - costM);
+  const incP = R2(incAll - incM);
+  const payM = R2(incM + p.prevM - p.divM);
+  const payP = R2(incP + p.prevP - p.divP);
+
+  return {base, credit, unclass, unclassN, byArt, byBlock, base60, persIn60, common60,
+    salCommon, common, persM, persP, costAll, costM, costP,
+    mgmt, target, scale:k, G, otherNet, revNet, shared, incAll, incM, incP, payM, payP,
+    prevAll:R2(p.prevM + p.prevP), divAll:R2(p.divM + p.divP), payAll:R2(payM + payP)};
+}
+
+/* ============================ сверки ============================ */
+function checks(c){
+  const out = [];
+  const a60 = st.acc["60"];
+  if (a60){
+    const fileSum = R2(a60.items.reduce((s,x) => s + N(x.dtBy["51"]), 0));
+    const tot = R2(N(a60.total.dtBy["51"]));
+    out.push({ok: Math.abs(fileSum - tot) < 0.01, what:"Счёт 60 прочитан полностью",
+      sub:"сумма по контрагентам против оборота по счёту", val: fmt(fileSum) + " / " + fmt(tot)});
+  } else if (st.isExample && st.vendors.length){
+    out.push({ok:null, what:"Контрагенты подставлены из августа",
+      sub:"перетащите обороты счёта 60 за нужный месяц", val: fmt(c.base + c.credit)});
+  } else {
+    out.push({ok:false, what:"Обороты счёта 60 не загружены", sub:"без них расходы взять неоткуда", val:"—"});
+  }
+  out.push({ok: c.unclassN === 0, what: c.unclassN === 0 ? "Все контрагенты разнесены по статьям"
+      : "Без статьи: " + c.unclassN + " контрагентов",
+    sub: c.unclassN === 0 ? "новых позиций нет" : "на сумму " + fmt(c.unclass) + " — блок «Расходы» их не видит",
+    val: c.unclassN === 0 ? "0" : fmt(c.unclass)});
+  const blockSum = R2(c.byBlock.m + c.byBlock.u);
+  out.push({ok: Math.abs(blockSum - c.base) < 0.01, what:"Мед плюс упр равно базе счёта 60",
+    sub:"доли блоков в сумме дают ровно 100 %", val: fmt(blockSum) + " / " + fmt(c.base)});
+  if (st.doctors){
+    const d = Math.abs(R2(c.mgmt - c.target));
+    const rel = c.target ? d / c.target : 0;
+    out.push({ok: rel < 0.005 ? true : (rel < 0.03 ? "warn" : false),
+      what:"Управленка против банка",
+      sub: d < 0.01 ? "сходится копейка в копейку" : "разница " + fmt(d) + " разнесена пропорционально обороту врачей",
+      val: pct(rel)});
+  } else if (st.isExample && st.groups){
+    out.push({ok:null, what:"Выручка по группам подставлена из августа",
+      sub:"перетащите «Отчёт по врачам (УК)» за нужный месяц", val: fmt(c.mgmt)});
+  } else {
+    out.push({ok:false, what:"Отчёт по врачам не загружен", sub:"разрез выручки по хирургам взять неоткуда", val:"—"});
+  }
+  if (st.payments && st.payments.notPostedRows){
+    out.push({ok:false, what:"В реестре оплат есть строки без проведения в бухгалтерии",
+      sub: st.payments.notPostedRows + " строк на " + fmt(st.payments.notPosted), val:"Бух учет = Нет"});
+  } else if (st.payments){
+    out.push({ok:true, what:"Все оплаты проведены в бухгалтерии", sub:"колонка «Бух учет» без пропусков", val:"0 строк"});
+  }
+  out.push({ok: Math.abs(R2(c.costM + c.costP) - c.costAll) < 0.01,
+    what:"Расходы: всего равно Маланичев плюс Погосян", sub:"общая часть делится пополам, личные — каждому свои",
+    val: fmt(c.costAll)});
+  out.push({ok: Math.abs(R2(c.incM + c.incP) - c.incAll) < 0.01,
+    what:"Доход: всего равно Маланичев плюс Погосян", sub:"возвраты и половинные доли учтены в обеих колонках",
+    val: fmt(c.incAll)});
+  if (c.credit > 0) out.push({ok:"warn", what:"За счёт кредитной линии исключено из расходов",
+    sub: book.credit.join(" · "), val: fmt(c.credit)});
+  return out;
+}
+
+/* ============================ отрисовка ============================ */
+function renderFiles(){
+  const ul = $("files");
+  ul.innerHTML = st.files.map(f => `<li><span class="tag${f.ok?"":" bad"}">${esc(f.tag)}</span>
+    <span class="fname" title="${esc(f.name)}">${esc(f.name)}</span>
+    <span class="fnote">${esc(f.note)}</span></li>`).join("");
+  $("d1").classList.toggle("on", st.files.some(f => f.ok));
+}
+function renderVendors(c){
+  const arts = Object.keys(book.articles).sort((a,b) => a.localeCompare(b, "ru"));
+  const q = st.q.toLowerCase();
+  const rows = st.vendors.filter(v => {
+    const cl = book.vendors[v.name] || ["",""];
+    const cred = book.credit.indexOf(v.name) >= 0;
+    if (st.filter === "new" && cl[0]) return false;
+    if (st.filter === "cred" && !cred) return false;
+    if (q && (v.name + " " + cl[0]).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  $("vbody").innerHTML = rows.map((v, i) => {
+    const cl = book.vendors[v.name] || ["",""];
+    const cred = book.credit.indexOf(v.name) >= 0;
+    const blk = book.articles[cl[0]] || cl[1] || "";
+    const idx = st.vendors.indexOf(v);
+    return `<tr class="${cl[0] ? "" : "unknown"}">
+      <td>${esc(v.name)}</td>
+      <td class="num">${fmt(v.paid)}</td>
+      <td><select data-art="${idx}" aria-label="Статья">
+        <option value=""${cl[0] ? "" : " selected"}>— выбрать статью —</option>
+        ${arts.map(a => `<option${a === cl[0] ? " selected" : ""}>${esc(a)}</option>`).join("")}
+        <option value="__new"${cl[0] && arts.indexOf(cl[0]) < 0 ? " selected" : ""}>+ новая статья…</option>
+      </select></td>
+      <td><select data-blk="${idx}" aria-label="Блок">
+        <option value=""${blk ? "" : " selected"}>—</option>
+        <option value="медицинские"${blk === "медицинские" ? " selected" : ""}>медицинские</option>
+        <option value="управленческие"${blk === "управленческие" ? " selected" : ""}>управленческие</option>
+      </select></td>
+      <td style="text-align:center"><input type="checkbox" data-cred="${idx}" ${cred ? "checked" : ""}
+        aria-label="За счёт кредитной линии" style="width:auto;min-width:0"></td>
+    </tr>`;
+  }).join("") + (rows.length ? "" : `<tr><td colspan="5" style="color:var(--muted)">Ничего не найдено</td></tr>`);
+  $("d2").classList.toggle("on", st.vendors.length > 0 && c.unclassN === 0);
+}
+function renderBlocks(c){
+  const den = c.base || 1;
+  const arts = Object.entries(c.byArt).sort((a,b) => b[1].sum - a[1].sum);
+  const line = (n, v, cls) => `<div class="rrow${cls || ""}"><span>${esc(n)}</span><span>${fmt(v)}</span><span>${pct(v/den)}</span><span></span></div>`;
+  let h = `<div class="rrow head"><span>Статья</span><span>Сумма</span><span>Доля</span><span></span></div>`;
+  h += line("Медицинские", c.byBlock.m, " tot");
+  h += arts.filter(a => a[1].block === "медицинские").map(a => line(a[0], a[1].sum, " ind dim")).join("");
+  h += line("Управленческие", c.byBlock.u, " tot");
+  h += arts.filter(a => a[1].block === "управленческие").map(a => line(a[0], a[1].sum, " ind dim")).join("");
+  h += line("База счёта 60", c.base, " tot");
+  $("blocksum").innerHTML = h;
+}
+function renderDoctors(c){
+  const names = ["mal","pog","other","cosm","misc"];
+  const RU = {mal:"Маланичев — свои операции", pog:"Погосян — свои операции", other:"Другие хирурги",
+    cosm:"Косметология", misc:"Прочее"};
+  const g0 = st.groups || {mal:0,pog:0,other:0,cosm:0,misc:0};
+  $("dbody").innerHTML = names.map(k => {
+    const after = k === "other" ? c.otherNet : c.G[k];
+    return `<tr><td>${RU[k]}</td><td class="num">${fmt(g0[k])}</td><td class="num">${fmt(after)}</td>
+      <td class="num">${pct(c.revNet ? after / c.revNet : 0)}</td></tr>`;
+  }).join("") + `<tr class="sum"><td>Итого</td><td class="num">${fmt(c.mgmt)}</td>
+    <td class="num">${fmt(c.revNet)}</td><td class="num">100,0 %</td></tr>`;
+  $("d3").classList.toggle("on", !!st.groups);
+}
+function renderChecks(c){
+  const list = checks(c);
+  $("checks").innerHTML = list.map(x => {
+    const cls = x.ok === true ? "ok" : x.ok === false ? "bad" : x.ok === "warn" ? "warn" : "";
+    const mk = x.ok === true ? "✓" : x.ok === false ? "✗" : x.ok === "warn" ? "!" : "·";
+    return `<div class="chk ${cls}"><span class="mark">${mk}</span>
+      <span class="what">${esc(x.what)}<small>${esc(x.sub)}</small></span>
+      <span class="val">${x.val}</span></div>`;
+  }).join("");
+  return list;
+}
+function renderReport(c, list){
+  const ok = list.every(x => x.ok !== false);
+  const row = (n, a, b, d, cls) => `<div class="rrow${cls||""}"><span>${esc(n)}</span>
+    <span>${a==null?"":fmt(a)}</span><span>${b==null?"":fmt(b)}</span><span>${d==null?"":fmt(d)}</span></div>`;
+  let h = "";
+  if (st.isExample) h += `<div class="banner"><b>Пример</b><span>Открыт август 2026 — данные из вашего закрытого месяца. Перетащите сентябрьские выгрузки, чтобы заменить.</span></div>`;
+  if (!ok) h += `<div class="banner" style="background:var(--crit-soft);color:var(--crit)"><b>Не выпускать</b><span>Есть красные сверки — цифры ниже неполные.</span></div>`;
+  h += `<div class="tiles">
+    <div class="tile"><div class="k">Выручка</div><div class="v">${fmt0(c.revNet)}</div><div class="s">за вычетом возвратов</div></div>
+    <div class="tile"><div class="k">Расходы</div><div class="v">${fmt0(c.costAll)}</div><div class="s">${pct(c.revNet?c.costAll/c.revNet:0)} от выручки</div></div>
+    <div class="tile"><div class="k">Доход за месяц</div><div class="v">${fmt0(c.incAll)}</div><div class="s">на двоих</div></div>
+    <div class="tile"><div class="k">К выплате</div><div class="v">${fmt0(c.payAll)}</div><div class="s">на конец месяца</div></div>
+  </div>`;
+  h += `<div class="report">`;
+  h += `<h3>Выручка</h3>`;
+  h += `<div class="rrow head"><span>Показатель</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
+  h += row("Свои операции", R2(c.G.mal + c.G.pog), c.G.mal, c.G.pog);
+  h += row("Другие хирурги", c.otherNet, null, null, " dim");
+  h += row("Косметология", c.G.cosm, null, null, " dim");
+  h += row("Прочее", c.G.misc, null, null, " dim");
+  h += row("Итого выручка", c.revNet, null, null, " tot");
+  h += `<h3>Расходы</h3>`;
+  h += `<div class="rrow head"><span>Статья</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
+  const p = st.params;
+  h += row("Налоги с ФОТ", p.tax, p.tax/2, p.tax/2);
+  h += row("Зарплата без ассистентов", c.salCommon, c.salCommon/2, c.salCommon/2);
+  h += row("Услуги банка", p.bank, p.bank/2, p.bank/2);
+  h += row("Алименты", p.ali, p.ali/2, p.ali/2);
+  h += row("Проценты по кредиту", p.int, p.int/2, p.int/2);
+  h += row("Поставщики без личных", c.common60, c.common60/2, c.common60/2);
+  h += row("Общая часть", c.common, c.common/2, c.common/2, " tot");
+  h += row("Анализы", R2(p.mAn+p.pAn), p.mAn, p.pAn, " ind dim");
+  h += row("Материалы за операции", R2(p.mMat+p.pMat), p.mMat, p.pMat, " ind dim");
+  h += row("Ассистенты и СММ", R2(p.mAss+p.pAss), p.mAss, p.pAss, " ind dim");
+  h += row("Эквайринг с личной выручки", R2(p.mAcq+p.pAcq), p.mAcq, p.pAcq, " ind dim");
+  h += row("Личные, каждому свои", R2(c.persM+c.persP), c.persM, c.persP);
+  h += row("Доля расходов каждого", c.costAll, c.costM, c.costP, " tot");
+  if (c.credit > 0) h += row("Справочно: за счёт кредитной линии", c.credit, null, null, " dim");
+  h += `<h3>Доход учредителей</h3>`;
+  h += `<div class="rrow head"><span>Шаг</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
+  h += row("Личная выручка", R2(c.G.mal+c.G.pog), c.G.mal, c.G.pog);
+  h += row("Половина выручки других хирургов", c.otherNet, c.otherNet/2, c.otherNet/2);
+  h += row("Половина косметологии", c.G.cosm, c.G.cosm/2, c.G.cosm/2);
+  h += row("Половина прочего", c.G.misc, c.G.misc/2, c.G.misc/2);
+  h += row("Половина процентов по депозитам", p.dep, p.dep/2, p.dep/2);
+  h += row("Минус доля расходов", -c.costAll, -c.costM, -c.costP);
+  h += row("Доход за месяц", c.incAll, c.incM, c.incP, " tot");
+  h += `<h3>К выплате</h3>`;
+  h += `<div class="rrow head"><span>Показатель</span><span>Всего</span><span>Маланичев</span><span>Погосян</span></div>`;
+  h += row("Доход за месяц", c.incAll, c.incM, c.incP);
+  h += row("Остаток с прошлого месяца", c.prevAll, p.prevM, p.prevP);
+  h += row("Выплачены дивиденды", -c.divAll, -p.divM, -p.divP);
+  h += row("Итого к выплате", c.payAll, c.payM, c.payP, " tot");
+  h += `</div>`;
+  $("reportWrap").innerHTML = h;
+  $("d5").classList.toggle("on", ok && st.vendors.length > 0);
+  $("dlXlsx").disabled = !st.vendors.length;
+}
+function render(){
+  const c = calc();
+  $("memoCount").textContent = Object.keys(book.vendors).length;
+  $("memoDot").classList.add("on");
+  renderFiles(); renderVendors(c); renderBlocks(c); renderDoctors(c);
+  const list = renderChecks(c);
+  renderReport(c, list);
+  $("d4").classList.toggle("on", st.params.sal > 0 && st.params.tax > 0);
+  window.__calc = c;
+}
+</script>

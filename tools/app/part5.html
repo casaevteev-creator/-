@@ -1,0 +1,265 @@
+<script>
+"use strict";
+/* ============================ поля параметров ============================ */
+function fillParams(){
+  for (const k of PK){ const el = $(FIELD[k]); if (el) el.value = st.params[k] ? String(st.params[k]).replace(".", ",") : ""; }
+}
+function bindParams(){
+  for (const k of PK){
+    const el = $(FIELD[k]); if (!el) continue;
+    el.addEventListener("input", () => { st.params[k] = num(el.value); saveParams(); render(); });
+  }
+}
+/* ============================ приём файлов ============================ */
+const ACC_RU = {"50":"касса","51":"расчётный счёт","57":"эквайринг и инкассация","60":"поставщики",
+  "62":"расчёты с пациентами","67":"кредиты","68":"налоги","69":"взносы","70":"зарплата","91":"прочее"};
+async function takeFiles(list){
+  for (const f of list){
+    let rec = {name:f.name, tag:"не распознан", note:"—", ok:false};
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(new Uint8Array(buf), {type:"array", cellStyles:true});
+      const p = detect(wb);
+      if (!p){ rec.note = "не похоже на обороты счёта или отчёт по врачам"; }
+      else if (p.kind === "oborot"){
+        st.acc[p.account] = p;
+        rec.ok = true; rec.tag = "счёт " + p.account;
+        rec.note = ACC_RU[p.account] || "";
+        if (p.account === "60"){
+          st.vendors = p.items.filter(x => N(x.dtBy["51"]) > 0)
+            .map(x => ({name:x.name, paid:R2(N(x.dtBy["51"]))}))
+            .sort((a,b) => b.paid - a.paid);
+          rec.note = "контрагентов: " + st.vendors.length + " · " + fmt(st.vendors.reduce((s,v)=>s+v.paid,0));
+          pullFrom60(p);
+        }
+        if (p.account === "51") pullFrom51(p);
+      }
+      else if (p.kind === "doctors"){
+        st.doctors = p; rec.ok = true; rec.tag = "врачи";
+        rec.note = "фактическая оплата: " + fmt(p.total);
+        fillFounders(); regroup();
+      }
+      else if (p.kind === "payments"){
+        st.payments = p; rec.ok = true; rec.tag = "оплаты";
+        rec.note = "нал " + fmt0(p.cash) + " · карта " + fmt0(p.card) + " · безнал " + fmt0(p.bez);
+      }
+    } catch(e){ rec.note = "не открылся: " + (e && e.message ? e.message : "ошибка"); }
+    st.files = st.files.filter(x => x.name !== rec.name).concat([rec]);
+  }
+  if (st.files.some(f => f.ok)) st.isExample = false;
+  render();
+}
+/* подсказки из выгрузок — заполняем пустые поля, заполненные не трогаем */
+function hint(k, v){ if (!st.params[k] && v) { st.params[k] = R2(v); } }
+function pullFrom51(p){
+  const kt = p.total.ktBy || {}, dt = p.total.dtBy || {};
+  hint("sal", kt["70"]);
+  hint("ali", kt["76"]);
+  hint("tax", R2(N(kt["68"]) + N(kt["69"])));
+  hint("refund", kt["62"]);
+  hint("dep", dt["91"]);
+  hint("divM", N(kt["75"]) / 2); hint("divP", N(kt["75"]) / 2);
+  fillParams();
+}
+function pullFrom60(p){
+  const t = p.total;
+  hint("corr", N(t.ktBy && t.ktBy["51"]));
+  fillParams();
+}
+function fillFounders(){
+  const names = Object.keys(st.doctors.byDoc).filter(Boolean).sort((a,b) => a.localeCompare(b, "ru"));
+  const guess = re => names.find(n => re.test(n)) || "";
+  if (!book.founders.mal) book.founders.mal = guess(/Маланич/i);
+  if (!book.founders.pog) book.founders.pog = guess(/Погос/i);
+  for (const [id, key] of [["fMal","mal"], ["fPog","pog"]]){
+    $(id).innerHTML = `<option value="">— не выбран —</option>` +
+      names.map(n => `<option${n === book.founders[key] ? " selected" : ""}>${esc(n)}</option>`).join("");
+  }
+}
+function regroup(){
+  if (!st.doctors){ return; }
+  const g = {mal:0, pog:0, other:0, cosm:0, misc:0};
+  for (const doc in st.doctors.byDoc){
+    const v = st.doctors.byDoc[doc];
+    if (doc && doc === book.founders.mal) g.mal += v;
+    else if (doc && doc === book.founders.pog) g.pog += v;
+    else if (!doc) g.misc += v;
+    else if (/косметолог/i.test(st.doctors.dirOf[doc] || "")) g.cosm += v;
+    else g.other += v;
+  }
+  for (const k in g) g[k] = R2(g[k]);
+  st.groups = g;
+  if (!st.params.revBank) { st.params.revBank = R2(g.mal+g.pog+g.other+g.cosm+g.misc); fillParams(); }
+}
+/* ============================ выгрузка в Excel ============================ */
+function buildWorkbook(c){
+  const p = st.params, wb = XLSX.utils.book_new();
+  const r = (n, a, b, d) => [n, a == null ? "" : a, b == null ? "" : b, d == null ? "" : d];
+  const A = [
+    ["ООО «ОМЕГА» · расчёт за " + monthName(st.month)], [],
+    ["ВЫРУЧКА", "Всего", "Маланичев", "Погосян"],
+    r("Свои операции", R2(c.G.mal + c.G.pog), c.G.mal, c.G.pog),
+    r("Другие хирурги", c.otherNet), r("Косметология", c.G.cosm), r("Прочее", c.G.misc),
+    r("Итого выручка", c.revNet), [],
+    ["РАСХОДЫ", "Всего", "Маланичев", "Погосян"],
+    r("Налоги с ФОТ", p.tax, p.tax/2, p.tax/2),
+    r("Зарплата без ассистентов", c.salCommon, c.salCommon/2, c.salCommon/2),
+    r("Услуги банка", p.bank, p.bank/2, p.bank/2),
+    r("Алименты", p.ali, p.ali/2, p.ali/2),
+    r("Проценты по кредиту", p.int, p.int/2, p.int/2),
+    r("Поставщики без личных", c.common60, c.common60/2, c.common60/2),
+    r("Общая часть", c.common, c.common/2, c.common/2),
+    r("   Анализы", R2(p.mAn+p.pAn), p.mAn, p.pAn),
+    r("   Материалы за операции", R2(p.mMat+p.pMat), p.mMat, p.pMat),
+    r("   Ассистенты и СММ", R2(p.mAss+p.pAss), p.mAss, p.pAss),
+    r("   Эквайринг с личной выручки", R2(p.mAcq+p.pAcq), p.mAcq, p.pAcq),
+    r("Личные, каждому свои", R2(c.persM+c.persP), c.persM, c.persP),
+    r("ДОЛЯ РАСХОДОВ КАЖДОГО", c.costAll, c.costM, c.costP),
+    r("Справочно: за счёт кредитной линии", c.credit), [],
+    ["ДОХОД УЧРЕДИТЕЛЕЙ", "Всего", "Маланичев", "Погосян"],
+    r("Личная выручка", R2(c.G.mal+c.G.pog), c.G.mal, c.G.pog),
+    r("Половина выручки других хирургов", c.otherNet, c.otherNet/2, c.otherNet/2),
+    r("Половина косметологии", c.G.cosm, c.G.cosm/2, c.G.cosm/2),
+    r("Половина прочего", c.G.misc, c.G.misc/2, c.G.misc/2),
+    r("Половина процентов по депозитам", p.dep, p.dep/2, p.dep/2),
+    r("Минус доля расходов", -c.costAll, -c.costM, -c.costP),
+    r("ДОХОД ЗА МЕСЯЦ", c.incAll, c.incM, c.incP), [],
+    ["К ВЫПЛАТЕ", "Всего", "Маланичев", "Погосян"],
+    r("Доход за месяц", c.incAll, c.incM, c.incP),
+    r("Остаток с прошлого месяца", c.prevAll, p.prevM, p.prevP),
+    r("Выплачены дивиденды", -c.divAll, -p.divM, -p.divP),
+    r("ИТОГО К ВЫПЛАТЕ", c.payAll, c.payM, c.payP), [],
+    ["Сверки"],
+  ];
+  for (const x of checks(c)) A.push([(x.ok === true ? "OK  " : x.ok === false ? "НЕ СХОДИТСЯ  " : "—  ") + x.what, x.val]);
+  const ws1 = XLSX.utils.aoa_to_sheet(A);
+  ws1["!cols"] = [{wch:44},{wch:16},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws1, "Расчёт");
+
+  const B = [["Контрагент", "Оплачено", "Статья", "Блок", "За счёт кредита"]];
+  for (const v of st.vendors){
+    const cl = book.vendors[v.name] || ["", ""];
+    B.push([v.name, v.paid, cl[0], book.articles[cl[0]] || cl[1] || "", book.credit.indexOf(v.name) >= 0 ? "да" : ""]);
+  }
+  B.push(["Возвраты поставщиков", -p.corr, "", "", ""]);
+  B.push(["БАЗА СЧЁТА 60", c.base60, "", "", ""]);
+  const ws2 = XLSX.utils.aoa_to_sheet(B);
+  ws2["!cols"] = [{wch:50},{wch:15},{wch:32},{wch:16},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws2, "Контрагенты");
+
+  const C = [["Статья", "Сумма", "Доля", "Блок"]];
+  Object.entries(c.byArt).sort((a,b) => b[1].sum - a[1].sum)
+    .forEach(([k, v]) => C.push([k, v.sum, c.base ? v.sum / c.base : 0, v.block]));
+  C.push(["Медицинские", c.byBlock.m, c.base ? c.byBlock.m / c.base : 0, ""]);
+  C.push(["Управленческие", c.byBlock.u, c.base ? c.byBlock.u / c.base : 0, ""]);
+  const ws3 = XLSX.utils.aoa_to_sheet(C);
+  ws3["!cols"] = [{wch:38},{wch:16},{wch:10},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws3, "Статьи");
+  return wb;
+}
+async function offer(filename, blob){
+  const d = await claude.use("downloads").catch(() => null);
+  if (!d){ alert("Сохранение файлов недоступно в этом окне. Откройте ссылку в браузере на компьютере."); return; }
+  try { await d.save({filename, data: blob}); }
+  catch(e){ if (e && e.code !== "declined") alert("Не сохранилось: " + (e.message || e.code)); }
+}
+/* ============================ события ============================ */
+function wire(){
+  $("pick").addEventListener("click", () => $("file").click());
+  $("file").addEventListener("change", e => { takeFiles(e.target.files); e.target.value = ""; });
+  const dz = $("drop");
+  ["dragenter","dragover"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add("hot"); }));
+  ["dragleave","drop"].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove("hot"); }));
+  dz.addEventListener("drop", e => { if (e.dataTransfer && e.dataTransfer.files) takeFiles(e.dataTransfer.files); });
+  document.addEventListener("dragover", e => e.preventDefault());
+  document.addEventListener("drop", e => e.preventDefault());
+
+  $("month").addEventListener("change", async e => {
+    st.month = e.target.value;
+    const saved = await loadParams(st.month);
+    if (saved){ PK.forEach(k => st.params[k] = N(saved[k])); }
+    else if (st.month !== "2026-08"){ PK.forEach(k => st.params[k] = 0); st.isExample = false; st.vendors = []; st.groups = null; st.files = []; st.acc = {}; st.doctors = null; st.payments = null; }
+    fillParams(); render();
+  });
+
+  $("vbody").addEventListener("change", e => {
+    const t = e.target;
+    if (t.dataset.art != null){
+      const v = st.vendors[+t.dataset.art];
+      let art = t.value;
+      if (art === "__new"){
+        art = S(prompt("Название новой статьи расхода:", ""));
+        if (!art){ render(); return; }
+        if (!book.articles[art]) book.articles[art] = "";
+      }
+      const cur = book.vendors[v.name] || ["", ""];
+      book.vendors[v.name] = [art, art ? (cur[1] || book.articles[art] || "") : ""];
+      saveBook(); render();
+    }
+    if (t.dataset.blk != null){
+      const v = st.vendors[+t.dataset.blk];
+      const cur = book.vendors[v.name] || ["", ""];
+      book.vendors[v.name] = [cur[0], t.value];
+      if (cur[0]) book.articles[cur[0]] = t.value;     // блок запоминается за статьёй целиком
+      saveBook(); render();
+    }
+    if (t.dataset.cred != null){
+      const v = st.vendors[+t.dataset.cred];
+      const i = book.credit.indexOf(v.name);
+      if (t.checked && i < 0) book.credit.push(v.name);
+      if (!t.checked && i >= 0) book.credit.splice(i, 1);
+      saveBook(); render();
+    }
+  });
+  $("vsearch").addEventListener("input", e => { st.q = e.target.value; render(); });
+  const pills = [["fAll","all"], ["fNew","new"], ["fCred","cred"]];
+  pills.forEach(([id, key]) => $(id).addEventListener("click", () => {
+    st.filter = key;
+    pills.forEach(([i2, k2]) => $(i2).setAttribute("aria-pressed", String(k2 === key)));
+    render();
+  }));
+  ["fMal","fPog"].forEach((id, i) => $(id).addEventListener("change", e => {
+    book.founders[i ? "pog" : "mal"] = e.target.value; saveBook(); regroup(); render();
+  }));
+
+  $("dlXlsx").addEventListener("click", async () => {
+    const c = calc();
+    const out = XLSX.write(buildWorkbook(c), {bookType:"xlsx", type:"array"});
+    await offer("Расчёт-" + st.month + ".xlsx", new Blob([out]));
+  });
+  $("dlBook").addEventListener("click", async () => {
+    const rows = [["Контрагент", "Статья", "Блок"]];
+    Object.keys(book.vendors).sort((a,b) => a.localeCompare(b,"ru"))
+      .forEach(k => rows.push([k, book.vendors[k][0], book.vendors[k][1]]));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{wch:50},{wch:34},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws, "Справочник");
+    await offer("Справочник-статей.xlsx", new Blob([XLSX.write(wb, {bookType:"xlsx", type:"array"})]));
+  });
+  $("reset").addEventListener("click", () => {
+    if (!confirm("Убрать загруженные выгрузки и цифры месяца? Справочник статей сохранится.")) return;
+    st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null; st.groups = null;
+    st.isExample = false; PK.forEach(k => st.params[k] = 0);
+    fillParams(); render();
+  });
+}
+/* ============================ старт ============================ */
+async function start(){
+  book = await loadBook();
+  st.month = "2026-08";
+  $("month").value = st.month;
+  st.vendors = EXAMPLE.vendors.map(v => ({name:v[0], paid:v[1]}));
+  st.groups = EXAMPLE.groups;
+  PK.forEach(k => st.params[k] = N(EXAMPLE.params[k]));
+  fillParams(); bindParams(); wire(); render();
+
+  claude.use("db").then(async d => {
+    if (!d) return;
+    DB = d;
+    book = await loadBook();
+    render();
+  }).catch(() => {});
+}
+if (typeof claude === "undefined") window.claude = {use: () => Promise.resolve(null)};
+start();
+</script>

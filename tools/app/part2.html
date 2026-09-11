@@ -1,0 +1,140 @@
+<header class="top">
+  <div class="top-in">
+    <div class="brand">Управленка <em>Формы</em></div>
+    <div class="top-meta">
+      <span class="month-pick"><label for="month">Месяц</label><input id="month" type="month" value="2026-09"></span>
+      <span class="memo"><span class="dot" id="memoDot"></span>Справочник: <b id="memoCount">—</b> контрагентов</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="grid">
+
+  <nav class="rail" aria-label="Этапы закрытия месяца">
+    <a href="#s1"><span class="num">1</span><span>Выгрузки</span><span class="st dot" id="d1"></span></a>
+    <a href="#s2"><span class="num">2</span><span>Расходы</span><span class="st dot" id="d2"></span></a>
+    <a href="#s3"><span class="num">3</span><span>Выручка</span><span class="st dot" id="d3"></span></a>
+    <a href="#s4"><span class="num">4</span><span>Параметры</span><span class="st dot" id="d4"></span></a>
+    <a href="#s5"><span class="num">5</span><span>Отчёт</span><span class="st dot" id="d5"></span></a>
+    <p class="rail-note">Файлы не покидают компьютер — разбор идёт в браузере. Сохраняется только справочник статей.</p>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="s1">
+    <div class="sec-head"><span class="step">Этап 1</span><h2>Выгрузки</h2></div>
+    <p class="sec-sub">Перетащите файлы как есть — имена не важны, программа читает заголовок внутри. Нужны обороты счетов 51 и 60 из 1С и «Отчёт по врачам (УК)» из управленки.</p>
+    <div class="drop" id="drop">
+      <h3>Перетащите выгрузки сюда</h3>
+      <p>xlsx из 1С и управленки · можно несколько сразу</p>
+      <button class="btn" id="pick">Выбрать файлы</button>
+      <input type="file" id="file" multiple accept=".xlsx,.xls" hidden>
+    </div>
+    <ul class="filelist" id="files"></ul>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <div class="sec-head"><span class="step">Этап 2</span><h2>Расходы по контрагентам</h2></div>
+    <p class="sec-sub">Знакомые контрагенты разнесены по памяти прошлых месяцев. Жёлтым подсвечены новые — им нужна статья. Выбор запоминается и в следующем месяце подставится сам.</p>
+    <div class="filters">
+      <input type="search" id="vsearch" placeholder="Найти контрагента или статью" aria-label="Поиск по контрагентам">
+      <button class="pill" id="fAll" aria-pressed="true">Все</button>
+      <button class="pill" id="fNew" aria-pressed="false">Только новые</button>
+      <button class="pill" id="fCred" aria-pressed="false">За счёт кредита</button>
+    </div>
+    <div class="tw"><table id="vtab">
+      <thead><tr>
+        <th>Контрагент</th><th class="num">Оплачено</th><th>Статья</th><th>Блок</th><th>Кредит</th>
+      </tr></thead>
+      <tbody id="vbody"></tbody>
+    </table></div>
+    <div class="card" style="margin-top:14px">
+      <div class="sub">Свод по блокам</div>
+      <div id="blocksum"></div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <div class="sec-head"><span class="step">Этап 3</span><h2>Выручка по врачам</h2></div>
+    <p class="sec-sub">Разрез берётся из колонки «Фактическая оплата» — это деньги, а не реализация. Итог месяца задаётся по зачислению на счёт, разница с управленкой разносится пропорционально.</p>
+    <div class="card">
+      <div class="fields">
+        <div class="f"><label for="fMal">Маланичев — врач в управленке</label><select id="fMal"></select></div>
+        <div class="f"><label for="fPog">Погосян — врач в управленке</label><select id="fPog"></select></div>
+        <div class="f"><label for="revBank">Выручка по банку за месяц</label><input id="revBank" inputmode="decimal">
+          <div class="hint" id="revHint">контрольная сумма до возвратов</div></div>
+        <div class="f"><label for="refund">Возвраты пациентам</label><input id="refund" inputmode="decimal">
+          <div class="hint">счёт 62, уменьшают группу «другие хирурги»</div></div>
+      </div>
+    </div>
+    <div class="tw" style="margin-top:14px"><table id="dtab">
+      <thead><tr><th>Группа</th><th class="num">По управленке</th><th class="num">После сверки с банком</th><th class="num">Доля</th></tr></thead>
+      <tbody id="dbody"></tbody>
+    </table></div>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <div class="sec-head"><span class="step">Этап 4</span><h2>Параметры месяца</h2></div>
+    <p class="sec-sub">Всё, что не вытаскивается из выгрузок. Личные расходы вычитаются из счёта 60 и садятся своему учредителю; ассистенты — из зарплаты.</p>
+
+    <div class="card">
+      <div class="sub">Общие расходы</div>
+      <div class="fields">
+        <div class="f"><label for="pTax">Налоги с ФОТ (68.90 и 69)</label><input id="pTax" inputmode="decimal"></div>
+        <div class="f"><label for="pSal">Зарплата по банку (счёт 70)</label><input id="pSal" inputmode="decimal"></div>
+        <div class="f"><label for="pBank">Услуги банка, общие</label><input id="pBank" inputmode="decimal"></div>
+        <div class="f"><label for="pAli">Алименты</label><input id="pAli" inputmode="decimal"></div>
+        <div class="f"><label for="pInt">Проценты по кредиту</label><input id="pInt" inputmode="decimal"></div>
+        <div class="f"><label for="pCorr">Возвраты поставщиков</label><input id="pCorr" inputmode="decimal">
+          <div class="hint">уменьшают базу счёта 60</div></div>
+      </div>
+
+      <div class="sub">Личные — Маланичев</div>
+      <div class="fields">
+        <div class="f"><label for="mAn">Анализы</label><input id="mAn" inputmode="decimal"></div>
+        <div class="f"><label for="mMat">Материалы за операции</label><input id="mMat" inputmode="decimal"></div>
+        <div class="f"><label for="mAss">Ассистенты и СММ</label><input id="mAss" inputmode="decimal"></div>
+        <div class="f"><label for="mAcq">Эквайринг с личной выручки</label><input id="mAcq" inputmode="decimal"></div>
+      </div>
+
+      <div class="sub">Личные — Погосян</div>
+      <div class="fields">
+        <div class="f"><label for="pAn">Анализы</label><input id="pAn" inputmode="decimal"></div>
+        <div class="f"><label for="pMat">Материалы за операции</label><input id="pMat" inputmode="decimal"></div>
+        <div class="f"><label for="pAss">Ассистенты и СММ</label><input id="pAss" inputmode="decimal"></div>
+        <div class="f"><label for="pAcq">Эквайринг с личной выручки</label><input id="pAcq" inputmode="decimal"></div>
+      </div>
+
+      <div class="sub">Прочие доходы и расчёты с учредителями</div>
+      <div class="fields">
+        <div class="f"><label for="pDep">Проценты по депозитам</label><input id="pDep" inputmode="decimal"></div>
+        <div class="f"><label for="pPrevM">Остаток прошлого месяца — Маланичев</label><input id="pPrevM" inputmode="decimal"></div>
+        <div class="f"><label for="pPrevP">Остаток прошлого месяца — Погосян</label><input id="pPrevP" inputmode="decimal"></div>
+        <div class="f"><label for="pDivM">Дивиденды — Маланичев</label><input id="pDivM" inputmode="decimal"></div>
+        <div class="f"><label for="pDivP">Дивиденды — Погосян</label><input id="pDivP" inputmode="decimal"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <div class="sec-head"><span class="step">Этап 5</span><h2>Сверки и отчёт</h2></div>
+    <p class="sec-sub">Отчёт выпускается только когда сверки зелёные. Каждая строка ниже — ошибка, которую август пропустил вручную.</p>
+    <div class="checks" id="checks"></div>
+    <div id="reportWrap" style="margin-top:20px"></div>
+    <div class="actions">
+      <button class="btn" id="dlXlsx">Скачать Excel для бухгалтера</button>
+      <button class="btn ghost" id="dlBook">Выгрузить справочник</button>
+      <button class="btn ghost" id="reset">Очистить месяц</button>
+    </div>
+    <p class="foot">Справочник статей, состав ассистентов и подрядчики по стройке сохраняются между месяцами и общие для всех, кто открывает эту ссылку. Выгрузки нигде не сохраняются.</p>
+  </section>
+
+  </main>
+</div>
+</div>

@@ -1,0 +1,176 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/* ============================ мелочи ============================ */
+const $ = id => document.getElementById(id);
+const S = v => v == null ? "" : String(v).replace(/\s+/g, " ").trim();
+const N = v => typeof v === "number" ? v : 0;
+const R2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+const fmt = x => (x == null || !isFinite(x)) ? "—"
+  : (Math.abs(x) < 0.005 ? "0,00" : x.toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2}));
+const fmt0 = x => (x == null || !isFinite(x)) ? "—" : Math.round(x).toLocaleString("ru-RU");
+const pct = x => (!isFinite(x) ? "—" : (x * 100).toLocaleString("ru-RU", {minimumFractionDigits:1, maximumFractionDigits:1}) + " %");
+const num = s => { const t = S(s).replace(/ |\s/g, "").replace(",", "."); const v = parseFloat(t); return isFinite(v) ? v : 0; };
+const esc = s => S(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+const monthName = v => { const m = /(\d{4})-(\d{2})/.exec(v || ""); return m ? MONTHS[+m[2]-1] + " " + m[1] : v; };
+
+/* ============================ справочник по умолчанию ============================ */
+const BASE_BOOK = __BOOK__;
+const EXAMPLE = __EXAMPLE__;
+
+/* ============================ хранилище ============================ */
+let DB = null;
+const LS = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k) || "null"); } catch(e){ return null; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+async function loadBook(){
+  let local = LS.get("book") || {};
+  let remote = null;
+  if (DB) {
+    try { const snap = await DB.doc("book/main").get(); if (snap.exists) remote = snap.data(); }
+    catch(e){ remote = null; }
+  }
+  const src = remote || local;
+  return {
+    vendors: Object.assign({}, BASE_BOOK.vendors, (src && src.vendors) || {}),
+    articles: Object.assign({}, BASE_BOOK.articles, (src && src.articles) || {}),
+    credit: (src && src.credit) || ["КВАЛИТЕТ ООО"],
+    founders: (src && src.founders) || {mal:"", pog:""}
+  };
+}
+let saveTimer = null;
+function saveBook(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const own = {vendors:{}, articles:{}, credit: book.credit, founders: book.founders};
+    for (const k in book.vendors) if (!BASE_BOOK.vendors[k] || BASE_BOOK.vendors[k][0] !== book.vendors[k][0] || BASE_BOOK.vendors[k][1] !== book.vendors[k][1]) own.vendors[k] = book.vendors[k];
+    for (const k in book.articles) if (BASE_BOOK.articles[k] !== book.articles[k]) own.articles[k] = book.articles[k];
+    LS.set("book", own);
+    if (DB) { try { await DB.doc("book/main").set(own); } catch(e){} }
+  }, 700);
+}
+let paramTimer = null;
+function saveParams(){
+  clearTimeout(paramTimer);
+  paramTimer = setTimeout(async () => {
+    LS.set("params:" + st.month, st.params);
+    if (DB) { try { await DB.doc("months/" + st.month).set({params: st.params}); } catch(e){} }
+  }, 700);
+}
+async function loadParams(month){
+  if (DB) { try { const s = await DB.doc("months/" + month).get(); if (s.exists && s.data().params) return s.data().params; } catch(e){} }
+  return LS.get("params:" + month);
+}
+
+/* ============================ разбор выгрузок ============================ */
+function gridOf(ws){
+  const rng = XLSX.utils.decode_range(ws["!ref"]);
+  const rows = [], levels = [], rr = ws["!rows"] || [];
+  for (let r = rng.s.r; r <= rng.e.r; r++){
+    const row = [];
+    for (let c = rng.s.c; c <= rng.e.c; c++){
+      const cell = ws[XLSX.utils.encode_cell({r, c})];
+      row.push(cell ? cell.v : null);
+    }
+    rows.push(row);
+    levels.push(rr[r] && rr[r].level != null ? rr[r].level : 0);
+  }
+  return {rows, levels};
+}
+function findHead(rows, must){
+  for (let r = 0; r < Math.min(rows.length, 25); r++){
+    const h = rows[r].map(S);
+    if (must.every(n => h.indexOf(n) >= 0)) return {r, h};
+  }
+  return null;
+}
+/* «Обороты счета NN за Месяц ГГГГ г.» — уровень группировки строк отличает
+   контрагента (2) от подразделения (1) и от итога по счёту (0). */
+function parseOboroty(rows, levels){
+  let title = "";
+  for (let r = 0; r < Math.min(rows.length, 6); r++){ const t = S(rows[r][0]); if (/Обороты счета/i.test(t)) title = t; }
+  const m = /Обороты счета\s+(\d+)/i.exec(title);
+  if (!m) return null;
+  const account = m[1];
+  let hr = -1;
+  for (let r = 0; r < Math.min(rows.length, 15); r++) if (S(rows[r][0]) === "Счет"){ hr = r; break; }
+  if (hr < 0) return null;
+  const head = rows[hr].map(S);
+  const iDt = head.indexOf("Оборот Дт"), iKt = head.indexOf("Оборот Кт");
+  if (iDt < 0 || iKt < 0) return null;
+  const dtCols = {}, ktCols = {};
+  for (let c = iDt + 1; c < iKt; c++) if (head[c]) dtCols[head[c]] = c;
+  let end = head.length;
+  for (let c = iKt + 1; c < head.length; c++) if (/^Конечное сальдо/.test(head[c])){ end = c; break; }
+  for (let c = iKt + 1; c < end; c++) if (head[c]) ktCols[head[c]] = c;
+  const iOpenDt = head.indexOf("Начальное сальдо Дт"), iOpenKt = head.indexOf("Начальное сальдо Кт");
+  const items = [];
+  let total = null;
+  for (let r = hr + 1; r < rows.length; r++){
+    const name = S(rows[r][0]);
+    if (!name || name === "Подразделение" || name === "Итого") continue;
+    const rec = {name, level: levels[r], dt: N(rows[r][iDt]), kt: N(rows[r][iKt]),
+      openDt: iOpenDt >= 0 ? N(rows[r][iOpenDt]) : 0, openKt: iOpenKt >= 0 ? N(rows[r][iOpenKt]) : 0,
+      dtBy:{}, ktBy:{}};
+    for (const k in dtCols) rec.dtBy[k] = N(rows[r][dtCols[k]]);
+    for (const k in ktCols) rec.ktBy[k] = N(rows[r][ktCols[k]]);
+    if (name === account && levels[r] === 0) total = rec;
+    else if (levels[r] >= 2) items.push(rec);
+  }
+  if (!total) return null;
+  return {kind:"oborot", account, title, total, items};
+}
+/* «Отчёт по врачам (УК)» — Фактическая оплата по врачу и направлению */
+function parseDoctors(rows){
+  const H = findHead(rows, ["Врач", "Фактическая оплата"]);
+  if (!H) return null;
+  const ci = {};
+  ["Направление","Пациент","Врач","Дата","Сумма выручки","Фактическая оплата"].forEach(k => ci[k] = H.h.indexOf(k));
+  const byDoc = {}, byDir = {};
+  let total = 0;
+  for (let r = H.r + 1; r < rows.length; r++){
+    const dir = S(rows[r][ci["Направление"]]);
+    if (dir === "Итог") continue;                       // строка-итог отчёта, иначе двойной счёт
+    const doc = S(rows[r][ci["Врач"]]);
+    const pay = N(rows[r][ci["Фактическая оплата"]]);
+    if (!pay) continue;
+    byDoc[doc] = (byDoc[doc] || 0) + pay;
+    byDir[dir || "—"] = (byDir[dir] || 0) + pay;
+    total += pay;
+  }
+  const dirOf = {};
+  for (let r = H.r + 1; r < rows.length; r++){
+    const dir = S(rows[r][ci["Направление"]]), doc = S(rows[r][ci["Врач"]]);
+    if (dir && dir !== "Итог" && doc && !dirOf[doc]) dirOf[doc] = dir;
+  }
+  return {kind:"doctors", byDoc, byDir, dirOf, total};
+}
+/* Реестр оплат управленки — каналы и признак проведения в бухгалтерии */
+function parsePayments(rows){
+  const H = findHead(rows, ["Специалист", "Сумма руб"]);
+  if (!H) return null;
+  const ci = {};
+  ["Дата","Специалист","Бух учет","Касса","Сумма руб","Оплата плат. картой","Оплата без. нал."].forEach(k => ci[k] = H.h.indexOf(k));
+  let sum = 0, card = 0, bez = 0, cash = 0, notPosted = 0, notPostedRows = 0;
+  for (let r = H.r + 1; r < rows.length; r++){
+    const s = N(rows[r][ci["Сумма руб"]]);
+    if (!s) continue;
+    const c = N(rows[r][ci["Оплата плат. картой"]]), b = N(rows[r][ci["Оплата без. нал."]]);
+    sum += s; card += c; bez += b; cash += s - c - b;
+    if (ci["Бух учет"] >= 0 && !/^да/i.test(S(rows[r][ci["Бух учет"]]))){ notPosted += s; notPostedRows++; }
+  }
+  return {kind:"payments", sum, card, bez, cash, notPosted, notPostedRows};
+}
+function detect(wb){
+  for (const name of wb.SheetNames){
+    const {rows, levels} = gridOf(wb.Sheets[name]);
+    if (!rows.length) continue;
+    const o = parseOboroty(rows, levels); if (o) return o;
+    const d = parseDoctors(rows);         if (d) return d;
+    const p = parsePayments(rows);        if (p) return p;
+  }
+  return null;
+}
+</script>
