@@ -8,7 +8,7 @@ const FIELD = {tax:"pTax", sal:"pSal", bank:"pBank", ali:"pAli", int:"pInt", cor
   dep:"pDep", prevM:"pPrevM", prevP:"pPrevP", divM:"pDivM", divP:"pDivP", revBank:"revBank", refund:"refund"};
 const st = {
   month: "2026-09", files: [], vendors: [], acc: {}, doctors: null, payments: null, taksk: null,
-  groups: null, params: {}, psrc: {}, periods: {}, isExample: true, filter: "all", q: ""
+  groups: null, params: {}, psrc: {}, periods: {}, note: "", isExample: true, filter: "all", q: ""
 };
 PK.forEach(k => st.params[k] = 0);
 

@@ -127,6 +127,18 @@
   padding:5px 10px;border-radius:7px;white-space:nowrap;z-index:5}
 .dx{display:flex;gap:2px;padding-top:9px}
 .dx span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--mute)}
+/* комментарий владельца к месяцу */
+.note-sec{background:var(--tint);border-radius:20px;padding:30px 34px;
+  border-left:3px solid var(--bronze2)}
+@media(max-width:640px){.note-sec{padding:22px 22px}}
+.note-sec p{font-family:var(--serif);font-size:20px;line-height:1.55;color:var(--ink);margin-bottom:15px}
+.note-sec p:last-child{margin-bottom:0}
+.note-sec h4{font-family:var(--serif);font-size:23px;font-weight:600;margin:22px 0 12px;color:var(--ink)}
+.note-sec h4:first-child{margin-top:0}
+.note-sec b{font-weight:700}
+.note-sec .num{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--green)}
+.note-sec ul{margin:0 0 15px 24px;font-family:var(--serif);font-size:20px;line-height:1.5}
+.note-sec li{margin-bottom:9px}
 /* динамика по месяцам */
 .mbars{display:flex;align-items:flex-end;gap:0;height:230px;border-bottom:1.5px solid var(--ink);padding:22px 4px 0}
 @media(min-width:760px){.mbars{height:280px}}
@@ -319,10 +331,10 @@ function renderDash(){
   const delta = (now, was, invert) => {
     if (!was) return {cls:"", txt:""};
     const d = now / was - 1;
-    if (Math.abs(d) < 0.001) return {cls:"", txt:"как в " + monthName(pm).split(" ")[0]};
+    if (Math.abs(d) < 0.001) return {cls:"", txt:"как в прошлом месяце"};
     const good = invert ? d < 0 : d > 0;
     return {cls: good ? "up" : "dn",
-      txt: (d > 0 ? "▲ +" : "▼ −") + pct(Math.abs(d)).replace(" %", " %") + " к " + monthName(pm).split(" ")[0]};
+      txt: (d > 0 ? "▲ +" : "▼ −") + pct(Math.abs(d)) + " к прошлому месяцу"};
   };
   const dRev = delta(c.revNet, prevS && prevS.rev);
   const dCost = delta(c.costAll, prevS && prevS.cost, true);
@@ -367,6 +379,8 @@ function renderDash(){
     ${tez("04", "К выплате — " + MLN(c.payAll) + " млн ₽",
       "С учётом накопленных остатков: Погосян " + MLN(c.payP) + " млн, Маланичев " + MLN(c.payM) + " млн. Дивиденды за месяц — " + fmt0(c.divAll) + " ₽.")}
   </div></section>
+
+  ${noteSection()}
 
   <section class="tight"><div class="w">
     <div class="kick">${K("Показатели")}</div><h2>Ключевые цифры</h2>

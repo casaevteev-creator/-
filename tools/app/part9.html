@@ -147,7 +147,7 @@ function advFormat(t){
               .map(l => "<li>" + l + "</li>").join("") + "</ul>"
           : "<p>" + b.replace(/\n/g, "<br>") + "</p>")).join("");
 }
-let advBusy = false;
+let advBusy = false, lastAnswer = "";   // исходный текст ответа, с разметкой
 async function advAsk(q){
   if (advBusy) return;
   const out = $("advout");
@@ -160,7 +160,12 @@ async function advAsk(q){
   out.innerHTML = '<p class="advwait">Смотрю цифры месяца</p>';
   try {
     await s(ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest() + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: " + q,
-      {modelTier:"complex", onText:({text}) => { out.innerHTML = advFormat(text); }});
+      {modelTier:"complex", onText:({text}) => { lastAnswer = text; out.innerHTML = advFormat(text); }});
+    out.insertAdjacentHTML("beforeend",
+      '<button class="btn gold sm" id="advtake" type="button" style="margin-top:18px">' +
+      'Взять в комментарий к месяцу</button>' +
+      '<p class="advfoot">Комментарий попадёт в отчёт и в файл, который вы отправите учредителям — ' +
+      'им ни Claude, ни интернет не понадобятся. Текст можно поправить на рабочем экране.</p>');
   } catch(e){
     const code = e && e.code;
     out.innerHTML = "<p>" + (code === "not_granted" ? "Доступ к советчику не разрешён в этом окне."
@@ -169,6 +174,17 @@ async function advAsk(q){
       + (e && e.text ? advFormat(e.text) : "");
   }
   advBusy = false;
+}
+/* Комментарий владельца к месяцу. Едет в отчёт и в файл учредителям —
+   им Claude не нужен, они читают готовый текст. */
+function noteSection(){
+  const t = (st.note || "").trim();          // S() схлопнул бы абзацы в одну строку
+  if (!t) return "";
+  return `<section class="tight"><div class="w">
+    <div class="kick">\u00a7\u00a7 · Комментарий</div><h2>Слово к месяцу</h2>
+    <div class="sb">От управляющего партнёра</div>
+    <div class="note-sec">${advFormat(t)}</div>
+  </div></section>`;
 }
 function advSection(){
   const Q = ["Что главное в этом месяце?", "Где мы теряем деньги?",
@@ -197,6 +213,12 @@ document.addEventListener("click", e => {
   if (e.target.id === "advgo"){
     const q = S($("advq").value);
     if (q) advAsk(q);
+    return;
+  }
+  if (e.target.id === "advtake"){
+    const box = $("mnote");
+    if (box){ box.value = lastAnswer; st.note = lastAnswer; saveParams(); render(); }
+    toast("Взято в комментарий — он уже в отчёте, ниже раздела «Резюме»");
     return;
   }
   if (e.target.id === "xaskbtn"){

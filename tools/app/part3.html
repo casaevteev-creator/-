@@ -78,13 +78,16 @@ let paramTimer = null;
 function saveParams(){
   clearTimeout(paramTimer);
   paramTimer = setTimeout(async () => {
-    LS.set("params:" + st.month, st.params);
-    if (DB) { try { await DB.doc("months/" + st.month).set({params: st.params}); } catch(e){} }
+    LS.set("params:" + st.month, {p: st.params, note: st.note || ""});
+    if (DB) { try { await DB.doc("months/" + st.month).set({params: st.params, note: st.note || ""}); } catch(e){} }
   }, 700);
 }
 async function loadParams(month){
-  if (DB) { try { const s = await DB.doc("months/" + month).get(); if (s.exists && s.data().params) return s.data().params; } catch(e){} }
-  return LS.get("params:" + month);
+  if (DB) { try { const s = await DB.doc("months/" + month).get();
+    if (s.exists && s.data().params) return {p: s.data().params, note: s.data().note || ""}; } catch(e){} }
+  const l = LS.get("params:" + month);
+  if (!l) return null;
+  return l.p ? l : {p: l, note: ""};          // формат прошлых версий
 }
 
 /* ============================ разбор выгрузок ============================ */

@@ -295,7 +295,9 @@ function wire(){
     st.files = []; st.acc = {}; st.vendors = []; st.doctors = null; st.payments = null;
     st.taksk = null; st.groups = null; st.periods = {}; st.psrc = {}; st.isExample = false;
     const saved = await loadParams(st.month);
-    PK.forEach(k => st.params[k] = saved ? N(saved[k]) : 0);
+    PK.forEach(k => st.params[k] = saved ? N(saved.p[k]) : 0);
+    st.note = saved ? (saved.note || "") : "";
+    $("mnote").value = st.note;
     fillParams(); pullPrevBalance(); render();
   });
 
@@ -342,6 +344,7 @@ function wire(){
   $("closeMonth").addEventListener("click", () => isClosed() ? reopenMonth() : closeMonth());
   $("carryPers").addEventListener("click", carryPersonal);
   $("exportRep").addEventListener("click", exportReport);
+  $("mnote").addEventListener("input", e => { st.note = e.target.value; saveParams(); render(); });
   $("dlDigest").addEventListener("click", async () => {
     const txt = ADV_RULES + "\n\nЦИФРЫ МЕСЯЦА\n\n" + monthDigest()
       + "\n\nВОПРОС ВЛАДЕЛЬЦЕВ: Что главное в этом месяце и что с этим делать?";
@@ -387,6 +390,9 @@ async function start(){
   st.vendors = EXAMPLE.vendors.map(v => ({name:v[0], paid:v[1]}));
   st.groups = EXAMPLE.groups;
   PK.forEach(k => st.params[k] = N(EXAMPLE.params[k]));
+  const savedNow = await loadParams(st.month);
+  if (savedNow){ PK.forEach(k => st.params[k] = N(savedNow.p[k])); st.note = savedNow.note || ""; }
+  $("mnote").value = st.note;
   fillParams(); bindParams(); wire(); pullPrevBalance(); render();
   // советчик описан в следующем скрипте — спрашиваем после разбора страницы
   setTimeout(() => { if (typeof advisor === "function") advisor(); }, 0);
