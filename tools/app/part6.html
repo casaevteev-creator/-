@@ -1,155 +1,329 @@
 <style>
-/* ======================= дашборд учредителям ======================= */
+/* ======================= отчёт учредителям ======================= */
 #dash[hidden]{display:none!important}
 #dash{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
-.dash-in{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
-.dash-bar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);
-  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-block:16px 14px;z-index:2}
-.dash-bar h2{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em}
-.dash-bar .per{font-family:var(--mono);font-size:13px;color:var(--muted)}
-.dash-bar .sp{margin-left:auto}
-.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:22px 0 26px}
-.hero .h{background:var(--surface);padding:18px 19px}
-.hero .k{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-.hero .v{font-family:var(--mono);font-size:clamp(23px,3.4vw,31px);font-weight:500;margin-top:6px;
-  letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.1}
-.hero .s{font-size:12.5px;color:var(--muted);margin-top:4px}
+#dash .w{max-width:1060px;margin:0 auto;padding-inline:20px}
+@media(min-width:760px){#dash .w{padding-inline:32px}}
+.dclose{position:fixed;right:18px;top:18px;z-index:90;background:var(--ink);color:#fff;
+  border:1px solid rgba(217,212,201,.38);box-shadow:0 2px 14px rgba(28,27,24,.18)}
+.dclose:hover{background:var(--bronze2);color:var(--ink);border-color:var(--bronze2)}
+@media(min-width:1000px){.dclose{right:28px;top:26px}}
 
-.dh{font-family:var(--serif);font-size:16px;font-weight:600;margin:30px 0 3px}
-.dhs{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+/* герой */
+.dhero{background:var(--ink);color:#fff;padding:76px 0 64px;position:relative;overflow:hidden}
+.dhero::before,.dhero::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.dhero::before{right:-180px;top:-180px;width:560px;height:560px;border:1px solid rgba(185,137,90,.22)}
+.dhero::after{right:-80px;top:-80px;width:360px;height:360px;border:1px solid rgba(185,137,90,.36)}
+.dhero .bd{font-size:12px;font-weight:700;letter-spacing:.55em;margin-bottom:12px}
+.dhero .tg{font-family:var(--serif);font-style:italic;color:#9C968A;font-size:16px;max-width:34ch}
+.dhero h1{font-family:var(--serif);font-weight:600;font-size:clamp(38px,8vw,74px);line-height:1;margin:34px 0 4px}
+.dhero .yr{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(26px,5.5vw,46px);
+  color:var(--bronze2)}
+.dhero .strip{display:grid;grid-template-columns:1fr 1fr;gap:24px 30px;margin-top:46px;max-width:640px}
+@media(min-width:760px){.dhero .strip{display:flex;gap:48px;flex-wrap:wrap;max-width:none}}
+.dhero .strip .v{font-family:var(--mono);font-size:clamp(19px,4.4vw,25px);font-weight:600;
+  font-variant-numeric:tabular-nums}
+.dhero .strip .l{font-size:11.5px;color:#9C968A;margin-top:5px}
 
-.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
-.who{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:19px 20px}
-.who .nm{font-family:var(--serif);font-size:17px;font-weight:600}
-.who .big{font-family:var(--mono);font-size:clamp(24px,3.6vw,30px);font-weight:500;letter-spacing:-.025em;
-  margin:12px 0 2px;font-variant-numeric:tabular-nums;line-height:1.1}
-.who .biglab{font-size:12px;color:var(--muted);margin-bottom:15px}
-.wl{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:13.5px;
-  border-top:1px solid var(--line)}
-.wl span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.wl.acc span:last-child{font-weight:600}
+#dash section{padding:62px 0;margin:0;scroll-margin-top:0}
+@media(min-width:760px){#dash section{padding:82px 0}}
+#dash section.tight{padding-top:0}
+#dash h2{font-family:var(--serif);font-weight:600;font-size:clamp(28px,5vw,46px);line-height:1.08;margin:12px 0 8px}
+#dash .sb{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--mute);margin-bottom:30px}
+#dash section.dk{background:var(--ink);color:#fff}
+#dash section.dk h2{color:#fff} #dash section.dk .sb{color:#9C968A}
 
-/* полоса структуры: две доли, зазор 2px, скруглённые торцы */
-.split-bar{display:flex;gap:2px;height:34px;margin:4px 0 12px}
-.split-bar i{display:block;height:100%;position:relative}
-.split-bar i:first-child{border-radius:5px 0 0 5px}
-.split-bar i:last-child{border-radius:0 5px 5px 0}
-.split-key{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;margin-bottom:4px}
-.split-key b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;
-  vertical-align:baseline}
-.split-key em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);
-  margin-left:7px}
+/* тезисы */
+.tez{display:grid;grid-template-columns:46px 1fr;gap:10px 20px;padding:22px 0;
+  border-bottom:1px solid var(--line);align-items:start}
+@media(min-width:880px){.tez{grid-template-columns:64px 340px 1fr;gap:24px}}
+.tez:last-child{border-bottom:0}
+.tez .n{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--bronze);line-height:1}
+.tez h3{font-size:16px;font-weight:700;line-height:1.35}
+.tez p{grid-column:1/-1;font-family:var(--serif);font-size:18px;line-height:1.5;color:var(--ink2)}
+@media(min-width:880px){.tez p{grid-column:auto}}
+.tez p b{font-family:var(--sans);font-size:14.5px;font-weight:700;color:var(--green)}
 
-.bars{display:flex;flex-direction:column;gap:9px}
-.bar{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}
-.bar .lab{display:flex;justify-content:space-between;gap:14px;font-size:13px;align-items:baseline}
-.bar .lab b{font-weight:400}
-.bar .lab span{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
-.bar .tr{height:11px;background:var(--track);border-radius:3px;overflow:hidden}
-.bar .fl{display:block;height:100%;background:var(--s1);border-radius:0 4px 4px 0;min-width:3px;
-  transition:filter .12s}
-.bar:hover .fl{filter:brightness(1.12)}
-.bar.alt .fl{background:var(--s2)}
-.dnote{color:var(--faint);font-size:12px;line-height:1.55;margin-top:26px;
-  border-top:1px solid var(--line);padding-top:14px;max-width:70ch}
-@media (max-width:640px){
-  .dash-bar h2{font-size:18px}
-  .hero{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
+/* карточки показателей */
+.kpi{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:620px){.kpi{grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:18px}}
+.kc{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px 26px}
+.kc .v{font-family:var(--mono);font-size:clamp(26px,5.5vw,34px);font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.kc .v small{font-size:14px;color:var(--mute);font-weight:400;letter-spacing:0}
+.kc .l{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-top:11px}
+.kc .d{font-size:13px;margin-top:6px;color:var(--mute)}
+
+.dsplit{display:grid;grid-template-columns:1fr;gap:22px;align-items:center}
+@media(min-width:860px){.dsplit{grid-template-columns:320px 1fr;gap:36px}}
+.chartbox{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 20px}
+.donut{width:100%;max-width:300px;margin:0 auto;display:block}
+.dcv{font-family:var(--mono);font-size:28px;font-weight:600;fill:var(--ink)}
+.dcl{font-size:10.5px;fill:var(--mute);letter-spacing:.1em;text-transform:uppercase}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3.5px;margin-right:9px;vertical-align:-1px}
+
+.stackbar{display:flex;height:54px;border-radius:15px;overflow:hidden;margin:8px 0 22px;gap:2px}
+.stackbar div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);
+  font-size:12px;white-space:nowrap;min-width:0}
+
+.rank{display:flex;flex-direction:column;gap:11px}
+.rk{display:grid;gap:5px}
+.rk .t{display:flex;justify-content:space-between;gap:16px;font-size:13.5px;align-items:baseline}
+.rk .t span{font-family:var(--mono);font-size:12.5px;color:var(--mute);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.rk .tr{height:10px;background:var(--tint);border-radius:4px;overflow:hidden}
+.rk .fl{display:block;height:100%;border-radius:0 4px 4px 0;min-width:3px;background:var(--green);
+  transition:filter .15s}
+.rk:hover .fl{filter:brightness(1.15)}
+.rk.u .fl{background:var(--bronze)}
+
+/* водопад */
+.wfscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wfin{min-width:600px}
+@media(min-width:760px){.wfin{min-width:0}}
+.wf{display:flex;align-items:flex-end;gap:10px;height:320px;border-bottom:1.5px solid var(--ink);
+  padding:30px 2px 0}
+@media(min-width:760px){.wf{gap:18px;height:370px}}
+.wcol{flex:1;position:relative;height:100%}
+.wbar{position:absolute;left:0;right:0;border-radius:5px}
+.wbar.pos{background:var(--green)} .wbar.exp{background:#CCC5B7} .wbar.inv{background:var(--bronze2)}
+.wbridge{position:absolute;left:0;right:-10px;border-top:1px dashed var(--ghost)}
+.wv{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11.5px;
+  font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(min-width:760px){.wv{font-size:13px}}
+.wl{display:flex;gap:10px;padding:13px 2px 0}
+@media(min-width:760px){.wl{gap:18px}}
+.wl span{flex:1;min-width:0;text-align:center;font-size:11px;color:var(--ink2);line-height:1.3;
+  overflow-wrap:break-word}
+
+/* карточки учредителей */
+.own{display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:880px){.own{grid-template-columns:1fr 1fr;gap:24px}}
+.ocard{background:rgba(255,255,255,.045);border:1px solid rgba(217,212,201,.16);border-radius:20px;
+  padding:28px 24px 24px}
+@media(min-width:760px){.ocard{padding:34px 34px 28px}}
+.ocard h3{font-family:var(--serif);font-size:30px;font-weight:600;margin-bottom:18px}
+.orow{display:flex;justify-content:space-between;gap:14px;padding:10px 0;
+  border-bottom:1px solid rgba(217,212,201,.12);font-size:14px;color:#CFC9BD}
+.orow .n{font-family:var(--mono);font-weight:600;color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.orow .n.neg{color:#D98A82}
+.oinc{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:18px 0 8px}
+.oinc .t{font-size:10.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#7BA08F}
+.oinc .n{font-family:var(--mono);font-size:25px;font-weight:600;color:#8FBFA9;font-variant-numeric:tabular-nums}
+.opay{margin-top:16px;background:var(--bronze2);color:var(--ink);border-radius:14px;padding:16px 20px;
+  display:flex;justify-content:space-between;align-items:center;gap:14px}
+.opay .t{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;max-width:11ch}
+.opay .n{font-family:var(--mono);font-size:22px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.onote{font-family:var(--serif);font-style:italic;font-size:16px;color:#9C968A;margin-top:26px;max-width:860px}
+.dnote{background:var(--green-soft);border-radius:16px;padding:20px 24px;margin-top:22px;
+  font-size:14px;color:var(--ink2);line-height:1.6}
+.dnote b{color:var(--green)}
+#dash footer{background:var(--ink);color:#6E6960;font-family:var(--mono);font-size:11.5px;
+  padding:28px 0;border-top:1px solid rgba(217,212,201,.12)}
+#dash footer .w{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
 </style>
 
-<div id="dash" hidden role="dialog" aria-modal="true" aria-label="Дашборд учредителям">
-  <div class="dash-in">
-    <div class="dash-bar">
-      <h2>ООО «ОМЕГА» · клиника Форма</h2>
-      <span class="per" id="dashPer"></span>
-      <span class="sp"></span>
-      <button class="btn ghost sm" id="closeDash">Закрыть</button>
-    </div>
-    <div id="dashBody"></div>
-  </div>
+<div id="dash" hidden role="dialog" aria-modal="true" aria-label="Отчёт учредителям">
+  <button class="btn sm dclose" id="closeDash">Закрыть</button>
+  <div id="dashBody"></div>
 </div>
 
 <script>
 "use strict";
-function bar(name, val, den, alt){
+const MLN = x => (x / 1e6).toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2});
+function rankRow(name, val, den, upr){
   const w = den > 0 ? Math.max(0, val / den * 100) : 0;
-  return `<div class="bar${alt ? " alt" : ""}" title="${esc(name)} — ${fmt(val)} (${pct(den ? val/den : 0)})">
-    <div class="lab"><b>${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
+  return `<div class="rk${upr ? " u" : ""}" title="${esc(name)} — ${fmt(val)} ₽">
+    <div class="t"><b style="font-weight:400">${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
     <div class="tr"><i class="fl" style="width:${w.toFixed(2)}%"></i></div></div>`;
+}
+function donut(parts, centre, label){
+  const R = 108, C = 2 * Math.PI * R;
+  const tot = parts.reduce((s, p) => s + p.v, 0) || 1;
+  let off = 0, out = "";
+  for (const p of parts){
+    const len = C * p.v / tot;
+    out += `<circle cx="130" cy="130" r="${R}" fill="none" stroke="${p.c}" stroke-width="34"
+      stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"
+      transform="rotate(-90 130 130)"><title>${esc(p.n)} — ${fmt(p.v)} ₽</title></circle>`;
+    off += len;
+  }
+  return `<svg class="donut" viewBox="0 0 260 260" role="img" aria-label="${esc(label)}">${out}
+    <text x="130" y="126" text-anchor="middle" class="dcv">${centre}</text>
+    <text x="130" y="148" text-anchor="middle" class="dcl">${esc(label)}</text></svg>`;
+}
+function waterfall(steps){
+  let run = 0, peak = 0;
+  const pts = steps.map(s => {
+    const from = s.end ? 0 : run;
+    const to = s.end ? s.v : run + s.v;
+    if (!s.end) run += s.v;
+    const lo = Math.min(from, to), hi = Math.max(from, to);
+    peak = Math.max(peak, hi);
+    return {lo, hi, s};
+  });
+  const cols = pts.map((p, i) => {
+    const bottom = p.lo / peak * 100, height = Math.max(0.6, (p.hi - p.lo) / peak * 100);
+    const cls = p.s.end ? "inv" : (p.s.v >= 0 ? "pos" : "exp");
+    return `<div class="wcol">
+      <div class="wbar ${cls}" style="bottom:${bottom.toFixed(2)}%;height:${height.toFixed(2)}%"></div>
+      <div class="wv" style="bottom:calc(${(p.lo + (p.hi - p.lo)) / peak * 100}% + 9px)">${(p.s.v < 0 ? "−" : "") + MLN(Math.abs(p.s.v))}</div>
+      ${i < pts.length - 1 ? `<div class="wbridge" style="bottom:${(p.s.end ? p.hi : (p.s.v >= 0 ? p.hi : p.lo)) / peak * 100}%"></div>` : ""}
+    </div>`;
+  }).join("");
+  return `<div class="wfscroll"><div class="wfin"><div class="wf">${cols}</div>
+    <div class="wl">${steps.map(s => `<span>${esc(s.n)}</span>`).join("")}</div></div></div>`;
 }
 function renderDash(){
   const c = calc(), p = st.params;
-  $("dashPer").textContent = monthName(st.month) + (st.isExample ? " · пример" : "");
-  const who = (nm, own, cost, inc, pay) => `<div class="who">
-    <div class="nm">${nm}</div>
-    <div class="big">${fmt0(inc)}</div><div class="biglab">доход за месяц, ₽</div>
-    <div class="wl"><span>Своя выручка</span><span>${fmt0(own)}</span></div>
-    <div class="wl"><span>Доля расходов</span><span>${fmt0(cost)}</span></div>
-    <div class="wl"><span>Остаток с прошлого месяца</span><span>${fmt0(nm === "Маланичев" ? p.prevM : p.prevP)}</span></div>
-    <div class="wl"><span>Выплачены дивиденды</span><span>−${fmt0(nm === "Маланичев" ? p.divM : p.divP)}</span></div>
-    <div class="wl acc"><span>К выплате</span><span>${fmt0(pay)}</span></div>
-  </div>`;
-
+  const per = monthName(st.month);
+  const G = c.G, den = c.revNet || 1;
+  const revParts = [
+    {n:"Другие хирурги", v:c.otherNet, c:"#2E5E4E"},
+    {n:"Погосян", v:G.pog, c:"#4A7A68"},
+    {n:"Маланичев", v:G.mal, c:"#7BA08F"},
+    {n:"Косметология", v:G.cosm, c:"#B9895A"},
+    {n:"Прочее", v:G.misc, c:"#D9D4C9"}
+  ].filter(x => x.v > 0);
   const arts = Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum);
-  const top = arts.slice(0, 8);
-  const rest = arts.slice(8).reduce((s, a) => s + a[1].sum, 0);
-  const revRows = [["Другие хирурги", c.otherNet], ["Погосян — свои операции", c.G.pog],
-    ["Маланичев — свои операции", c.G.mal], ["Косметология", c.G.cosm], ["Прочее", c.G.misc]]
-    .filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]);
-  const mShare = c.base ? c.byBlock.m / c.base : 0;
-  const uShare = c.base ? c.byBlock.u / c.base : 0;
+  const top = arts.slice(0, 9);
+  const rest = arts.slice(9).reduce((s, a) => s + a[1].sum, 0);
+  const mSh = c.base ? c.byBlock.m / c.base : 0, uSh = c.base ? c.byBlock.u / c.base : 0;
+  const bank51 = st.acc["51"] ? R2(st.acc["51"].total.openDt - st.acc["51"].total.openKt
+    + st.acc["51"].total.dt - st.acc["51"].total.kt) : null;
+  const fot = R2(p.sal + p.tax);
+  const wf = [
+    {n:"Выручка и проценты", v:R2(c.revNet + p.dep)},
+    {n:"Поставщики", v:-c.base60},
+    {n:"ФОТ и налоги", v:-fot},
+    {n:"Банк, алименты, проценты", v:-R2(p.bank + p.ali + p.int + p.mAcq + p.pAcq)},
+    {n:"Доход учредителей", v:c.incAll, end:true}
+  ];
+  const who = (nm, own, cost, inc, pay, prev, div) => `<div class="ocard">
+    <h3>${nm}</h3>
+    <div class="orow"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
+    <div class="orow"><span>Половина общей выручки</span><span class="n">${fmt0(R2((c.otherNet + G.cosm + G.misc) / 2))}</span></div>
+    <div class="orow"><span>Половина процентов по депозитам</span><span class="n">${fmt0(p.dep/2)}</span></div>
+    <div class="orow"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
+    <div class="oinc"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
+    <div class="orow"><span>Остаток с прошлого месяца</span><span class="n">${fmt0(prev)}</span></div>
+    <div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−${fmt0(div)}</span></div>
+    <div class="opay"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
+  </div>`;
+  const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
 
   $("dashBody").innerHTML = `
-    <div class="hero">
-      <div class="h"><div class="k">Выручка</div><div class="v">${fmt0(c.revNet)}</div>
-        <div class="s">за вычетом возвратов</div></div>
-      <div class="h"><div class="k">Расходы</div><div class="v">${fmt0(c.costAll)}</div>
-        <div class="s">${pct(c.revNet ? c.costAll / c.revNet : 0)} от выручки</div></div>
-      <div class="h"><div class="k">Доход</div><div class="v">${fmt0(c.incAll)}</div>
-        <div class="s">${pct(c.revNet ? c.incAll / c.revNet : 0)} от выручки</div></div>
-      <div class="h"><div class="k">К выплате</div><div class="v">${fmt0(c.payAll)}</div>
-        <div class="s">на конец месяца</div></div>
+  <header class="dhero"><div class="w">
+    <div class="bd">Ф О Р М А</div>
+    <div class="tg">клиника пластической хирургии и эстетической косметологии</div>
+    <h1>Отчёт учредителям</h1>
+    <div class="yr">${per.charAt(0).toUpperCase() + per.slice(1)}${st.isExample ? " · пример" : ""}</div>
+    <div class="strip">
+      <div><div class="v mono">${MLN(c.revNet)}</div><div class="l">млн ₽ выручка</div></div>
+      <div><div class="v mono" style="color:#8FBFA9">${MLN(c.incAll)}</div><div class="l">млн ₽ доход учредителей</div></div>
+      <div><div class="v mono">${MLN(c.costAll)}</div><div class="l">млн ₽ расходы</div></div>
+      <div><div class="v mono" style="color:#B9895A">${MLN(c.payAll)}</div><div class="l">млн ₽ к выплате</div></div>
     </div>
+  </div></header>
 
-    <h3 class="dh">Учредители</h3>
-    <p class="dhs">Общие расходы делятся пополам, личные — каждому свои. Выручка: свои операции плюс половина всего остального.</p>
-    <div class="pair">
-      ${who("Маланичев", c.G.mal, c.costM, c.incM, c.payM)}
-      ${who("Погосян", c.G.pog, c.costP, c.incP, c.payP)}
-    </div>
+  <section><div class="w">
+    <div class="kick">01 · Резюме</div><h2>Итог месяца</h2>
+    <div class="sb">Четыре числа, которые описывают ${per} полностью</div>
+    ${tez("01", "Выручка — " + MLN(c.revNet) + " млн ₽",
+      "Свои операции хирургов-учредителей — <b>" + fmt0(R2(G.mal + G.pog)) + " ₽</b>, остальное делится пополам. Возвраты пациентам — " + fmt0(p.refund) + " ₽.")}
+    ${tez("02", "Расходы — " + MLN(c.costAll) + " млн ₽",
+      "Это " + pct(c.revNet ? c.costAll / c.revNet : 0) + " выручки. Поставщики — <b>" + MLN(c.base60) + " млн</b>, ФОТ с налогами — " + MLN(fot) + " млн." + (c.credit > 0 ? " Ремонт за счёт кредитной линии, " + MLN(c.credit) + " млн, в расходы учредителей не входит." : ""))}
+    ${tez("03", "Доход учредителей — " + MLN(c.incAll) + " млн ₽",
+      "Погосян — <b>" + MLN(c.incP) + " млн</b>, Маланичев — <b>" + MLN(c.incM) + " млн</b>. Разница — личная выручка и личные расходы, общая часть у обоих одинаковая.")}
+    ${tez("04", "К выплате — " + MLN(c.payAll) + " млн ₽",
+      "С учётом накопленных остатков: Погосян " + MLN(c.payP) + " млн, Маланичев " + MLN(c.payM) + " млн. Дивиденды за месяц — " + fmt0(c.divAll) + " ₽.")}
+  </div></section>
 
-    <h3 class="dh">Куда ушли деньги</h3>
-    <p class="dhs">Оплаты поставщикам за месяц — ${fmt0(c.base)} ₽${c.credit > 0 ? ", без ремонта за счёт кредитной линии" : ""}.</p>
-    <div class="split-key">
-      <span><b style="background:var(--s1)"></b>Медицинские<em>${fmt0(c.byBlock.m)} · ${pct(mShare)}</em></span>
-      <span><b style="background:var(--s2)"></b>Управленческие<em>${fmt0(c.byBlock.u)} · ${pct(uShare)}</em></span>
+  <section class="tight"><div class="w">
+    <div class="kick">02 · Показатели</div><h2>Ключевые цифры</h2>
+    <div class="sb">Шесть чисел, по которым видно месяц</div>
+    <div class="kpi">
+      <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
+        <div class="l">Выручка за месяц</div><div class="d">после возвратов пациентам</div></div>
+      <div class="kc"><div class="v">${MLN(c.base60)} <small>млн ₽</small></div>
+        <div class="l">Оплаты поставщикам · сч. 60</div><div class="d">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки</div></div>
+      <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
+        <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
+      <div class="kc"><div class="v">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
+        <div class="l">Медицинские расходы</div><div class="d">${pct(mSh)} счёта 60</div></div>
+      <div class="kc"><div class="v">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
+        <div class="l">Управленческие расходы</div><div class="d">${pct(uSh)} счёта 60</div></div>
+      ${bank51 != null
+        ? `<div class="kc"><div class="v">${MLN(bank51)} <small>млн ₽</small></div>
+             <div class="l">Остаток на р/с на конец месяца</div><div class="d">на начало было ${MLN(st.acc["51"].total.openDt - st.acc["51"].total.openKt)}</div></div>`
+        : `<div class="kc"><div class="v">${MLN(p.dep)} <small>млн ₽</small></div>
+             <div class="l">Проценты по депозитам</div><div class="d">начислены банком на остатки</div></div>`}
     </div>
-    <div class="split-bar">
-      <i style="background:var(--s1);width:${(mShare * 100).toFixed(2)}%" title="Медицинские ${fmt(c.byBlock.m)}"></i>
-      <i style="background:var(--s2);width:${(uShare * 100).toFixed(2)}%" title="Управленческие ${fmt(c.byBlock.u)}"></i>
-    </div>
-    <div class="bars" style="margin-top:18px">
-      ${top.map(a => bar(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
-      ${rest > 0 ? bar("Остальные статьи — " + (arts.length - 8) + " шт.", rest, c.base) : ""}
-    </div>
+  </div></section>
 
-    <h3 class="dh">Откуда пришли</h3>
-    <p class="dhs">Выручка месяца по группам, после возвратов пациентам.</p>
-    <div class="bars">${revRows.map(r => bar(r[0], r[1], c.revNet)).join("")}</div>
+  <section class="tight"><div class="w">
+    <div class="kick">03 · Выручка</div><h2>Откуда пришли деньги</h2>
+    <div class="sb">${fmt0(c.revNet)} ₽ — по группам врачей</div>
+    <div class="dsplit">
+      <div class="chartbox">${donut(revParts, MLN(c.revNet), "млн ₽ выручка")}</div>
+      <div class="tw"><table>
+        <tr><th>Группа</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
+        ${revParts.map(x => `<tr><td><span class="sw" style="background:${x.c}"></span>${esc(x.n)}</td>
+          <td class="num">${fmt0(x.v)}</td><td class="num">${pct(x.v / den)}</td></tr>`).join("")}
+        <tr class="tot"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
+      </table></div>
+    </div>
+  </div></section>
 
-    <p class="dnote">Выручка учитывается по зачислению на счёт. Разрез по хирургам берётся из управленки по фактической оплате.
-    Расходы — оплаченные за месяц. Ремонт за счёт кредитной линии в расходы учредителей не входит.
-    ${st.isExample ? "Показан август 2026 как пример." : ""}</p>`;
+  <section class="tight"><div class="w">
+    <div class="kick">04 · Расходы</div><h2>Куда ушли деньги</h2>
+    <div class="sb">${fmt0(c.base)} ₽ оплат поставщикам — медицинские против управленческих</div>
+    <div class="stackbar">
+      <div style="background:#2E5E4E;width:${(mSh*100).toFixed(2)}%">Медицинские · ${pct(mSh)}</div>
+      <div style="background:#8A7350;width:${(uSh*100).toFixed(2)}%">Управленческие · ${pct(uSh)}</div>
+    </div>
+    <div class="rank">
+      ${top.map(a => rankRow(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
+      ${rest > 0 ? rankRow("Остальные статьи — " + (arts.length - 9) + " шт.", rest, c.base) : ""}
+    </div>
+    ${c.credit > 0 ? `<div class="dnote"><b>За счёт кредитной линии:</b> ${fmt0(c.credit)} ₽ —
+      ${esc(book.credit.join(", "))}. Стройка идёт на заёмные деньги, в расходы учредителей не входит.</div>` : ""}
+  </div></section>
+
+  <section class="tight"><div class="w">
+    <div class="kick">05 · Экономика</div><h2>Как выручка стала доходом</h2>
+    <div class="sb">млн ₽ · от поступлений к доходу учредителей</div>
+    <div class="chartbox">${waterfall(wf)}</div>
+  </div></section>
+
+  <section class="dk"><div class="w">
+    <div class="kick">06 · Учредители</div><h2>Доли учредителей</h2>
+    <div class="sb">Общие расходы пополам, личные — каждому свои</div>
+    <div class="own">
+      ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM)}
+      ${who("Погосян", G.pog, c.costP, c.incP, c.payP, p.prevP, p.divP)}
+    </div>
+    <p class="onote">Выручка учитывается по зачислению на счёт, разрез по хирургам — по фактической оплате.
+    Половина выручки других хирургов, косметологии, прочего и процентов по депозитам делится поровну.
+    Расходы — оплаченные за месяц.${st.isExample ? " Показан август 2026 как пример." : ""}</p>
+  </div></section>
+
+  <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per}</span></div></footer>`;
 }
 document.getElementById("openDash").addEventListener("click", () => {
   renderDash();
-  const d = $("dash"); d.hidden = false;
+  const d = document.getElementById("dash");
+  d.hidden = false; d.scrollTop = 0;
   document.body.style.overflow = "hidden";
-  $("closeDash").focus();
+  document.getElementById("closeDash").focus();
 });
+function closeDash(){
+  document.getElementById("dash").hidden = true;
+  document.body.style.overflow = "";
+  document.getElementById("openDash").focus();
+}
 document.getElementById("closeDash").addEventListener("click", closeDash);
-function closeDash(){ $("dash").hidden = true; document.body.style.overflow = ""; $("openDash").focus(); }
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("dash").hidden) closeDash(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !document.getElementById("dash").hidden) closeDash();
+});
 </script>

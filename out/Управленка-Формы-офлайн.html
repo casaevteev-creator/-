@@ -7,214 +7,201 @@
 <title>Управленка Формы</title>
 <style>
 :root{
-  --bg:#F4F6F4; --surface:#FFFFFF; --panel:#EBEFEC; --sunk:#E3E8E5;
-  --ink:#1A211E; --muted:#68736D; --faint:#8D968F; --line:#D6DCD8;
-  --accent:#2B3A67; --accent-soft:#E7EAF2; --accent-line:#B8C2DC;
-  --ok:#2F7D51; --ok-soft:#E4F0E8; --warn:#8E620D; --warn-soft:#F6EEDC;
-  --crit:#A3342A; --crit-soft:#F7E5E2; --on-accent:#FFFFFF;
-  --s1:#2a78d6; --s2:#eb6834; --track:#E4E8EC;
-  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
-  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+  --ink:#1C1B18; --ink2:#423E37; --mute:#807A70; --faint:#9C968A;
+  --bg:#FAF9F6; --panel:#FFFFFF; --tint:#F1EFEA; --sunk:#F6F4EF;
+  --line:#E7E3D9; --ghost:#D9D4C9;
+  --green:#2E5E4E; --green2:#4A7A68; --green3:#7BA08F; --green-soft:#EDF1EE;
+  --bronze:#8A7350; --bronze2:#B9895A; --bronze-soft:#F4EDE3;
+  --red:#A3423B; --red-soft:#F6E9E7;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:'Cormorant Garamond',Cambria,Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,'Liberation Mono',monospace;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0E1211; --surface:#161C19; --panel:#1D2421; --sunk:#121816;
-    --ink:#E3E9E5; --muted:#93A099; --faint:#74807A; --line:#2A322E;
-    --accent:#93A8DE; --accent-soft:#1B2236; --accent-line:#39456B;
-    --on-accent:#0E1211;
-    --ok:#5FB584; --ok-soft:#16271E; --warn:#D4A64C; --warn-soft:#2A2314;
-    --crit:#E2796D; --crit-soft:#2C1917;
-    --s1:#3987e5; --s2:#d95926; --track:#232B29;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0E1211; --surface:#161C19; --panel:#1D2421; --sunk:#121816;
-  --ink:#E3E9E5; --muted:#93A099; --faint:#74807A; --line:#2A322E;
-  --accent:#93A8DE; --accent-soft:#1B2236; --accent-line:#39456B;
-  --on-accent:#0E1211;
-  --ok:#5FB584; --ok-soft:#16271E; --warn:#D4A64C; --warn-soft:#2A2314;
-  --crit:#E2796D; --crit-soft:#2C1917;
-  --s1:#3987e5; --s2:#d95926; --track:#232B29;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
-  -webkit-font-smoothing:antialiased}
-h1,h2,h3{margin:0;text-wrap:balance}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{text-wrap:balance}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--bronze2);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+.mono{font-family:var(--mono)}
 
-.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:1140px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
+@media(min-width:760px){.wrap{padding-inline:32px}}
 
 /* ---- шапка ---- */
-header.top{border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:40}
-.top-in{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:14px;
-  display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
-.brand{font-family:var(--serif);font-weight:600;font-size:20px;letter-spacing:-.01em}
-.brand em{font-style:normal;color:var(--muted);font-weight:500}
-.top-meta{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  font-size:12.5px;color:var(--muted)}
-.month-pick{display:flex;align-items:center;gap:7px}
-.month-pick input{width:120px;background:var(--sunk);border:1px solid var(--line);border-radius:5px;
-  padding:5px 8px;font-family:var(--mono);font-size:13px}
-.memo{display:inline-flex;align-items:center;gap:6px}
-.memo b{font-family:var(--mono);font-weight:500;color:var(--ink)}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
-.dot.on{background:var(--ok)}
+header.top{border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:40}
+.top-in{max-width:1140px;margin:0 auto;padding-inline:20px;padding-block:15px;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+@media(min-width:760px){.top-in{padding-inline:32px}}
+.brand{font-size:12px;font-weight:700;letter-spacing:.46em;color:var(--ink)}
+.brand em{font-style:normal;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:0;
+  color:var(--mute);margin-left:12px;text-transform:none}
+.top-meta{margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  font-size:12px;color:var(--mute)}
+.month-pick{display:flex;align-items:center;gap:8px}
+.month-pick label{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--bronze)}
+.month-pick input{width:128px;background:var(--sunk);border:1px solid var(--line);border-radius:9px;
+  padding:6px 10px;font-family:var(--mono);font-size:12.5px}
+.memo{display:inline-flex;align-items:center;gap:7px}
+.memo b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ghost);flex:none}
+.dot.on{background:var(--green2)}
 
 /* ---- каркас ---- */
-.grid{display:grid;grid-template-columns:206px minmax(0,1fr);gap:34px;align-items:start;padding-top:26px}
-nav.rail{position:sticky;top:78px;display:flex;flex-direction:column;gap:2px}
-.rail a{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:9px;
-  padding:8px 10px;border-radius:6px;text-decoration:none;color:var(--muted);
-  font-size:13.5px;border:1px solid transparent}
-.rail a:hover{background:var(--panel);color:var(--ink)}
-.rail a .num{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.grid{display:grid;grid-template-columns:200px minmax(0,1fr);gap:40px;align-items:start;padding-top:34px}
+nav.rail{position:sticky;top:82px;display:flex;flex-direction:column;gap:1px}
+.rail a{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:10px;text-decoration:none;color:var(--mute);font-size:13.5px;
+  transition:background .2s,color .2s}
+.rail a:hover{background:var(--tint);color:var(--ink)}
+.rail a .num{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--ghost)}
 .rail a.done{color:var(--ink)}
-.rail a.done .num{color:var(--ok)}
-.rail-note{margin-top:14px;padding:10px;border-left:2px solid var(--accent-line);
-  font-size:12px;color:var(--muted);line-height:1.45}
+.rail a.done .num{color:var(--bronze2)}
+.rail-note{margin-top:18px;padding:14px 16px;background:var(--tint);border-radius:14px;
+  font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink2);line-height:1.45}
 
-section{scroll-margin-top:78px;margin-bottom:42px}
-.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
-.sec-head h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
-.sec-head .step{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.04em}
-.sec-sub{color:var(--muted);font-size:13.5px;margin:0 0 16px;max-width:66ch}
+section{scroll-margin-top:86px;margin-bottom:56px}
+.kick{font-family:var(--mono);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--bronze);font-weight:600}
+.sec-head h2{font-family:var(--serif);font-weight:600;font-size:clamp(27px,4.2vw,38px);
+  line-height:1.1;margin:10px 0 4px}
+.sec-sub{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--mute);
+  margin:0 0 24px;max-width:62ch;line-height:1.45}
 
-.card{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:18px}
-.card + .card{margin-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 24px}
+.card + .card{margin-top:16px}
 
-/* ---- загрузка файлов ---- */
-.drop{border:1.5px dashed var(--line);border-radius:10px;background:var(--surface);
-  padding:30px 22px;text-align:center;transition:border-color .15s,background .15s}
-.drop.hot{border-color:var(--accent);background:var(--accent-soft)}
-.drop h3{font-size:15.5px;font-weight:600;margin-bottom:5px}
-.drop p{margin:0 0 14px;color:var(--muted);font-size:13px}
-.btn{border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);border-radius:6px;
-  padding:8px 15px;font-size:14px;font-weight:500;cursor:pointer}
-.btn:hover{filter:brightness(1.08)}
-.btn.ghost{background:transparent;color:var(--accent);border-color:var(--accent-line)}
-.btn.ghost:hover{background:var(--accent-soft);filter:none}
-.btn[disabled]{opacity:.45;cursor:default;filter:none}
-.btn.sm{padding:5px 10px;font-size:13px}
+/* ---- загрузка ---- */
+.drop{border:1.5px dashed var(--ghost);border-radius:18px;background:var(--panel);
+  padding:36px 24px;text-align:center;transition:border-color .2s,background .2s}
+.drop.hot{border-color:var(--bronze2);background:var(--bronze-soft)}
+.drop h3{font-family:var(--serif);font-size:24px;font-weight:600;margin-bottom:6px}
+.drop p{margin:0 0 18px;color:var(--mute);font-size:13.5px}
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:11px;
+  padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s}
+.btn:hover{background:var(--ink2);border-color:var(--ink2)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ghost)}
+.btn.ghost:hover{background:var(--tint);border-color:var(--mute)}
+.btn.gold{background:var(--bronze2);border-color:var(--bronze2);color:var(--ink)}
+.btn.gold:hover{background:var(--bronze);border-color:var(--bronze);color:#fff}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn.sm{padding:6px 13px;font-size:13px;border-radius:9px}
 
-.filelist{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:1px}
-.filelist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:11px;align-items:baseline;
-  padding:9px 11px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
-.filelist li + li{margin-top:-1px}
-.tag{font-family:var(--mono);font-size:11px;letter-spacing:.03em;padding:2px 6px;border-radius:4px;
-  background:var(--accent-soft);color:var(--accent);white-space:nowrap}
-.tag.bad{background:var(--crit-soft);color:var(--crit)}
-.fname{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fnote{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
-
-/* ---- список выгрузок ---- */
-ol.need{list-style:none;margin:0;padding:0;counter-reset:n}
-ol.need li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 11px;
-  padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+ol.need{list-style:none}
+ol.need li{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:3px 14px;
+  padding:12px 0;border-bottom:1px solid var(--line);align-items:baseline}
 ol.need li:last-child{border-bottom:0}
-ol.need .nd{width:9px;height:9px;border-radius:50%;background:var(--faint);
-  box-shadow:0 0 0 3px var(--panel);margin-top:5px}
-ol.need li.got .nd{background:var(--ok)}
-ol.need li.opt .nd{background:transparent;border:1.5px solid var(--faint)}
-ol.need li.opt.got .nd{background:var(--ok);border-color:var(--ok)}
-ol.need .nn{font-weight:500}
-ol.need li.got .nn{color:var(--ok)}
-ol.need .nw{grid-column:2;color:var(--muted);font-size:12.5px}
-ol.need .nv{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
-.needfoot{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
-.needfoot b{color:var(--ink);font-weight:500}
+ol.need .nd{width:9px;height:9px;border-radius:50%;background:var(--ghost);margin-top:5px}
+ol.need li.got .nd{background:var(--green2)}
+ol.need li.opt .nd{background:transparent;border:1.5px solid var(--ghost)}
+ol.need li.opt.got .nd{background:var(--green2);border-color:var(--green2)}
+ol.need .nn{font-weight:600;font-size:14.5px}
+ol.need li.got .nn{color:var(--green)}
+ol.need .nw{grid-column:2;color:var(--mute);font-size:13px}
+ol.need .nv{font-family:var(--mono);font-size:11.5px;color:var(--mute);white-space:nowrap}
+.needfoot{margin-top:16px;font-family:var(--serif);font-size:16px;color:var(--ink2);line-height:1.5}
+.needfoot b{font-family:var(--sans);font-size:13.5px;font-weight:700;color:var(--green)}
+
+.filelist{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.filelist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;
+  padding:12px 18px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+  padding:4px 9px;border-radius:7px;background:var(--green-soft);color:var(--green);white-space:nowrap}
+.tag.bad{background:var(--red-soft);color:var(--red)}
+.fname{color:var(--mute);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fnote{font-family:var(--mono);font-size:12px;color:var(--ink);white-space:nowrap}
 
 /* ---- таблицы ---- */
-.tw{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;font-size:13.5px}
-th{text-align:left;font-weight:500;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--faint);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
-  background:var(--surface);position:sticky;top:0}
-td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+  color:var(--mute);padding:13px 18px;border-bottom:1px solid var(--line);white-space:nowrap;
+  background:#FCFBF8;position:sticky;top:0;z-index:1}
+td{padding:9px 18px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:0}
-td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-tbody tr:hover td{background:var(--panel)}
-tr.unknown td{background:var(--warn-soft)}
-tr.unknown:hover td{background:var(--warn-soft);filter:brightness(.98)}
-tr.sum td{font-weight:600;background:var(--panel)}
-td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px solid var(--line);
-  border-radius:5px;padding:4px 6px;font-size:13px}
-.chip{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:99px;white-space:nowrap}
-.chip.m{background:var(--ok-soft);color:var(--ok)}
-.chip.u{background:var(--accent-soft);color:var(--accent)}
-.chip.c{background:var(--warn-soft);color:var(--warn)}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:13px;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:hover td{background:var(--sunk)}
+tr.unknown td{background:var(--bronze-soft)}
+tr.sum td,tr.tot td{font-weight:700;background:var(--green-soft)}
+td select,td input{width:100%;min-width:172px;background:var(--sunk);border:1px solid var(--line);
+  border-radius:9px;padding:6px 9px;font-size:13px}
+.chip{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px}
 
-.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.filters input[type=search]{flex:1;min-width:160px;background:var(--surface);border:1px solid var(--line);
-  border-radius:6px;padding:7px 10px;font-size:13.5px}
-.pill{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px;
-  font-size:13px;cursor:pointer;color:var(--muted)}
-.pill[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters input[type=search]{flex:1;min-width:170px;background:var(--panel);border:1px solid var(--line);
+  border-radius:11px;padding:9px 14px;font-size:14px}
+.pill{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:7px 16px;
+  font-size:13px;cursor:pointer;color:var(--mute);transition:all .2s}
+.pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 
 /* ---- параметры ---- */
-.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px}
-.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-.f input,.f select{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:6px;
-  padding:7px 9px;font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:16px}
+.f label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mute);margin-bottom:6px}
+.f input,.f select{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:11px;
+  padding:9px 12px;font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+.f input:focus,.f select:focus{background:var(--panel)}
 .f select{font-family:var(--sans)}
-.f .hint{font-size:11.5px;color:var(--faint);margin-top:3px;font-family:var(--sans)}
-.sub{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);
-  margin:20px 0 10px;font-weight:500}
+.f .hint{font-size:12px;color:var(--bronze);margin-top:5px;font-family:var(--sans);line-height:1.4}
+.sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--bronze);font-weight:600;margin:26px 0 13px}
 .sub:first-child{margin-top:0}
 
 /* ---- сверки ---- */
-.checks{display:flex;flex-direction:column;gap:1px}
-.chk{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:baseline;
-  padding:11px 13px;border:1px solid var(--line);background:var(--surface)}
-.chk:first-child{border-radius:9px 9px 0 0}
-.chk:last-child{border-radius:0 0 9px 9px}
-.chk + .chk{margin-top:-1px}
-.chk .mark{font-family:var(--mono);font-weight:500;font-size:15px;line-height:1.2}
-.chk.ok .mark{color:var(--ok)} .chk.warn .mark{color:var(--warn)} .chk.bad .mark{color:var(--crit)}
-.chk.bad{background:var(--crit-soft)} .chk.warn{background:var(--warn-soft)}
-.chk .what{font-size:13.5px}
-.chk .what small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
-.chk .val{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.checks{display:flex;flex-direction:column;gap:8px}
+.chk{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:14px;align-items:baseline;
+  padding:15px 20px;border:1px solid var(--line);background:var(--panel);border-radius:14px}
+.chk .mark{font-family:var(--mono);font-weight:600;font-size:15px}
+.chk.ok{border-color:var(--line)} .chk.ok .mark{color:var(--green2)}
+.chk.warn{background:var(--bronze-soft);border-color:#E8D9C4} .chk.warn .mark{color:var(--bronze)}
+.chk.bad{background:var(--red-soft);border-color:#EBD5D1} .chk.bad .mark{color:var(--red)}
+.chk .what{font-size:14.5px;font-weight:600}
+.chk .what small{display:block;color:var(--mute);font-size:13px;font-weight:400;margin-top:3px}
+.chk .val{font-family:var(--mono);font-size:12.5px;color:var(--mute);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
 
-/* ---- отчёт ---- */
-.report{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:22px 24px}
-.report h3{font-family:var(--serif);font-weight:600;font-size:16px;margin:26px 0 10px;
-  padding-bottom:6px;border-bottom:1px solid var(--line)}
+/* ---- свод и отчёт на рабочем экране ---- */
+.report{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 28px}
+.report h3{font-family:var(--serif);font-weight:600;font-size:22px;margin:30px 0 12px;
+  padding-bottom:8px;border-bottom:1px solid var(--line)}
 .report h3:first-child{margin-top:0}
-.rrow{display:grid;grid-template-columns:minmax(0,1fr) 128px 128px 128px;gap:8px;
-  padding:5px 0;font-size:13.5px;align-items:baseline}
-.rrow > span:not(:first-child){font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
-.rrow.head{color:var(--faint);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
-  border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:3px}
-.rrow.head > span:not(:first-child){font-family:var(--sans)}
-.rrow.tot{font-weight:600;border-top:1px solid var(--line);margin-top:5px;padding-top:8px}
-.rrow.dim{color:var(--muted)}
-.rrow.ind > span:first-child{padding-left:16px;color:var(--muted)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;
-  border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:18px;background:var(--line)}
-.tile{background:var(--surface);padding:15px 16px}
-.tile .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
-.tile .v{font-family:var(--mono);font-size:21px;font-weight:500;margin-top:5px;
-  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.tile .s{font-size:12px;color:var(--muted);margin-top:2px}
-.banner{display:flex;gap:10px;align-items:baseline;padding:10px 14px;border-radius:7px;
-  background:var(--accent-soft);color:var(--accent);font-size:13px;margin-bottom:16px}
-.banner b{font-weight:600}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
-.foot{color:var(--faint);font-size:12px;margin-top:10px;line-height:1.5}
+.rrow{display:grid;grid-template-columns:minmax(0,1fr) 132px 132px 132px;gap:10px;
+  padding:6px 0;font-size:14px;align-items:baseline}
+.rrow > span:not(:first-child){font-family:var(--mono);text-align:right;font-size:13px;
+  font-variant-numeric:tabular-nums}
+.rrow.head{color:var(--mute);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+  border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:4px}
+.rrow.head > span:not(:first-child){font-family:var(--sans);font-size:10.5px}
+.rrow.tot{font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+.rrow.dim{color:var(--mute)}
+.rrow.ind > span:first-child{padding-left:18px;color:var(--mute)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:20px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 22px}
+.tile .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:700}
+.tile .v{font-family:var(--mono);font-size:clamp(21px,3vw,27px);font-weight:600;margin-top:8px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.1}
+.tile .s{font-size:12.5px;color:var(--mute);margin-top:5px}
+.banner{display:flex;gap:12px;align-items:baseline;padding:14px 20px;border-radius:14px;
+  background:var(--tint);font-size:14px;margin-bottom:18px;color:var(--ink2)}
+.banner b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--bronze);white-space:nowrap}
+.banner.stop{background:var(--red-soft)} .banner.stop b{color:var(--red)}
+.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}
+.foot{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--mute);
+  margin-top:16px;line-height:1.5;max-width:70ch}
 
-@media (max-width:820px){
-  .grid{grid-template-columns:minmax(0,1fr);gap:18px;padding-top:16px}
-  nav.rail{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
-  .rail a{grid-template-columns:auto auto;white-space:nowrap;border:1px solid var(--line);background:var(--surface)}
+@media (max-width:860px){
+  .grid{grid-template-columns:minmax(0,1fr);gap:20px;padding-top:20px}
+  nav.rail{position:static;flex-direction:row;overflow-x:auto;gap:7px;padding-bottom:4px}
+  .rail a{grid-template-columns:auto auto;white-space:nowrap;border:1px solid var(--line);
+    background:var(--panel);border-radius:99px;padding:7px 14px}
   .rail a .st{display:none}
   .rail-note{display:none}
-  .rrow{grid-template-columns:minmax(0,1fr) 96px;grid-auto-rows:min-content}
+  .rrow{grid-template-columns:minmax(0,1fr) 104px}
   .rrow > span:nth-child(3),.rrow > span:nth-child(4){display:none}
-  .rrow.split{grid-template-columns:minmax(0,1fr) 96px 96px}
-  .rrow.split > span:nth-child(3){display:block}
 }
 </style>
 </head>
@@ -223,7 +210,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 
 <header class="top">
   <div class="top-in">
-    <div class="brand">Управленка <em>Формы</em></div>
+    <div class="brand">Ф О Р М А<em>управленка</em></div>
     <div class="top-meta">
       <span class="month-pick"><label for="month">Месяц</label><input id="month" type="month" value="2026-09"></span>
       <span class="memo"><span class="dot" id="memoDot"></span>Справочник: <b id="memoCount">—</b> контрагентов</span>
@@ -247,7 +234,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 
   <!-- 1 -->
   <section id="s1">
-    <div class="sec-head"><span class="step">Этап 1</span><h2>Выгрузки</h2></div>
+    <div class="sec-head"><div class="kick">01 · Источник</div><h2>Выгрузки</h2></div>
     <p class="sec-sub">Перетащите файлы как есть — имена не важны, программа читает заголовок внутри. Нужны обороты счетов 51 и 60 из 1С и «Отчёт по врачам (УК)» из управленки.</p>
     <div class="card" style="margin-bottom:14px">
       <div class="sub">Что выгрузить</div>
@@ -279,7 +266,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 
   <!-- 2 -->
   <section id="s2">
-    <div class="sec-head"><span class="step">Этап 2</span><h2>Расходы по контрагентам</h2></div>
+    <div class="sec-head"><div class="kick">02 · Расходы</div><h2>Расходы по контрагентам</h2></div>
     <p class="sec-sub">Знакомые контрагенты разнесены по памяти прошлых месяцев. Жёлтым подсвечены новые — им нужна статья. Выбор запоминается и в следующем месяце подставится сам.</p>
     <div class="filters">
       <input type="search" id="vsearch" placeholder="Найти контрагента или статью" aria-label="Поиск по контрагентам">
@@ -301,7 +288,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 
   <!-- 3 -->
   <section id="s3">
-    <div class="sec-head"><span class="step">Этап 3</span><h2>Выручка по врачам</h2></div>
+    <div class="sec-head"><div class="kick">03 · Выручка</div><h2>Выручка по врачам</h2></div>
     <p class="sec-sub">Разрез берётся из колонки «Фактическая оплата» — это деньги, а не реализация. Итог месяца задаётся по зачислению на счёт, разница с управленкой разносится пропорционально.</p>
     <div class="card">
       <div class="fields">
@@ -321,7 +308,7 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 
   <!-- 4 -->
   <section id="s4">
-    <div class="sec-head"><span class="step">Этап 4</span><h2>Параметры месяца</h2></div>
+    <div class="sec-head"><div class="kick">04 · Параметры</div><h2>Параметры месяца</h2></div>
     <p class="sec-sub">Всё, что не вытаскивается из выгрузок. Личные расходы вычитаются из счёта 60 и садятся своему учредителю; ассистенты — из зарплаты.</p>
 
     <div class="card">
@@ -365,12 +352,12 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 
   <!-- 5 -->
   <section id="s5">
-    <div class="sec-head"><span class="step">Этап 5</span><h2>Сверки и отчёт</h2></div>
+    <div class="sec-head"><div class="kick">05 · Контроль</div><h2>Сверки и отчёт</h2></div>
     <p class="sec-sub">Отчёт выпускается только когда сверки зелёные. Каждая строка ниже — ошибка, которую август пропустил вручную.</p>
     <div class="checks" id="checks"></div>
     <div id="reportWrap" style="margin-top:20px"></div>
     <div class="actions">
-      <button class="btn" id="openDash">Дашборд учредителям</button>
+      <button class="btn gold" id="openDash">Открыть отчёт учредителям</button>
       <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
       <button class="btn ghost" id="dlBook">Сохранить справочник</button>
       <button class="btn ghost" id="reset">Очистить месяц</button>
@@ -383,159 +370,333 @@ td select,td input{width:100%;min-width:168px;background:var(--sunk);border:1px 
 </div>
 
 <style>
-/* ======================= дашборд учредителям ======================= */
+/* ======================= отчёт учредителям ======================= */
 #dash[hidden]{display:none!important}
 #dash{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
-.dash-in{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
-.dash-bar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);
-  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-block:16px 14px;z-index:2}
-.dash-bar h2{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em}
-.dash-bar .per{font-family:var(--mono);font-size:13px;color:var(--muted)}
-.dash-bar .sp{margin-left:auto}
-.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:22px 0 26px}
-.hero .h{background:var(--surface);padding:18px 19px}
-.hero .k{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-.hero .v{font-family:var(--mono);font-size:clamp(23px,3.4vw,31px);font-weight:500;margin-top:6px;
-  letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.1}
-.hero .s{font-size:12.5px;color:var(--muted);margin-top:4px}
+#dash .w{max-width:1060px;margin:0 auto;padding-inline:20px}
+@media(min-width:760px){#dash .w{padding-inline:32px}}
+.dclose{position:fixed;right:18px;top:18px;z-index:90;background:var(--ink);color:#fff;
+  border:1px solid rgba(217,212,201,.38);box-shadow:0 2px 14px rgba(28,27,24,.18)}
+.dclose:hover{background:var(--bronze2);color:var(--ink);border-color:var(--bronze2)}
+@media(min-width:1000px){.dclose{right:28px;top:26px}}
 
-.dh{font-family:var(--serif);font-size:16px;font-weight:600;margin:30px 0 3px}
-.dhs{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+/* герой */
+.dhero{background:var(--ink);color:#fff;padding:76px 0 64px;position:relative;overflow:hidden}
+.dhero::before,.dhero::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.dhero::before{right:-180px;top:-180px;width:560px;height:560px;border:1px solid rgba(185,137,90,.22)}
+.dhero::after{right:-80px;top:-80px;width:360px;height:360px;border:1px solid rgba(185,137,90,.36)}
+.dhero .bd{font-size:12px;font-weight:700;letter-spacing:.55em;margin-bottom:12px}
+.dhero .tg{font-family:var(--serif);font-style:italic;color:#9C968A;font-size:16px;max-width:34ch}
+.dhero h1{font-family:var(--serif);font-weight:600;font-size:clamp(38px,8vw,74px);line-height:1;margin:34px 0 4px}
+.dhero .yr{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(26px,5.5vw,46px);
+  color:var(--bronze2)}
+.dhero .strip{display:grid;grid-template-columns:1fr 1fr;gap:24px 30px;margin-top:46px;max-width:640px}
+@media(min-width:760px){.dhero .strip{display:flex;gap:48px;flex-wrap:wrap;max-width:none}}
+.dhero .strip .v{font-family:var(--mono);font-size:clamp(19px,4.4vw,25px);font-weight:600;
+  font-variant-numeric:tabular-nums}
+.dhero .strip .l{font-size:11.5px;color:#9C968A;margin-top:5px}
 
-.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
-.who{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:19px 20px}
-.who .nm{font-family:var(--serif);font-size:17px;font-weight:600}
-.who .big{font-family:var(--mono);font-size:clamp(24px,3.6vw,30px);font-weight:500;letter-spacing:-.025em;
-  margin:12px 0 2px;font-variant-numeric:tabular-nums;line-height:1.1}
-.who .biglab{font-size:12px;color:var(--muted);margin-bottom:15px}
-.wl{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:13.5px;
-  border-top:1px solid var(--line)}
-.wl span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.wl.acc span:last-child{font-weight:600}
+#dash section{padding:62px 0;margin:0;scroll-margin-top:0}
+@media(min-width:760px){#dash section{padding:82px 0}}
+#dash section.tight{padding-top:0}
+#dash h2{font-family:var(--serif);font-weight:600;font-size:clamp(28px,5vw,46px);line-height:1.08;margin:12px 0 8px}
+#dash .sb{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--mute);margin-bottom:30px}
+#dash section.dk{background:var(--ink);color:#fff}
+#dash section.dk h2{color:#fff} #dash section.dk .sb{color:#9C968A}
 
-/* полоса структуры: две доли, зазор 2px, скруглённые торцы */
-.split-bar{display:flex;gap:2px;height:34px;margin:4px 0 12px}
-.split-bar i{display:block;height:100%;position:relative}
-.split-bar i:first-child{border-radius:5px 0 0 5px}
-.split-bar i:last-child{border-radius:0 5px 5px 0}
-.split-key{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;margin-bottom:4px}
-.split-key b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;
-  vertical-align:baseline}
-.split-key em{font-style:normal;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);
-  margin-left:7px}
+/* тезисы */
+.tez{display:grid;grid-template-columns:46px 1fr;gap:10px 20px;padding:22px 0;
+  border-bottom:1px solid var(--line);align-items:start}
+@media(min-width:880px){.tez{grid-template-columns:64px 340px 1fr;gap:24px}}
+.tez:last-child{border-bottom:0}
+.tez .n{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--bronze);line-height:1}
+.tez h3{font-size:16px;font-weight:700;line-height:1.35}
+.tez p{grid-column:1/-1;font-family:var(--serif);font-size:18px;line-height:1.5;color:var(--ink2)}
+@media(min-width:880px){.tez p{grid-column:auto}}
+.tez p b{font-family:var(--sans);font-size:14.5px;font-weight:700;color:var(--green)}
 
-.bars{display:flex;flex-direction:column;gap:9px}
-.bar{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}
-.bar .lab{display:flex;justify-content:space-between;gap:14px;font-size:13px;align-items:baseline}
-.bar .lab b{font-weight:400}
-.bar .lab span{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
-.bar .tr{height:11px;background:var(--track);border-radius:3px;overflow:hidden}
-.bar .fl{display:block;height:100%;background:var(--s1);border-radius:0 4px 4px 0;min-width:3px;
-  transition:filter .12s}
-.bar:hover .fl{filter:brightness(1.12)}
-.bar.alt .fl{background:var(--s2)}
-.dnote{color:var(--faint);font-size:12px;line-height:1.55;margin-top:26px;
-  border-top:1px solid var(--line);padding-top:14px;max-width:70ch}
-@media (max-width:640px){
-  .dash-bar h2{font-size:18px}
-  .hero{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
+/* карточки показателей */
+.kpi{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:620px){.kpi{grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:18px}}
+.kc{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px 26px}
+.kc .v{font-family:var(--mono);font-size:clamp(26px,5.5vw,34px);font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.kc .v small{font-size:14px;color:var(--mute);font-weight:400;letter-spacing:0}
+.kc .l{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-top:11px}
+.kc .d{font-size:13px;margin-top:6px;color:var(--mute)}
+
+.dsplit{display:grid;grid-template-columns:1fr;gap:22px;align-items:center}
+@media(min-width:860px){.dsplit{grid-template-columns:320px 1fr;gap:36px}}
+.chartbox{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 20px}
+.donut{width:100%;max-width:300px;margin:0 auto;display:block}
+.dcv{font-family:var(--mono);font-size:28px;font-weight:600;fill:var(--ink)}
+.dcl{font-size:10.5px;fill:var(--mute);letter-spacing:.1em;text-transform:uppercase}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3.5px;margin-right:9px;vertical-align:-1px}
+
+.stackbar{display:flex;height:54px;border-radius:15px;overflow:hidden;margin:8px 0 22px;gap:2px}
+.stackbar div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);
+  font-size:12px;white-space:nowrap;min-width:0}
+
+.rank{display:flex;flex-direction:column;gap:11px}
+.rk{display:grid;gap:5px}
+.rk .t{display:flex;justify-content:space-between;gap:16px;font-size:13.5px;align-items:baseline}
+.rk .t span{font-family:var(--mono);font-size:12.5px;color:var(--mute);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.rk .tr{height:10px;background:var(--tint);border-radius:4px;overflow:hidden}
+.rk .fl{display:block;height:100%;border-radius:0 4px 4px 0;min-width:3px;background:var(--green);
+  transition:filter .15s}
+.rk:hover .fl{filter:brightness(1.15)}
+.rk.u .fl{background:var(--bronze)}
+
+/* водопад */
+.wfscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wfin{min-width:600px}
+@media(min-width:760px){.wfin{min-width:0}}
+.wf{display:flex;align-items:flex-end;gap:10px;height:320px;border-bottom:1.5px solid var(--ink);
+  padding:30px 2px 0}
+@media(min-width:760px){.wf{gap:18px;height:370px}}
+.wcol{flex:1;position:relative;height:100%}
+.wbar{position:absolute;left:0;right:0;border-radius:5px}
+.wbar.pos{background:var(--green)} .wbar.exp{background:#CCC5B7} .wbar.inv{background:var(--bronze2)}
+.wbridge{position:absolute;left:0;right:-10px;border-top:1px dashed var(--ghost)}
+.wv{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11.5px;
+  font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(min-width:760px){.wv{font-size:13px}}
+.wl{display:flex;gap:10px;padding:13px 2px 0}
+@media(min-width:760px){.wl{gap:18px}}
+.wl span{flex:1;min-width:0;text-align:center;font-size:11px;color:var(--ink2);line-height:1.3;
+  overflow-wrap:break-word}
+
+/* карточки учредителей */
+.own{display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:880px){.own{grid-template-columns:1fr 1fr;gap:24px}}
+.ocard{background:rgba(255,255,255,.045);border:1px solid rgba(217,212,201,.16);border-radius:20px;
+  padding:28px 24px 24px}
+@media(min-width:760px){.ocard{padding:34px 34px 28px}}
+.ocard h3{font-family:var(--serif);font-size:30px;font-weight:600;margin-bottom:18px}
+.orow{display:flex;justify-content:space-between;gap:14px;padding:10px 0;
+  border-bottom:1px solid rgba(217,212,201,.12);font-size:14px;color:#CFC9BD}
+.orow .n{font-family:var(--mono);font-weight:600;color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+.orow .n.neg{color:#D98A82}
+.oinc{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:18px 0 8px}
+.oinc .t{font-size:10.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#7BA08F}
+.oinc .n{font-family:var(--mono);font-size:25px;font-weight:600;color:#8FBFA9;font-variant-numeric:tabular-nums}
+.opay{margin-top:16px;background:var(--bronze2);color:var(--ink);border-radius:14px;padding:16px 20px;
+  display:flex;justify-content:space-between;align-items:center;gap:14px}
+.opay .t{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;max-width:11ch}
+.opay .n{font-family:var(--mono);font-size:22px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.onote{font-family:var(--serif);font-style:italic;font-size:16px;color:#9C968A;margin-top:26px;max-width:860px}
+.dnote{background:var(--green-soft);border-radius:16px;padding:20px 24px;margin-top:22px;
+  font-size:14px;color:var(--ink2);line-height:1.6}
+.dnote b{color:var(--green)}
+#dash footer{background:var(--ink);color:#6E6960;font-family:var(--mono);font-size:11.5px;
+  padding:28px 0;border-top:1px solid rgba(217,212,201,.12)}
+#dash footer .w{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
 </style>
 
-<div id="dash" hidden role="dialog" aria-modal="true" aria-label="Дашборд учредителям">
-  <div class="dash-in">
-    <div class="dash-bar">
-      <h2>ООО «ОМЕГА» · клиника Форма</h2>
-      <span class="per" id="dashPer"></span>
-      <span class="sp"></span>
-      <button class="btn ghost sm" id="closeDash">Закрыть</button>
-    </div>
-    <div id="dashBody"></div>
-  </div>
+<div id="dash" hidden role="dialog" aria-modal="true" aria-label="Отчёт учредителям">
+  <button class="btn sm dclose" id="closeDash">Закрыть</button>
+  <div id="dashBody"></div>
 </div>
 
 <script>
 "use strict";
-function bar(name, val, den, alt){
+const MLN = x => (x / 1e6).toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2});
+function rankRow(name, val, den, upr){
   const w = den > 0 ? Math.max(0, val / den * 100) : 0;
-  return `<div class="bar${alt ? " alt" : ""}" title="${esc(name)} — ${fmt(val)} (${pct(den ? val/den : 0)})">
-    <div class="lab"><b>${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
+  return `<div class="rk${upr ? " u" : ""}" title="${esc(name)} — ${fmt(val)} ₽">
+    <div class="t"><b style="font-weight:400">${esc(name)}</b><span>${fmt0(val)} · ${pct(den ? val/den : 0)}</span></div>
     <div class="tr"><i class="fl" style="width:${w.toFixed(2)}%"></i></div></div>`;
+}
+function donut(parts, centre, label){
+  const R = 108, C = 2 * Math.PI * R;
+  const tot = parts.reduce((s, p) => s + p.v, 0) || 1;
+  let off = 0, out = "";
+  for (const p of parts){
+    const len = C * p.v / tot;
+    out += `<circle cx="130" cy="130" r="${R}" fill="none" stroke="${p.c}" stroke-width="34"
+      stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"
+      transform="rotate(-90 130 130)"><title>${esc(p.n)} — ${fmt(p.v)} ₽</title></circle>`;
+    off += len;
+  }
+  return `<svg class="donut" viewBox="0 0 260 260" role="img" aria-label="${esc(label)}">${out}
+    <text x="130" y="126" text-anchor="middle" class="dcv">${centre}</text>
+    <text x="130" y="148" text-anchor="middle" class="dcl">${esc(label)}</text></svg>`;
+}
+function waterfall(steps){
+  let run = 0, peak = 0;
+  const pts = steps.map(s => {
+    const from = s.end ? 0 : run;
+    const to = s.end ? s.v : run + s.v;
+    if (!s.end) run += s.v;
+    const lo = Math.min(from, to), hi = Math.max(from, to);
+    peak = Math.max(peak, hi);
+    return {lo, hi, s};
+  });
+  const cols = pts.map((p, i) => {
+    const bottom = p.lo / peak * 100, height = Math.max(0.6, (p.hi - p.lo) / peak * 100);
+    const cls = p.s.end ? "inv" : (p.s.v >= 0 ? "pos" : "exp");
+    return `<div class="wcol">
+      <div class="wbar ${cls}" style="bottom:${bottom.toFixed(2)}%;height:${height.toFixed(2)}%"></div>
+      <div class="wv" style="bottom:calc(${(p.lo + (p.hi - p.lo)) / peak * 100}% + 9px)">${(p.s.v < 0 ? "−" : "") + MLN(Math.abs(p.s.v))}</div>
+      ${i < pts.length - 1 ? `<div class="wbridge" style="bottom:${(p.s.end ? p.hi : (p.s.v >= 0 ? p.hi : p.lo)) / peak * 100}%"></div>` : ""}
+    </div>`;
+  }).join("");
+  return `<div class="wfscroll"><div class="wfin"><div class="wf">${cols}</div>
+    <div class="wl">${steps.map(s => `<span>${esc(s.n)}</span>`).join("")}</div></div></div>`;
 }
 function renderDash(){
   const c = calc(), p = st.params;
-  $("dashPer").textContent = monthName(st.month) + (st.isExample ? " · пример" : "");
-  const who = (nm, own, cost, inc, pay) => `<div class="who">
-    <div class="nm">${nm}</div>
-    <div class="big">${fmt0(inc)}</div><div class="biglab">доход за месяц, ₽</div>
-    <div class="wl"><span>Своя выручка</span><span>${fmt0(own)}</span></div>
-    <div class="wl"><span>Доля расходов</span><span>${fmt0(cost)}</span></div>
-    <div class="wl"><span>Остаток с прошлого месяца</span><span>${fmt0(nm === "Маланичев" ? p.prevM : p.prevP)}</span></div>
-    <div class="wl"><span>Выплачены дивиденды</span><span>−${fmt0(nm === "Маланичев" ? p.divM : p.divP)}</span></div>
-    <div class="wl acc"><span>К выплате</span><span>${fmt0(pay)}</span></div>
-  </div>`;
-
+  const per = monthName(st.month);
+  const G = c.G, den = c.revNet || 1;
+  const revParts = [
+    {n:"Другие хирурги", v:c.otherNet, c:"#2E5E4E"},
+    {n:"Погосян", v:G.pog, c:"#4A7A68"},
+    {n:"Маланичев", v:G.mal, c:"#7BA08F"},
+    {n:"Косметология", v:G.cosm, c:"#B9895A"},
+    {n:"Прочее", v:G.misc, c:"#D9D4C9"}
+  ].filter(x => x.v > 0);
   const arts = Object.entries(c.byArt).sort((a, b) => b[1].sum - a[1].sum);
-  const top = arts.slice(0, 8);
-  const rest = arts.slice(8).reduce((s, a) => s + a[1].sum, 0);
-  const revRows = [["Другие хирурги", c.otherNet], ["Погосян — свои операции", c.G.pog],
-    ["Маланичев — свои операции", c.G.mal], ["Косметология", c.G.cosm], ["Прочее", c.G.misc]]
-    .filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]);
-  const mShare = c.base ? c.byBlock.m / c.base : 0;
-  const uShare = c.base ? c.byBlock.u / c.base : 0;
+  const top = arts.slice(0, 9);
+  const rest = arts.slice(9).reduce((s, a) => s + a[1].sum, 0);
+  const mSh = c.base ? c.byBlock.m / c.base : 0, uSh = c.base ? c.byBlock.u / c.base : 0;
+  const bank51 = st.acc["51"] ? R2(st.acc["51"].total.openDt - st.acc["51"].total.openKt
+    + st.acc["51"].total.dt - st.acc["51"].total.kt) : null;
+  const fot = R2(p.sal + p.tax);
+  const wf = [
+    {n:"Выручка и проценты", v:R2(c.revNet + p.dep)},
+    {n:"Поставщики", v:-c.base60},
+    {n:"ФОТ и налоги", v:-fot},
+    {n:"Банк, алименты, проценты", v:-R2(p.bank + p.ali + p.int + p.mAcq + p.pAcq)},
+    {n:"Доход учредителей", v:c.incAll, end:true}
+  ];
+  const who = (nm, own, cost, inc, pay, prev, div) => `<div class="ocard">
+    <h3>${nm}</h3>
+    <div class="orow"><span>Своя выручка</span><span class="n">${fmt0(own)}</span></div>
+    <div class="orow"><span>Половина общей выручки</span><span class="n">${fmt0(R2((c.otherNet + G.cosm + G.misc) / 2))}</span></div>
+    <div class="orow"><span>Половина процентов по депозитам</span><span class="n">${fmt0(p.dep/2)}</span></div>
+    <div class="orow"><span>Доля расходов</span><span class="n neg">−${fmt0(cost)}</span></div>
+    <div class="oinc"><span class="t">Доход за месяц</span><span class="n">${fmt0(inc)}</span></div>
+    <div class="orow"><span>Остаток с прошлого месяца</span><span class="n">${fmt0(prev)}</span></div>
+    <div class="orow"><span>Выплачены дивиденды</span><span class="n neg">−${fmt0(div)}</span></div>
+    <div class="opay"><span class="t">К выплате</span><span class="n">${fmt0(pay)}</span></div>
+  </div>`;
+  const tez = (n, h, t) => `<div class="tez"><div class="n">${n}</div><h3>${h}</h3><p>${t}</p></div>`;
 
   $("dashBody").innerHTML = `
-    <div class="hero">
-      <div class="h"><div class="k">Выручка</div><div class="v">${fmt0(c.revNet)}</div>
-        <div class="s">за вычетом возвратов</div></div>
-      <div class="h"><div class="k">Расходы</div><div class="v">${fmt0(c.costAll)}</div>
-        <div class="s">${pct(c.revNet ? c.costAll / c.revNet : 0)} от выручки</div></div>
-      <div class="h"><div class="k">Доход</div><div class="v">${fmt0(c.incAll)}</div>
-        <div class="s">${pct(c.revNet ? c.incAll / c.revNet : 0)} от выручки</div></div>
-      <div class="h"><div class="k">К выплате</div><div class="v">${fmt0(c.payAll)}</div>
-        <div class="s">на конец месяца</div></div>
+  <header class="dhero"><div class="w">
+    <div class="bd">Ф О Р М А</div>
+    <div class="tg">клиника пластической хирургии и эстетической косметологии</div>
+    <h1>Отчёт учредителям</h1>
+    <div class="yr">${per.charAt(0).toUpperCase() + per.slice(1)}${st.isExample ? " · пример" : ""}</div>
+    <div class="strip">
+      <div><div class="v mono">${MLN(c.revNet)}</div><div class="l">млн ₽ выручка</div></div>
+      <div><div class="v mono" style="color:#8FBFA9">${MLN(c.incAll)}</div><div class="l">млн ₽ доход учредителей</div></div>
+      <div><div class="v mono">${MLN(c.costAll)}</div><div class="l">млн ₽ расходы</div></div>
+      <div><div class="v mono" style="color:#B9895A">${MLN(c.payAll)}</div><div class="l">млн ₽ к выплате</div></div>
     </div>
+  </div></header>
 
-    <h3 class="dh">Учредители</h3>
-    <p class="dhs">Общие расходы делятся пополам, личные — каждому свои. Выручка: свои операции плюс половина всего остального.</p>
-    <div class="pair">
-      ${who("Маланичев", c.G.mal, c.costM, c.incM, c.payM)}
-      ${who("Погосян", c.G.pog, c.costP, c.incP, c.payP)}
-    </div>
+  <section><div class="w">
+    <div class="kick">01 · Резюме</div><h2>Итог месяца</h2>
+    <div class="sb">Четыре числа, которые описывают ${per} полностью</div>
+    ${tez("01", "Выручка — " + MLN(c.revNet) + " млн ₽",
+      "Свои операции хирургов-учредителей — <b>" + fmt0(R2(G.mal + G.pog)) + " ₽</b>, остальное делится пополам. Возвраты пациентам — " + fmt0(p.refund) + " ₽.")}
+    ${tez("02", "Расходы — " + MLN(c.costAll) + " млн ₽",
+      "Это " + pct(c.revNet ? c.costAll / c.revNet : 0) + " выручки. Поставщики — <b>" + MLN(c.base60) + " млн</b>, ФОТ с налогами — " + MLN(fot) + " млн." + (c.credit > 0 ? " Ремонт за счёт кредитной линии, " + MLN(c.credit) + " млн, в расходы учредителей не входит." : ""))}
+    ${tez("03", "Доход учредителей — " + MLN(c.incAll) + " млн ₽",
+      "Погосян — <b>" + MLN(c.incP) + " млн</b>, Маланичев — <b>" + MLN(c.incM) + " млн</b>. Разница — личная выручка и личные расходы, общая часть у обоих одинаковая.")}
+    ${tez("04", "К выплате — " + MLN(c.payAll) + " млн ₽",
+      "С учётом накопленных остатков: Погосян " + MLN(c.payP) + " млн, Маланичев " + MLN(c.payM) + " млн. Дивиденды за месяц — " + fmt0(c.divAll) + " ₽.")}
+  </div></section>
 
-    <h3 class="dh">Куда ушли деньги</h3>
-    <p class="dhs">Оплаты поставщикам за месяц — ${fmt0(c.base)} ₽${c.credit > 0 ? ", без ремонта за счёт кредитной линии" : ""}.</p>
-    <div class="split-key">
-      <span><b style="background:var(--s1)"></b>Медицинские<em>${fmt0(c.byBlock.m)} · ${pct(mShare)}</em></span>
-      <span><b style="background:var(--s2)"></b>Управленческие<em>${fmt0(c.byBlock.u)} · ${pct(uShare)}</em></span>
+  <section class="tight"><div class="w">
+    <div class="kick">02 · Показатели</div><h2>Ключевые цифры</h2>
+    <div class="sb">Шесть чисел, по которым видно месяц</div>
+    <div class="kpi">
+      <div class="kc"><div class="v">${MLN(c.revNet)} <small>млн ₽</small></div>
+        <div class="l">Выручка за месяц</div><div class="d">после возвратов пациентам</div></div>
+      <div class="kc"><div class="v">${MLN(c.base60)} <small>млн ₽</small></div>
+        <div class="l">Оплаты поставщикам · сч. 60</div><div class="d">${pct(c.revNet ? c.base60 / c.revNet : 0)} от выручки</div></div>
+      <div class="kc"><div class="v">${MLN(fot)} <small>млн ₽</small></div>
+        <div class="l">ФОТ с налогами</div><div class="d">зарплата ${MLN(p.sal)} + налоги ${MLN(p.tax)}</div></div>
+      <div class="kc"><div class="v">${MLN(c.byBlock.m)} <small>млн ₽</small></div>
+        <div class="l">Медицинские расходы</div><div class="d">${pct(mSh)} счёта 60</div></div>
+      <div class="kc"><div class="v">${MLN(c.byBlock.u)} <small>млн ₽</small></div>
+        <div class="l">Управленческие расходы</div><div class="d">${pct(uSh)} счёта 60</div></div>
+      ${bank51 != null
+        ? `<div class="kc"><div class="v">${MLN(bank51)} <small>млн ₽</small></div>
+             <div class="l">Остаток на р/с на конец месяца</div><div class="d">на начало было ${MLN(st.acc["51"].total.openDt - st.acc["51"].total.openKt)}</div></div>`
+        : `<div class="kc"><div class="v">${MLN(p.dep)} <small>млн ₽</small></div>
+             <div class="l">Проценты по депозитам</div><div class="d">начислены банком на остатки</div></div>`}
     </div>
-    <div class="split-bar">
-      <i style="background:var(--s1);width:${(mShare * 100).toFixed(2)}%" title="Медицинские ${fmt(c.byBlock.m)}"></i>
-      <i style="background:var(--s2);width:${(uShare * 100).toFixed(2)}%" title="Управленческие ${fmt(c.byBlock.u)}"></i>
-    </div>
-    <div class="bars" style="margin-top:18px">
-      ${top.map(a => bar(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
-      ${rest > 0 ? bar("Остальные статьи — " + (arts.length - 8) + " шт.", rest, c.base) : ""}
-    </div>
+  </div></section>
 
-    <h3 class="dh">Откуда пришли</h3>
-    <p class="dhs">Выручка месяца по группам, после возвратов пациентам.</p>
-    <div class="bars">${revRows.map(r => bar(r[0], r[1], c.revNet)).join("")}</div>
+  <section class="tight"><div class="w">
+    <div class="kick">03 · Выручка</div><h2>Откуда пришли деньги</h2>
+    <div class="sb">${fmt0(c.revNet)} ₽ — по группам врачей</div>
+    <div class="dsplit">
+      <div class="chartbox">${donut(revParts, MLN(c.revNet), "млн ₽ выручка")}</div>
+      <div class="tw"><table>
+        <tr><th>Группа</th><th class="num">Сумма, ₽</th><th class="num">Доля</th></tr>
+        ${revParts.map(x => `<tr><td><span class="sw" style="background:${x.c}"></span>${esc(x.n)}</td>
+          <td class="num">${fmt0(x.v)}</td><td class="num">${pct(x.v / den)}</td></tr>`).join("")}
+        <tr class="tot"><td>Итого выручка</td><td class="num">${fmt0(c.revNet)}</td><td class="num">100,0 %</td></tr>
+      </table></div>
+    </div>
+  </div></section>
 
-    <p class="dnote">Выручка учитывается по зачислению на счёт. Разрез по хирургам берётся из управленки по фактической оплате.
-    Расходы — оплаченные за месяц. Ремонт за счёт кредитной линии в расходы учредителей не входит.
-    ${st.isExample ? "Показан август 2026 как пример." : ""}</p>`;
+  <section class="tight"><div class="w">
+    <div class="kick">04 · Расходы</div><h2>Куда ушли деньги</h2>
+    <div class="sb">${fmt0(c.base)} ₽ оплат поставщикам — медицинские против управленческих</div>
+    <div class="stackbar">
+      <div style="background:#2E5E4E;width:${(mSh*100).toFixed(2)}%">Медицинские · ${pct(mSh)}</div>
+      <div style="background:#8A7350;width:${(uSh*100).toFixed(2)}%">Управленческие · ${pct(uSh)}</div>
+    </div>
+    <div class="rank">
+      ${top.map(a => rankRow(a[0], a[1].sum, c.base, a[1].block === "управленческие")).join("")}
+      ${rest > 0 ? rankRow("Остальные статьи — " + (arts.length - 9) + " шт.", rest, c.base) : ""}
+    </div>
+    ${c.credit > 0 ? `<div class="dnote"><b>За счёт кредитной линии:</b> ${fmt0(c.credit)} ₽ —
+      ${esc(book.credit.join(", "))}. Стройка идёт на заёмные деньги, в расходы учредителей не входит.</div>` : ""}
+  </div></section>
+
+  <section class="tight"><div class="w">
+    <div class="kick">05 · Экономика</div><h2>Как выручка стала доходом</h2>
+    <div class="sb">млн ₽ · от поступлений к доходу учредителей</div>
+    <div class="chartbox">${waterfall(wf)}</div>
+  </div></section>
+
+  <section class="dk"><div class="w">
+    <div class="kick">06 · Учредители</div><h2>Доли учредителей</h2>
+    <div class="sb">Общие расходы пополам, личные — каждому свои</div>
+    <div class="own">
+      ${who("Маланичев", G.mal, c.costM, c.incM, c.payM, p.prevM, p.divM)}
+      ${who("Погосян", G.pog, c.costP, c.incP, c.payP, p.prevP, p.divP)}
+    </div>
+    <p class="onote">Выручка учитывается по зачислению на счёт, разрез по хирургам — по фактической оплате.
+    Половина выручки других хирургов, косметологии, прочего и процентов по депозитам делится поровну.
+    Расходы — оплаченные за месяц.${st.isExample ? " Показан август 2026 как пример." : ""}</p>
+  </div></section>
+
+  <footer><div class="w"><span>ООО «ОМЕГА» · клиника Форма</span><span>${per}</span></div></footer>`;
 }
 document.getElementById("openDash").addEventListener("click", () => {
   renderDash();
-  const d = $("dash"); d.hidden = false;
+  const d = document.getElementById("dash");
+  d.hidden = false; d.scrollTop = 0;
   document.body.style.overflow = "hidden";
-  $("closeDash").focus();
+  document.getElementById("closeDash").focus();
 });
+function closeDash(){
+  document.getElementById("dash").hidden = true;
+  document.body.style.overflow = "";
+  document.getElementById("openDash").focus();
+}
 document.getElementById("closeDash").addEventListener("click", closeDash);
-function closeDash(){ $("dash").hidden = true; document.body.style.overflow = ""; $("openDash").focus(); }
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("dash").hidden) closeDash(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !document.getElementById("dash").hidden) closeDash();
+});
 </script>
 
 <script>/* SheetJS 0.18.5, Apache-2.0 — вшит в файл, чтобы работало без интернета */

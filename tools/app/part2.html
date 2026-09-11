@@ -1,6 +1,6 @@
 <header class="top">
   <div class="top-in">
-    <div class="brand">Управленка <em>Формы</em></div>
+    <div class="brand">Ф О Р М А<em>управленка</em></div>
     <div class="top-meta">
       <span class="month-pick"><label for="month">Месяц</label><input id="month" type="month" value="2026-09"></span>
       <span class="memo"><span class="dot" id="memoDot"></span>Справочник: <b id="memoCount">—</b> контрагентов</span>
@@ -24,7 +24,7 @@
 
   <!-- 1 -->
   <section id="s1">
-    <div class="sec-head"><span class="step">Этап 1</span><h2>Выгрузки</h2></div>
+    <div class="sec-head"><div class="kick">01 · Источник</div><h2>Выгрузки</h2></div>
     <p class="sec-sub">Перетащите файлы как есть — имена не важны, программа читает заголовок внутри. Нужны обороты счетов 51 и 60 из 1С и «Отчёт по врачам (УК)» из управленки.</p>
     <div class="card" style="margin-bottom:14px">
       <div class="sub">Что выгрузить</div>
@@ -56,7 +56,7 @@
 
   <!-- 2 -->
   <section id="s2">
-    <div class="sec-head"><span class="step">Этап 2</span><h2>Расходы по контрагентам</h2></div>
+    <div class="sec-head"><div class="kick">02 · Расходы</div><h2>Расходы по контрагентам</h2></div>
     <p class="sec-sub">Знакомые контрагенты разнесены по памяти прошлых месяцев. Жёлтым подсвечены новые — им нужна статья. Выбор запоминается и в следующем месяце подставится сам.</p>
     <div class="filters">
       <input type="search" id="vsearch" placeholder="Найти контрагента или статью" aria-label="Поиск по контрагентам">
@@ -78,7 +78,7 @@
 
   <!-- 3 -->
   <section id="s3">
-    <div class="sec-head"><span class="step">Этап 3</span><h2>Выручка по врачам</h2></div>
+    <div class="sec-head"><div class="kick">03 · Выручка</div><h2>Выручка по врачам</h2></div>
     <p class="sec-sub">Разрез берётся из колонки «Фактическая оплата» — это деньги, а не реализация. Итог месяца задаётся по зачислению на счёт, разница с управленкой разносится пропорционально.</p>
     <div class="card">
       <div class="fields">
@@ -98,7 +98,7 @@
 
   <!-- 4 -->
   <section id="s4">
-    <div class="sec-head"><span class="step">Этап 4</span><h2>Параметры месяца</h2></div>
+    <div class="sec-head"><div class="kick">04 · Параметры</div><h2>Параметры месяца</h2></div>
     <p class="sec-sub">Всё, что не вытаскивается из выгрузок. Личные расходы вычитаются из счёта 60 и садятся своему учредителю; ассистенты — из зарплаты.</p>
 
     <div class="card">
@@ -142,12 +142,12 @@
 
   <!-- 5 -->
   <section id="s5">
-    <div class="sec-head"><span class="step">Этап 5</span><h2>Сверки и отчёт</h2></div>
+    <div class="sec-head"><div class="kick">05 · Контроль</div><h2>Сверки и отчёт</h2></div>
     <p class="sec-sub">Отчёт выпускается только когда сверки зелёные. Каждая строка ниже — ошибка, которую август пропустил вручную.</p>
     <div class="checks" id="checks"></div>
     <div id="reportWrap" style="margin-top:20px"></div>
     <div class="actions">
-      <button class="btn" id="openDash">Дашборд учредителям</button>
+      <button class="btn gold" id="openDash">Открыть отчёт учредителям</button>
       <button class="btn ghost" id="dlXlsx">Скачать Excel для бухгалтера</button>
       <button class="btn ghost" id="dlBook">Сохранить справочник</button>
       <button class="btn ghost" id="reset">Очистить месяц</button>
