@@ -95,6 +95,14 @@ td.bad{color:var(--red);font-weight:600}
 tr.day-first td:first-child{font-weight:600}
 tr.gap td{padding-top:14px}
 td.acc{font-family:var(--mono);color:var(--mute);font-size:12.5px}
+/* на узком экране таблица уезжает вбок — первая колонка держится на месте,
+   иначе от строки остаются одни числа без подписи */
+.tw td:first-child{position:sticky;left:0;background:var(--panel);z-index:1}
+.tw th:first-child{position:sticky;left:0;background:var(--sunk);z-index:3}
+.tw tr.sum td:first-child{background:var(--sunk)}
+.tw td:first-child::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;
+  background:var(--line)}
+.what{color:var(--mute)}
 
 .cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}

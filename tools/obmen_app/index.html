@@ -74,6 +74,14 @@ td.ok{color:var(--green);font-weight:600}
 td.bad{color:var(--red);font-weight:600}
 tr.day-first td:first-child{font-weight:600}
 tr.gap td{padding-top:14px}
+/* на узком экране таблица уезжает вбок — первая колонка держится на месте,
+   иначе от строки остаются одни числа без подписи */
+.tw td:first-child{position:sticky;left:0;background:var(--panel);z-index:1}
+.tw th:first-child{position:sticky;left:0;background:var(--sunk);z-index:3}
+.tw tr.sum td:first-child{background:var(--sunk)}
+.tw td:first-child::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;
+  background:var(--line)}
+.what{color:var(--mute)}
 
 .cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
@@ -611,12 +619,13 @@ function render(ex, fixres, ofd, pay){
         const diff = R2(a - b), off = Math.abs(diff) >= 1;
         if (off) bad++;
         rows += '<tr class="' + (i === 0 ? "day-first gap" : "") + '"><td>' +
-          (i === 0 ? esc(day) : "") + '</td><td style="text-align:left;color:var(--mute)">' + label +
-          '</td><td class="mono">' + fmt(a) + '</td><td class="mono">' + fmt(b) +
+          (i === 0 ? '<b>' + esc(day) + '</b> ' : '') +
+          '<span class="what">' + label + '</span></td>' +
+          '<td class="mono">' + fmt(a) + '</td><td class="mono">' + fmt(b) +
           '</td><td class="mono ' + (off ? "bad" : "ok") + '">' + (off ? fmt(diff) : "0,00") + '</td></tr>';
       });
     }
-    rows += '<tr class="sum"><td>Итого</td><td style="text-align:left">живые деньги</td>' +
+    rows += '<tr class="sum"><td><b>Итого</b> <span class="what">живые деньги</span></td>' +
       '<td class="mono">' + fmt(sums.cash[0] + sums.card[0]) + '</td><td class="mono">' +
       fmt(sums.cash[1] + sums.card[1]) + '</td><td class="mono ' +
       (Math.abs(sums.cash[0]+sums.card[0]-sums.cash[1]-sums.card[1]) < 1 ? "ok" : "bad") + '">' +
@@ -628,7 +637,7 @@ function render(ex, fixres, ofd, pay){
       cardCmp("Наличные", sums.cash[0], sums.cash[1]) +
       cardCmp("Карты", sums.card[0], sums.card[1]) +
       cardCmp("Зачёт аванса", sums.adv[0], sums.adv[1]) + '</div>';
-    html += '<div class="tw"><table><thead><tr><th>День</th><th style="text-align:left">Что</th>' +
+    html += '<div class="tw"><table><thead><tr><th>День и что сверяем</th>' +
       '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' + rows +
       '</tbody></table></div>';
     if (!bad) html += '<div class="note good">Сходится день в день по всем трём величинам.</div>';
