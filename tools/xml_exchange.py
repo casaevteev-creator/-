@@ -98,12 +98,13 @@ def _text(el):
 
 
 class Doc:
-    __slots__ = ("type", "props", "rows")
+    __slots__ = ("type", "props", "rows", "rule")
 
     def __init__(self, type_):
         self.type = type_
         self.props = {}
         self.rows = []
+        self.rule = ""
 
     @property
     def day(self):
@@ -130,7 +131,7 @@ class Doc:
                 return v
         s = 0.0
         for row in self.rows:
-            for k in ("Сумма", "СуммаСНДС"):
+            for k in ("СуммаПлатежа", "Сумма", "СуммаСНДС"):
                 v = _num(row.get(k))
                 if v is not None:
                     s += v
@@ -158,7 +159,14 @@ def read_kd2(root):
         if not t:
             continue
         d = Doc(t)
+        # ключевые реквизиты (дата, организация, комментарий) 1С кладёт
+        # внутрь <Ссылка> — это поля поиска объекта в приёмнике
+        for ref in obj:
+            if _tag(ref) == "Ссылка":
+                _props_kd2(ref, d, d.props)
+                break
         _props_kd2(obj, d, d.props)
+        d.rule = obj.get("ИмяПравила") or ""
         for tab in obj:
             if _tag(tab) != "ТабличнаяЧасть":
                 continue
