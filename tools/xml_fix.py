@@ -109,9 +109,56 @@ def _set_value(prop, value):
         ET.SubElement(prop, "Значение").text = value
 
 
+def nomenclature_map(root):
+    """uid номенклатуры -> (наименование, услуга ли это).
+
+    Нужно, чтобы не поставить «Без НДС» товару: освобождение по
+    пп. 2 п. 2 ст. 149 НК РФ распространяется на медуслуги, а бельё,
+    кремы и перчатки клиника продаёт с налогом на общих основаниях.
+    """
+    out = {}
+    for obj in root.iter():
+        if _tag(obj) != "Объект":
+            continue
+        if "СправочникСсылка.Номенклатура" not in (obj.get("Тип") or ""):
+            continue
+        ref = next((c for c in obj if _tag(c) == "Ссылка"), None)
+        if ref is None:
+            continue
+        key = name = ""
+        for p in ref:
+            if _tag(p) != "Свойство":
+                continue
+            if p.get("Имя") == "{УникальныйИдентификатор}":
+                key = _value(p)
+            elif p.get("Имя") == "Наименование":
+                name = _value(p)
+        услуга = ""
+        for p in obj:
+            if _tag(p) == "Свойство" and p.get("Имя") == "Услуга":
+                услуга = _value(p)
+        if key:
+            out[key] = (name, услуга == "true")
+    return out
+
+
+def _nomenclature_uid(rec):
+    prop = _find_prop(rec, "Номенклатура")
+    if prop is None:
+        return ""
+    ref = prop.find("Ссылка")
+    if ref is None:
+        return ""
+    for p in ref:
+        if _tag(p) == "Свойство" and p.get("Имя") == "{УникальныйИдентификатор}":
+            return _value(p)
+    return ""
+
+
 class Fixer:
-    def __init__(self, cfg):
+    def __init__(self, cfg, nomenclature=None):
         self.cfg = cfg
+        self.nom = nomenclature or {}
         self.fixed = []     # что поправили
         self.warned = []    # на что смотреть руками
 
@@ -180,15 +227,22 @@ class Fixer:
         надо = self.cfg["ставка_ндс_услуг"]
         if было == надо:
             return
+        сумма = ""
+        for k in ("Сумма", "СуммаОплаты"):
+            q = _find_prop(rec, k)
+            if q is not None:
+                сумма = _value(q)
+                break
+        поз, услуга = self.nom.get(_nomenclature_uid(rec), ("", True))
         if было:
-            сумма = ""
-            for k in ("Сумма", "СуммаОплаты"):
-                q = _find_prop(rec, k)
-                if q is not None:
-                    сумма = _value(q)
-                    break
             self._warn(name, f"строка с НДС в «{tab_name}»",
-                       f"ставка {было}, сумма {сумма} — это товар, а не медуслуга?")
+                       f"{поз[:34] or '?'} — ставка {было}, сумма {сумма}")
+            return
+        if not услуга:
+            # товар с незаполненной ставкой: ставить «Без НДС» нельзя,
+            # это занизило бы налог. Ставку надо завести в карточке товара.
+            self._warn(name, "товар без ставки НДС",
+                       f"{поз[:34] or '?'} — сумма {сумма}, заполните ставку в карточке")
             return
         _set_value(prop, надо)
         self._fix(name, f"ставка НДС ({tab_name})", "<пусто>", надо)
@@ -225,7 +279,7 @@ def props_of(node):
 def process(path, out_path, cfg, only_check=False):
     tree = ET.parse(path)
     root = tree.getroot()
-    f = Fixer(cfg)
+    f = Fixer(cfg, nomenclature_map(root))
     counts = Counter()
 
     for obj in root.iter():

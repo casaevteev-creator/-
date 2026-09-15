@@ -283,21 +283,26 @@ def by_day(docs):
         v = days[d.day]
         if d.type == "ОтчетОРозничныхПродажах":
             goods = d.tab_total("Товары", "Сумма")
+            goods_back = d.tab_total("Возвраты", "Сумма")
             prepay = d.tab_total("Предоплаты", "Сумма")
             prepay_back = d.tab_total("Предоплаты", "СуммаВозврат")
             card = d.tab_total("Оплата", "СуммаОплаты")
             card_back = d.tab_total("ВозвратОплаты", "СуммаОплаты")
             adv = d.tab_total("ЗачетАвансов", "СуммаЗачета")
-            # в ОРП наличных нет отдельной строкой: это остаток суммы документа
-            # после безналичных оплат и зачтённых авансов
-            v["cash"] += goods + prepay - card - adv
+            # Наличных в ОРП нет отдельной строкой — это то, что осталось
+            # от суммы документа после всех прочих способов её закрыть:
+            #   товары − возвраты товаров + предоплата − возврат предоплаты
+            #   − эквайринг (за вычетом возвратов по карте) − зачёт аванса
+            # Проверено на 01-14.09: сходится с ОФД все четырнадцать дней.
+            v["cash"] += (goods - goods_back + prepay - prepay_back
+                          - (card - card_back) - adv)
             v["card"] += card - card_back
             # возврат предоплаты и возврат оплаты — одна операция,
             # показанная в двух табличных частях: деньги считаем один раз
             v["refund"] += max(card_back, prepay_back)
             v["advance_used"] += adv
             v["prepay"] += prepay
-            v["revenue"] += goods
+            v["revenue"] += goods - goods_back
         elif d.type in REFUND_TYPES:
             v["refund"] += abs(d.total)
         elif d.type in CASHOUT_TYPES:
