@@ -51,7 +51,14 @@ HUMAN = {
 # что считаем наличной выручкой, что картами, что возвратом
 CASH_TYPES = ("ПриходныйКассовыйОрдер", "ОтчетОРозничныхПродажах")
 CARD_TYPES = ("ОперацияПоПлатежнойКарте", "ОплатаПлатежнойКартой")
-REFUND_TYPES = ("ВозвратТоваровОтПокупателя", "РасходныйКассовыйОрдер")
+REFUND_TYPES = ("ВозвратТоваровОтПокупателя",)
+# ПКО с такой операцией — не выручка: деньги пришли не от пациента.
+# В сверку с ОФД они не идут, иначе касса «перевыполняет» фискальные данные.
+NOT_REVENUE_PKO = ("ПолучениеНаличныхВБанке", "ВозвратОтПоставщика",
+                   "ПрочийПриход", "РасчетыПоКредитамИЗаймам",
+                   "ВозвратДенежныхСредствПодотчетником")
+# РКО — движение денег, а не возврат выручки (инкассация, выплаты)
+CASHOUT_TYPES = ("РасходныйКассовыйОрдер",)
 # документы услуг — на них смотрим в поиске дублей
 SERVICE_TYPES = ("ОказаниеУслуг", "РеализацияТоваровУслуг")
 
@@ -121,6 +128,17 @@ class Doc:
             if v:
                 return v
         return ""
+
+    @property
+    def operation(self):
+        return self.props.get("ВидОперации", "")
+
+    @property
+    def is_revenue(self):
+        """Выручка ли это — то, что должно быть пробито по кассе и лежать в ОФД."""
+        if self.type == "ПриходныйКассовыйОрдер":
+            return self.operation not in NOT_REVENUE_PKO
+        return True
 
     @property
     def total(self):
@@ -242,14 +260,17 @@ def duplicates(docs):
 
 def by_day(docs):
     """Наличные, карты и возвраты по дням — то, что сверяется с ОФД."""
-    days = defaultdict(lambda: {"cash": 0.0, "card": 0.0, "refund": 0.0})
+    days = defaultdict(lambda: {"cash": 0.0, "card": 0.0, "refund": 0.0,
+                                "other": 0.0, "out": 0.0})
     for d in docs:
         if not d.day:
             continue
         if d.type in REFUND_TYPES:
             days[d.day]["refund"] += abs(d.total)
+        elif d.type in CASHOUT_TYPES:
+            days[d.day]["out"] += d.total
         elif d.type in CASH_TYPES:
-            days[d.day]["cash"] += d.total
+            days[d.day]["cash" if d.is_revenue else "other"] += d.total
         elif d.type in CARD_TYPES:
             days[d.day]["card"] += d.total
     return days
@@ -329,19 +350,21 @@ def report(path, taksk_path=None):
 
     days = by_day(docs)
     if days:
-        print("\nДеньги по дням (из выгрузки)")
-        print(f"{'день':<13}{'наличные':>16}{'карты':>16}{'возвраты':>16}{'итого':>16}")
-        s_cash = s_card = s_ref = 0.0
+        print("\nВыручка по дням (из выгрузки)")
+        print(f"{'день':<13}{'наличные':>16}{'карты':>16}{'выручка':>16}"
+              f"{'не выручка':>16}{'инкассация':>16}")
+        s_cash = s_card = s_oth = s_out = 0.0
         for day in sorted(days):
             v = days[day]
-            live = v["cash"] + v["card"]
             s_cash += v["cash"]
             s_card += v["card"]
-            s_ref += v["refund"]
+            s_oth += v["other"]
+            s_out += v["out"]
             print(f"{day:<13}{money(v['cash']):>16}{money(v['card']):>16}"
-                  f"{money(v['refund']):>16}{money(live):>16}")
+                  f"{money(v['cash'] + v['card']):>16}{money(v['other']):>16}"
+                  f"{money(v['out']):>16}")
         print(f"{'итого':<13}{money(s_cash):>16}{money(s_card):>16}"
-              f"{money(s_ref):>16}{money(s_cash + s_card):>16}")
+              f"{money(s_cash + s_card):>16}{money(s_oth):>16}{money(s_out):>16}")
 
     dups = duplicates(docs)
     print("\nЗадвоенные документы услуг")
