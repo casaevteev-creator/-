@@ -1,0 +1,803 @@
+<title>Обмен УМЦ → Бухгалтерия</title>
+<style>
+:root{
+  --ink:#1C1B18; --ink2:#423E37; --mute:#807A70; --faint:#9C968A;
+  --bg:#FAF9F6; --panel:#FFFFFF; --tint:#F1EFEA; --sunk:#F6F4EF;
+  --line:#E7E3D9; --ghost:#D9D4C9;
+  --green:#2E5E4E; --green2:#4A7A68; --green-soft:#EDF1EE;
+  --bronze:#8A7350; --bronze2:#B9895A; --bronze-soft:#F4EDE3;
+  --red:#A3423B; --red-soft:#F6E9E7;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:Cambria,Georgia,'Times New Roman',serif;
+  --mono:ui-monospace,Consolas,'Liberation Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--bronze2);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1040px;margin:0 auto;padding-inline:18px;padding-block:0 80px}
+@media(min-width:760px){.wrap{padding-inline:28px}}
+
+header.top{border-bottom:1px solid var(--line);background:var(--panel);position:sticky;
+  top:env(safe-area-inset-top,0px);z-index:40}
+.top-in{max-width:1040px;margin:0 auto;padding-inline:18px;padding-block:14px;
+  display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+@media(min-width:760px){.top-in{padding-inline:28px}}
+.brand{font-size:11px;font-weight:700;letter-spacing:.4em;text-transform:uppercase}
+.brand em{font-style:normal;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:0;
+  color:var(--mute);margin-left:12px;text-transform:none}
+.top-note{margin-left:auto;font-size:12px;color:var(--faint)}
+
+h1{font-family:var(--serif);font-size:clamp(28px,4.4vw,40px);font-weight:600;line-height:1.15;
+  margin-block:34px 10px;text-wrap:balance}
+.lede{color:var(--ink2);max-width:62ch;margin-bottom:26px}
+h2{font-family:var(--serif);font-size:23px;font-weight:600;margin-bottom:4px}
+.kick{font-size:10.5px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--bronze);margin-bottom:7px}
+.sb{color:var(--mute);font-size:13.5px;margin-bottom:16px}
+section{margin-top:40px}
+
+/* ---- загрузка файлов ---- */
+.slots{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:720px){.slots{grid-template-columns:repeat(3,1fr)}}
+.slot{background:var(--panel);border:1px dashed var(--ghost);border-radius:12px;padding:16px 15px;
+  cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+.slot:hover,.slot.over{border-color:var(--bronze2);background:var(--bronze-soft)}
+.slot.ok{border-style:solid;border-color:var(--green2);background:var(--green-soft)}
+.slot h3{font-size:14px;font-weight:600;margin-bottom:3px}
+.slot p{font-size:12.5px;color:var(--mute);line-height:1.45}
+.slot .got{font-size:12px;color:var(--green);margin-top:7px;word-break:break-all;font-weight:500}
+.slot .req{position:absolute;top:14px;right:14px;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint)}
+
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.btn{background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:8px;
+  padding:9px 17px;font-size:14px;font-weight:600;cursor:pointer}
+.btn:hover{background:#000}
+.btn[disabled]{opacity:.35;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ghost);font-weight:500}
+.btn.ghost:hover{background:var(--tint)}
+
+/* ---- таблицы ---- */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 13px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600;
+  background:var(--sunk);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tr.sum td{font-weight:700;background:var(--sunk);border-top:1px solid var(--ghost)}
+td.ok{color:var(--green);font-weight:600}
+td.bad{color:var(--red);font-weight:600}
+tr.day-first td:first-child{font-weight:600}
+tr.gap td{padding-top:14px}
+
+.cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.card .l{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+.card .v{font-size:20px;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card .n{font-size:12px;color:var(--faint);margin-top:3px}
+.card.good{border-color:var(--green2);background:var(--green-soft)}
+.card.warn{border-color:var(--bronze2);background:var(--bronze-soft)}
+
+.note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bronze2);
+  border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
+.note b{color:var(--ink)}
+.note.alarm{border-left-color:var(--red);background:var(--red-soft)}
+.note.good{border-left-color:var(--green2);background:var(--green-soft)}
+
+ul.log{list-style:none;font-size:13.5px}
+ul.log li{padding:7px 0 7px 16px;border-bottom:1px solid var(--line);position:relative;color:var(--ink2)}
+ul.log li:last-child{border-bottom:none}
+ul.log li::before{content:"";position:absolute;left:0;top:14px;width:5px;height:5px;border-radius:50%;
+  background:var(--green2)}
+ul.log li.w::before{background:var(--bronze2)}
+ul.log li b{color:var(--ink)}
+ul.log li .d{color:var(--faint);font-size:12.5px}
+
+details.set{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0;margin-top:14px}
+details.set>summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+details.set>summary::-webkit-details-marker{display:none}
+details.set>summary::before{content:"▸ ";color:var(--bronze)}
+details.set[open]>summary::before{content:"▾ "}
+.setbody{padding:4px 16px 18px;border-top:1px solid var(--line)}
+.fld{display:grid;gap:4px;margin-top:13px}
+.fld label{font-size:12px;color:var(--mute)}
+.fld input{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;background:var(--bg);width:100%}
+@media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
+
+.err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;
+  padding:12px 15px;font-size:13.5px;margin-top:14px}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)}
+</style>
+
+<header class="top"><div class="top-in">
+  <span class="brand">ОМЕГА<em>обмен с бухгалтерией</em></span>
+  <span class="top-note">файлы остаются на этом компьютере</span>
+</div></header>
+
+<div class="wrap">
+
+<h1>Выгрузка из УМЦ в 1С:Бухгалтерию</h1>
+<p class="lede">Положите сюда файл обмена — приложение проверит его по бухгалтерскому чек-листу,
+подставит недостающие реквизиты, сверит кассу с фискальными данными ОФД и отдаст файл,
+готовый к загрузке.</p>
+
+<div class="slots">
+  <div class="slot" id="s-xml"><span class="req">обязательно</span>
+    <h3>Файл обмена</h3>
+    <p>XML из «Выгрузка в 1С:Бухгалтерию предприятия»</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-ofd">
+    <h3>Отчёт ОФД</h3>
+    <p>«Такском-Касса», сводный по фискальным документам (xlsx)</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-pay">
+    <h3>Реестр оплат</h3>
+    <p>«Детально по документам (Оплаты)» из УМЦ (xlsx)</p>
+    <div class="got" hidden></div></div>
+</div>
+
+<div class="btnrow">
+  <button class="btn" id="run" disabled>Проверить и исправить</button>
+  <button class="btn ghost" id="save" disabled>Скачать исправленный файл</button>
+  <button class="btn ghost" id="clear">Очистить</button>
+</div>
+
+<details class="set"><summary>Настройки подстановки</summary>
+  <div class="setbody">
+    <p class="sb" style="margin:10px 0 0">Названия должны совпадать с элементами справочников
+    в вашей бухгалтерии символ в символ: поиск при загрузке идёт по наименованию,
+    и опечатка создаст новый элемент вместо существующего. Настройки сохраняются в этом браузере.</p>
+    <div class="grid2">
+      <div class="fld"><label>Склад по умолчанию</label><input id="c-sklad" placeholder="Основной склад"></div>
+      <div class="fld"><label>Розничный покупатель (контрагент)</label><input id="c-kontr" placeholder="Розничный покупатель"></div>
+      <div class="fld"><label>Статья ДДС — розничная выручка</label><input id="c-ddsr" placeholder="Розничная выручка"></div>
+      <div class="fld"><label>Статья ДДС — инкассация</label><input id="c-ddsi" placeholder="Внутреннее перемещение денежных средств"></div>
+      <div class="fld"><label>Статья ДДС — получение наличных в банке</label><input id="c-ddsb" placeholder="Получение наличных в банке"></div>
+      <div class="fld"><label>Ставка НДС для медуслуг</label><input id="c-nds" placeholder="БезНДС"></div>
+    </div>
+    <div id="sklady"></div>
+  </div>
+</details>
+
+<div id="err"></div>
+<div id="out"></div>
+
+<footer>
+  Наличные в отчёте о розничных продажах считаются как остаток суммы документа:
+  товары − возвраты + предоплата − возврат предоплаты − (эквайринг − возврат по карте) − зачёт аванса.
+  Проверено на 01–14.09.2026 — сходится с ОФД все четырнадцать дней.
+</footer>
+</div>
+
+<script>__SHEETJS__</script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const S = v => v == null ? "" : String(v).replace(/\s+/g, " ").trim();
+const num = v => {
+  if (typeof v === "number") return v;
+  const t = S(v).replace(/\s/g, "").replace(",", ".");
+  const x = parseFloat(t);
+  return isFinite(x) ? x : 0;
+};
+const fmt = x => (x == null || !isFinite(x)) ? "—"
+  : x.toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt0 = x => (x == null || !isFinite(x)) ? "—" : Math.round(x).toLocaleString("ru-RU");
+const esc = s => S(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const R2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+
+/* ---------- настройки ---------- */
+const CFG_KEY = "obmen-nastroyki-v1";
+const CFG_FIELDS = {"c-sklad":"Основной склад", "c-kontr":"Розничный покупатель",
+  "c-ddsr":"Розничная выручка", "c-ddsi":"Внутреннее перемещение денежных средств",
+  "c-ddsb":"Получение наличных в банке", "c-nds":"БезНДС"};
+let CFG = {}, SKLADY = {};
+function loadCfg(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(CFG_KEY) || "{}"); } catch(e){}
+  CFG = Object.assign({}, CFG_FIELDS, saved.fields || {});
+  SKLADY = saved.sklady || {};
+  for (const k in CFG_FIELDS) $("#" + k).value = CFG[k];
+}
+function saveCfg(){
+  for (const k in CFG_FIELDS) CFG[k] = S($("#" + k).value) || CFG_FIELDS[k];
+  document.querySelectorAll("[data-sklad]").forEach(i => { SKLADY[i.dataset.sklad] = S(i.value); });
+  try { localStorage.setItem(CFG_KEY, JSON.stringify({fields:CFG, sklady:SKLADY})); } catch(e){}
+}
+document.addEventListener("input", e => {
+  if (e.target.matches("[id^=c-],[data-sklad]")) saveCfg();
+});
+
+/* ---------- чтение файла обмена (формат «Конвертации данных 2.0») ---------- */
+const kids = (el, tag) => [...el.children].filter(c => c.tagName === tag);
+const kid = (el, tag) => [...el.children].find(c => c.tagName === tag) || null;
+const propEl = (node, name) =>
+  [...node.children].find(c => c.tagName === "Свойство" && c.getAttribute("Имя") === name) || null;
+
+function propVal(p){
+  const v = kid(p, "Значение");
+  if (v) return S(v.textContent);
+  if (kid(p, "Пусто")) return "";
+  const r = kid(p, "Ссылка");
+  if (r){
+    const n = propEl(r, "Наименование");
+    if (n) return S(kid(n, "Значение") ? kid(n, "Значение").textContent : "");
+    return "<ссылка>";
+  }
+  return "";
+}
+function propsOf(node){
+  const out = {};
+  for (const p of kids(node, "Свойство")) out[p.getAttribute("Имя")] = propVal(p);
+  return out;
+}
+function refUid(rec, name){
+  const p = propEl(rec, name); if (!p) return "";
+  const r = kid(p, "Ссылка"); if (!r) return "";
+  const u = propEl(r, "{УникальныйИдентификатор}");
+  return u ? S(kid(u, "Значение") ? kid(u, "Значение").textContent : "") : "";
+}
+
+function parseExchange(text){
+  const xdoc = new DOMParser().parseFromString(text, "application/xml");
+  if (xdoc.getElementsByTagName("parsererror").length)
+    throw new Error("Файл не читается как XML.");
+  if (xdoc.documentElement.tagName !== "ФайлОбмена")
+    throw new Error("Это не файл обмена 1С: корневой узел «" + xdoc.documentElement.tagName + "».");
+  const objs = [...xdoc.getElementsByTagName("Объект")].map(o => {
+    const ref = kid(o, "Ссылка");
+    const props = Object.assign({}, ref ? propsOf(ref) : {}, propsOf(o));
+    const tabs = {};
+    for (const t of kids(o, "ТабличнаяЧасть"))
+      tabs[t.getAttribute("Имя")] = [...t.children].map(r => propsOf(r));
+    const full = o.getAttribute("Тип") || "";
+    return {el:o, ref, full, type:full.split(".").pop(), rule:o.getAttribute("ИмяПравила") || "",
+            props, tabs, day:(props["Дата"] || "").slice(0,10)};
+  });
+  const head = xdoc.documentElement.attributes;
+  return {xdoc, objs,
+    period:[S(head["НачалоПериодаВыгрузки"] && head["НачалоПериодаВыгрузки"].value).slice(0,10),
+            S(head["ОкончаниеПериодаВыгрузки"] && head["ОкончаниеПериодаВыгрузки"].value).slice(0,10)]};
+}
+
+/* ---------- справочник номенклатуры: товар или услуга ---------- */
+function nomenclature(objs){
+  const map = {};
+  for (const o of objs){
+    if (o.full.indexOf("СправочникСсылка.Номенклатура") !== 0) continue;
+    if (!o.ref) continue;
+    const uid = S(o.props["{УникальныйИдентификатор}"]);
+    if (uid) map[uid] = {name:o.props["Наименование"] || "", service:o.props["Услуга"] === "true"};
+  }
+  return map;
+}
+
+/* ---------- деньги по дням ---------- */
+const NOT_REVENUE = ["ПолучениеНаличныхВБанке", "ВозвратОтПоставщика", "ПрочийПриход",
+                     "РасчетыПоКредитамИЗаймам", "ВозвратДенежныхСредствПодотчетником"];
+const tabSum = (d, tab, field) => (d.tabs[tab] || []).reduce((s, r) => s + num(r[field]), 0);
+
+function moneyByDay(objs){
+  const days = {};
+  const D = k => days[k] || (days[k] = {cash:0, card:0, adv:0, prepay:0, rev:0,
+                                        refund:0, other:0, out:0});
+  for (const d of objs){
+    if (!d.day || d.full.indexOf("Документ") !== 0) continue;
+    const v = D(d.day);
+    if (d.type === "ОтчетОРозничныхПродажах"){
+      const g  = tabSum(d, "Товары", "Сумма"),      gb = tabSum(d, "Возвраты", "Сумма"),
+            pp = tabSum(d, "Предоплаты", "Сумма"),  pb = tabSum(d, "Предоплаты", "СуммаВозврат"),
+            c  = tabSum(d, "Оплата", "СуммаОплаты"), cb = tabSum(d, "ВозвратОплаты", "СуммаОплаты"),
+            a  = tabSum(d, "ЗачетАвансов", "СуммаЗачета");
+      /* наличных в ОРП нет отдельной строкой — это остаток суммы документа
+         после всех прочих способов её закрыть */
+      v.cash += g - gb + pp - pb - (c - cb) - a;
+      v.card += c - cb;
+      v.adv += a; v.prepay += pp; v.rev += g - gb;
+      v.refund += Math.max(cb, pb);
+    } else if (d.type === "ПриходныйКассовыйОрдер"){
+      const s = num(d.props["СуммаДокумента"]) || tabSum(d, "РасшифровкаПлатежа", "СуммаПлатежа");
+      if (NOT_REVENUE.indexOf(d.props["ВидОперации"] || "") >= 0) v.other += s; else v.cash += s;
+    } else if (d.type === "РасходныйКассовыйОрдер"){
+      v.out += num(d.props["СуммаДокумента"]);
+    } else if (d.type === "ОперацияПоПлатежнойКарте" || d.type === "ОплатаПлатежнойКартой"){
+      v.card += num(d.props["СуммаДокумента"]);
+    } else if (d.type === "РеализацияТоваровУслуг" || d.type === "ОказаниеУслуг"){
+      v.rev += num(d.props["СуммаДокумента"]);
+    }
+  }
+  return days;
+}
+
+/* ---------- чтение xlsx ---------- */
+function realRange(ws){
+  const r0 = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  let sr = r0.s.r, sc = r0.s.c, er = r0.e.r, ec = r0.e.c;
+  for (const k in ws){
+    if (k.charCodeAt(0) === 33) continue;
+    const a = XLSX.utils.decode_cell(k);
+    if (a.r < sr) sr = a.r; if (a.c < sc) sc = a.c;
+    if (a.r > er) er = a.r; if (a.c > ec) ec = a.c;
+  }
+  return {s:{r:sr, c:sc}, e:{r:er, c:ec}};
+}
+function gridOf(ws){                    /* объявленный диапазон листа у 1С врёт */
+  const rng = realRange(ws), rows = [];
+  for (let r = rng.s.r; r <= rng.e.r; r++){
+    const row = [];
+    for (let c = rng.s.c; c <= rng.e.c; c++){
+      const cell = ws[XLSX.utils.encode_cell({r, c})];
+      row.push(cell ? cell.v : null);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+function findHead(rows, must){
+  for (let r = 0; r < Math.min(rows.length, 30); r++){
+    const h = rows[r].map(S);
+    if (must.every(n => h.indexOf(n) >= 0)) return {r, h};
+  }
+  return null;
+}
+const dayOf = v => {
+  if (v instanceof Date && !isNaN(v))            /* SheetJS отдаёт даты объектами */
+    return v.getFullYear() + "-" + String(v.getMonth() + 1).padStart(2, "0") +
+           "-" + String(v.getDate()).padStart(2, "0");
+  const s = S(v);
+  let m = /(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[1] + "-" + m[2] + "-" + m[3];
+  m = /(\d{2})\.(\d{2})\.(\d{4})/.exec(s);
+  return m ? m[3] + "-" + m[2] + "-" + m[1] : "";
+};
+
+/* отчёт ОФД: живые деньги и зачёт аванса по дням */
+function parseOfd(wb){
+  for (const name of wb.SheetNames){
+    const rows = gridOf(wb.Sheets[name]);
+    const H = findHead(rows, ["Наличными", "Сумма"]);
+    if (!H) continue;
+    const ci = {};
+    ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","Сумма"]
+      .forEach(k => ci[k] = H.h.indexOf(k));
+    if (ci["Документ"] < 0) continue;
+    const t = {checks:0, days:{}, cash:0, card:0, adv:0, refund:0};
+    for (let r = H.r + 1; r < rows.length; r++){
+      if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;
+      const sum = num(rows[r][ci["Сумма"]]);
+      if (!sum) continue;
+      t.checks++;
+      const cash = num(rows[r][ci["Наличными"]]), card = num(rows[r][ci["Безналичными"]]),
+            adv = ci["Аванс"] >= 0 ? num(rows[r][ci["Аванс"]]) : 0;
+      t.cash += cash; t.card += card; t.adv += adv;
+      if (/озврат/i.test(S(rows[r][ci["Тип операции"]]))) t.refund += Math.abs(sum);
+      const day = dayOf(rows[r][ci["Дата и время"]]);
+      if (!day) continue;
+      const d = t.days[day] || (t.days[day] = {cash:0, card:0, adv:0});
+      d.cash += cash; d.card += card; d.adv += adv;
+    }
+    return t;
+  }
+  return null;
+}
+
+/* реестр оплат: ищем задвоенные услуги */
+function parsePayments(wb){
+  for (const name of wb.SheetNames){
+    const rows = gridOf(wb.Sheets[name]);
+    let kind = "", recs = [], total = 0;
+    for (const row of rows){
+      const label = S(row[0]);
+      if (label === "Наличными" || label === "Безналичными"){ kind = label; continue; }
+      if (label === "Итого") { kind = ""; continue; }
+      if (!label || label.indexOf("Оказание услуг") !== 0) continue;
+      let sum = 0;
+      for (let c = row.length - 1; c >= 1; c--) if (typeof row[c] === "number"){ sum = row[c]; break; }
+      if (!sum) continue;
+      const m = /Оказание услуг\s+(\S+)\s+от\s+(\d{2}\.\d{2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})/.exec(label);
+      if (!m) continue;
+      let client = "";
+      for (let c = 1; c < row.length; c++){
+        const v = S(row[c]);
+        if (v && typeof row[c] === "string" && v !== label){ client = v; break; }
+      }
+      recs.push({kind, num:m[1], day:dayOf(m[2]), time:m[3], client, sum});
+      total += sum;
+    }
+    if (recs.length) return {recs, total};
+  }
+  return null;
+}
+function duplicates(recs){
+  const g = {};
+  for (const r of recs){
+    const k = r.day + "|" + r.client + "|" + r.sum;
+    (g[k] || (g[k] = [])).push(r);
+  }
+  const out = [];
+  for (const k in g) if (g[k].length > 1) out.push(g[k]);
+  out.sort((a, b) => a[0].day < b[0].day ? -1 : 1);
+  return out;
+}
+
+/* ---------- правка файла ---------- */
+const DIR_TYPE = {
+  "Склад": ["СправочникСсылка.Склады", "Склады"],
+  "СтатьяДвиженияДенежныхСредств":
+    ["СправочникСсылка.СтатьиДвиженияДенежныхСредств", "СтатьиДвиженияДенежныхСредств"],
+  "Контрагент": ["СправочникСсылка.Контрагенты", "Контрагенты"]
+};
+function setDirectory(xdoc, prop, name, value){
+  const [type, rule] = DIR_TYPE[name];
+  prop.setAttribute("Тип", type);
+  prop.setAttribute("ИмяПКО", rule);
+  while (prop.firstChild) prop.removeChild(prop.firstChild);
+  const ref = xdoc.createElement("Ссылка");
+  const sub = xdoc.createElement("Свойство");
+  sub.setAttribute("Имя", "Наименование"); sub.setAttribute("Тип", "Строка");
+  const val = xdoc.createElement("Значение");
+  val.textContent = value;
+  sub.appendChild(val); ref.appendChild(sub); prop.appendChild(ref);
+}
+function setValue(xdoc, prop, value){
+  while (prop.firstChild) prop.removeChild(prop.firstChild);
+  if (value === "") prop.appendChild(xdoc.createElement("Пусто"));
+  else { const v = xdoc.createElement("Значение"); v.textContent = value; prop.appendChild(v); }
+}
+
+const DDS_BY_OP = () => ({
+  "ОплатаПокупателя": CFG["c-ddsr"],
+  "ВозвратПокупателю": CFG["c-ddsr"],
+  "ПолучениеНаличныхВБанке": CFG["c-ddsb"],
+  "Инкассация": CFG["c-ddsi"]
+});
+
+function fixAll(ex){
+  const {xdoc, objs} = ex, nom = nomenclature(objs), dds = DDS_BY_OP();
+  const fixed = [], warned = [];
+  const F = (doc, what, was, now) => fixed.push({doc, what, was, now});
+  const W = (doc, what, detail) => warned.push({doc, what, detail});
+
+  for (const d of objs){
+    if (d.full.indexOf("Документ") !== 0) continue;
+    const name = d.type + " от " + (d.day || "?");
+    const где = d.ref || d.el;
+    const op = d.props["ВидОперации"] || "";
+
+    if (d.type === "ОтчетОРозничныхПродажах"){
+      const p = propEl(где, "Склад") || propEl(d.el, "Склад");
+      if (p && !propVal(p)){
+        const подр = S((d.props["Комментарий"] || "").split(".")[0]);
+        const склад = S(SKLADY[подр]) || CFG["c-sklad"];
+        if (склад){ setDirectory(xdoc, p, "Склад", склад); F(name, "склад", "пусто", склад); }
+        else W(name, "склад не заполнен", "подразделение «" + подр + "»");
+      }
+    }
+    if (d.type === "ПриходныйКассовыйОрдер" || d.type === "РасходныйКассовыйОрдер"){
+      let p = propEl(d.el, "СтатьяДвиженияДенежныхСредств") ||
+              propEl(где, "СтатьяДвиженияДенежныхСредств");
+      if (p && !propVal(p)){
+        const ст = dds[op];
+        if (ст){ setDirectory(xdoc, p, "СтатьяДвиженияДенежныхСредств", ст);
+                 F(name, "статья ДДС", "пусто", ст); }
+        else W(name, "статья ДДС не заполнена", "вид операции «" + op + "»");
+      }
+      if (op === "ОплатаПокупателя"){
+        let k = propEl(d.el, "Контрагент") || propEl(где, "Контрагент");
+        if (k && !propVal(k)){
+          if (CFG["c-kontr"]){ setDirectory(xdoc, k, "Контрагент", CFG["c-kontr"]);
+                               F(name, "контрагент", "пусто", CFG["c-kontr"]); }
+          else W(name, "контрагент не заполнен", "ПКО без контрагента не проведётся");
+        }
+      }
+      const ч = propEl(d.el, "НомерЧекаККМ");
+      if (ч && propVal(ч) === "-1"){ setValue(xdoc, ч, ""); F(name, "номер чека ККМ", "-1", "пусто"); }
+    }
+    if ((d.props["Дата"] || "").endsWith("T12:00:00"))
+      W(name, "дата проставлена вручную", "ровно полдень — сверьте с датой чека ОФД");
+
+    /* ставка НДС по строкам */
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const имя = t.getAttribute("Имя");
+      if (["Товары", "Возвраты", "Предоплаты", "АгентскиеУслуги"].indexOf(имя) < 0) continue;
+      for (const rec of [...t.children]){
+        const p = propEl(rec, "СтавкаНДС"); if (!p) continue;
+        const было = propVal(p);
+        if (было === CFG["c-nds"]) continue;
+        const поз = nom[refUid(rec, "Номенклатура")] || {name:"", service:true};
+        const sp = propEl(rec, "Сумма");
+        const сумма = sp ? fmt0(num(propVal(sp))) : "";
+        if (было){
+          W(name, "строка с НДС", (поз.name || "?").slice(0, 38) +
+            " — ставка " + было + ", сумма " + сумма);
+        } else if (!поз.service){
+          /* товару «Без НДС» ставить нельзя: освобождение по пп. 2 п. 2 ст. 149 НК —
+             про медуслуги, бельё и косметика продаются с налогом */
+          W(name, "товар без ставки НДС", (поз.name || "?").slice(0, 38) +
+            " — сумма " + сумма + ", заполните ставку в карточке");
+        } else {
+          setValue(xdoc, p, CFG["c-nds"]);
+          F(name, "ставка НДС", "пусто", CFG["c-nds"]);
+        }
+      }
+    }
+  }
+  return {fixed, warned};
+}
+
+/* ---------- отрисовка ---------- */
+function group(list, key){
+  const g = {};
+  for (const x of list) (g[x[key]] || (g[x[key]] = [])).push(x);
+  return g;
+}
+function logList(items, cls){
+  const g = group(items, "what"), out = [];
+  for (const what in g){
+    const rows = g[what].slice(0, 6).map(x =>
+      '<li class="' + cls + '"><b>' + esc(x.doc) + '</b> · ' +
+      esc(x.was != null ? (x.was + " → " + x.now) : x.detail) + '</li>').join("");
+    out.push('<h3 style="font-size:13.5px;margin:16px 0 2px">' + esc(what) +
+      ' <span class="d" style="color:var(--faint);font-weight:400">— ' + g[what].length + '</span></h3>' +
+      '<ul class="log">' + rows +
+      (g[what].length > 6 ? '<li class="' + cls + '"><span class="d">… ещё ' +
+        (g[what].length - 6) + '</span></li>' : '') + '</ul>');
+  }
+  return out.join("");
+}
+
+function render(ex, fixres, ofd, pay){
+  const days = moneyByDay(ex.objs);
+  const keys = Object.keys(days).sort();
+  const tot = {cash:0, card:0, adv:0, prepay:0, rev:0, refund:0, other:0, out:0};
+  keys.forEach(k => { for (const f in tot) tot[f] += days[k][f]; });
+
+  const состав = {};
+  ex.objs.forEach(o => { const t = o.type; составAdd(состав, t, o); });
+  let html = "";
+
+  /* карточки */
+  html += '<section><div class="kick">§ 1 · Что в файле</div><h2>Состав выгрузки</h2>' +
+    '<div class="sb">Период ' + esc(ex.period[0]) + ' — ' + esc(ex.period[1]) +
+    ', документов ' + ex.objs.filter(o => o.full.indexOf("Документ") === 0).length +
+    ', объектов всего ' + ex.objs.length + '</div>';
+  html += '<div class="cards">' +
+    card("Реализация", fmt0(tot.rev), "Кт 90.01") +
+    card("Получена предоплата", fmt0(tot.prepay), "Кт 62.Р") +
+    card("Зачёт аванса", fmt0(tot.adv), "Дт 62.Р Кт 90.01") +
+    card("Наличные", fmt0(tot.cash), "Дт 50.01") +
+    card("Эквайринг", fmt0(tot.card), "Дт 57.03") +
+    (tot.out ? card("Инкассация", fmt0(tot.out), "Дт 57.01 Кт 50.01") : "") +
+    '</div>';
+  html += '<div class="tw"><table><thead><tr><th>Документ</th><th>Штук</th><th>Сумма, ₽</th></tr></thead><tbody>' +
+    Object.keys(состав).sort((a, b) => состав[b].n - состав[a].n).map(t =>
+      '<tr><td>' + esc(HUMAN[t] || t) + '</td><td class="mono">' + состав[t].n +
+      '</td><td class="mono">' + (состав[t].s ? fmt(состав[t].s) : "—") + '</td></tr>').join("") +
+    '</tbody></table></div>';
+  if (tot.other) html += '<div class="note">Из наличных <b>' + fmt0(tot.other) +
+    ' ₽</b> пришло не от пациентов (получение налички в банке) — в фискальных данных этого быть не должно, ' +
+    'в сверку с ОФД не идёт.</div>';
+  html += '</section>';
+
+  /* протокол */
+  html += '<section><div class="kick">§ 2 · Доводка</div><h2>Что поправлено в файле</h2>' +
+    '<div class="sb">Исправлено ' + fixres.fixed.length + ' · смотреть руками ' +
+    fixres.warned.length + '</div>';
+  html += fixres.fixed.length ? logList(fixres.fixed, "") :
+    '<div class="note good">Править нечего — файл можно грузить как есть.</div>';
+  if (fixres.warned.length){
+    html += '<div style="margin-top:22px"><div class="kick">на ваши глаза</div></div>' +
+      logList(fixres.warned, "w");
+  }
+  html += '</section>';
+
+  /* сверка */
+  if (ofd){
+    const all = [...new Set(keys.concat(Object.keys(ofd.days)))].sort();
+    let bad = 0, rows = "";
+    const sums = {cash:[0,0], card:[0,0], adv:[0,0]};
+    for (const day of all){
+      const o = days[day] || {cash:0, card:0, adv:0};
+      const x = ofd.days[day] || {cash:0, card:0, adv:0};
+      const line = [["наличные","cash","cash"],["карты","card","card"],["зачёт аванса","adv","adv"]];
+      line.forEach(([label, ours, theirs], i) => {
+        const a = ours === "adv" ? o.adv : o[ours], b = x[theirs];
+        sums[theirs][0] += a; sums[theirs][1] += b;
+        const diff = R2(a - b), off = Math.abs(diff) >= 1;
+        if (off) bad++;
+        rows += '<tr class="' + (i === 0 ? "day-first gap" : "") + '"><td>' +
+          (i === 0 ? esc(day) : "") + '</td><td style="text-align:left;color:var(--mute)">' + label +
+          '</td><td class="mono">' + fmt(a) + '</td><td class="mono">' + fmt(b) +
+          '</td><td class="mono ' + (off ? "bad" : "ok") + '">' + (off ? fmt(diff) : "0,00") + '</td></tr>';
+      });
+    }
+    rows += '<tr class="sum"><td>Итого</td><td style="text-align:left">живые деньги</td>' +
+      '<td class="mono">' + fmt(sums.cash[0] + sums.card[0]) + '</td><td class="mono">' +
+      fmt(sums.cash[1] + sums.card[1]) + '</td><td class="mono ' +
+      (Math.abs(sums.cash[0]+sums.card[0]-sums.cash[1]-sums.card[1]) < 1 ? "ok" : "bad") + '">' +
+      fmt(R2(sums.cash[0] + sums.card[0] - sums.cash[1] - sums.card[1])) + '</td></tr>';
+    html += '<section><div class="kick">§ 3 · Сверка</div><h2>Выгрузка против фискальных данных</h2>' +
+      '<div class="sb">Чеков в отчёте ОФД: ' + ofd.checks + '</div>';
+    const нал = R2(sums.cash[0] - sums.cash[1]);
+    html += '<div class="cards">' +
+      cardCmp("Наличные", sums.cash[0], sums.cash[1]) +
+      cardCmp("Карты", sums.card[0], sums.card[1]) +
+      cardCmp("Зачёт аванса", sums.adv[0], sums.adv[1]) + '</div>';
+    html += '<div class="tw"><table><thead><tr><th>День</th><th style="text-align:left">Что</th>' +
+      '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' + rows +
+      '</tbody></table></div>';
+    if (!bad) html += '<div class="note good">Сходится день в день по всем трём величинам.</div>';
+    else {
+      html += '<div class="note"><b>Расхождений: ' + bad + '.</b> Обычные причины: ' +
+        'возврат проведён в программе одной датой, а чек пробит другой — тогда соседние дни ' +
+        'расходятся на одну и ту же сумму с разными знаками; ' +
+        'зачёт аванса без чека предоплаты — по 54-ФЗ чек обязателен (тег 1215).</div>';
+      if (Math.abs(нал) < 1) html += '<div class="note good">Наличные при этом сошлись полностью — ' +
+        'касса в порядке, расхождения в эквайринге и авансах.</div>';
+    }
+    html += '</section>';
+  }
+
+  /* дубли */
+  if (pay){
+    const dups = duplicates(pay.recs);
+    const extra = dups.reduce((s, g) => s + g.length - 1, 0);
+    const lost = dups.reduce((s, g) => s + g[0].sum * (g.length - 1), 0);
+    html += '<section><div class="kick">§ 4 · Задвоение</div><h2>Повторно заведённые услуги</h2>' +
+      '<div class="sb">Оплат через «Оказание услуг»: ' + pay.recs.length +
+      '. Признак дубля — один день, один клиент, одна сумма, разные документы.</div>';
+    html += '<div class="cards">' +
+      card("Групп", String(dups.length), "") +
+      card("Лишних платежей", String(extra), "") +
+      card("Сумма лишних", fmt0(lost), "₽") + '</div>';
+    if (dups.length){
+      html += '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Сумма</th>' +
+        '<th>Раз</th><th style="text-align:left">Документы и время</th></tr></thead><tbody>' +
+        dups.slice(0, 40).map(g =>
+          '<tr><td>' + esc(g[0].day) + '</td><td>' + esc(g[0].client) + '</td><td class="mono">' +
+          fmt0(g[0].sum) + '</td><td class="mono">×' + g.length + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(g.map(x => x.num.slice(-6) + " " + x.time).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div>' +
+        '<div class="note">Проверьте эти документы в УМЦ до загрузки: если услуга действительно ' +
+        'оказана один раз, лишние документы надо пометить на удаление, иначе выручка задвоится.</div>';
+    } else html += '<div class="note good">Дублей не найдено.</div>';
+    html += '</section>';
+  }
+
+  $("#out").innerHTML = html;
+}
+function составAdd(состав, t, o){
+  const e = состав[t] || (состав[t] = {n:0, s:0});
+  e.n++;
+  if (o.type === "ОтчетОРозничныхПродажах")
+    e.s += tabSum(o, "Товары", "Сумма") + tabSum(o, "Предоплаты", "Сумма");
+  else e.s += num(o.props["СуммаДокумента"]) || tabSum(o, "РасшифровкаПлатежа", "СуммаПлатежа");
+}
+const HUMAN = {
+  "ОтчетОРозничныхПродажах":"Отчёт о розничных продажах",
+  "ПриходныйКассовыйОрдер":"Приходный кассовый ордер",
+  "РасходныйКассовыйОрдер":"Расходный кассовый ордер",
+  "ОплатаПлатежнойКартой":"Оплата платёжной картой",
+  "ОперацияПоПлатежнойКарте":"Оплата платёжной картой",
+  "РеализацияТоваровУслуг":"Реализация товаров и услуг",
+  "ПоступлениеТоваровУслуг":"Поступление товаров и услуг",
+  "ВидыОплатОрганизаций":"Виды оплат организаций",
+  "СтатьиДвиженияДенежныхСредств":"Статьи движения денежных средств",
+  "КлассификаторЕдиницИзмерения":"Классификатор единиц измерения"
+};
+const card = (l, v, n) =>
+  '<div class="card"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' +
+  (n ? '<div class="n">' + esc(n) + '</div>' : '') + '</div>';
+const cardCmp = (l, a, b) => {
+  const d = R2(a - b), ok = Math.abs(d) < 1;
+  return '<div class="card ' + (ok ? "good" : "warn") + '"><div class="l">' + esc(l) +
+    '</div><div class="v">' + fmt0(a) + '</div><div class="n">' +
+    (ok ? "сходится с ОФД" : "ОФД " + fmt0(b) + ", разница " + fmt0(d)) + '</div></div>';
+};
+
+/* ---------- склады по подразделениям ---------- */
+function skladInputs(objs){
+  const подр = [...new Set(objs.filter(o => o.type === "ОтчетОРозничныхПродажах")
+    .map(o => S((o.props["Комментарий"] || "").split(".")[0])).filter(Boolean))];
+  if (!подр.length){ $("#sklady").innerHTML = ""; return; }
+  $("#sklady").innerHTML = '<p class="sb" style="margin:18px 0 0">Подразделения из файла — ' +
+    'если ведёте корпуса раздельными складами, укажите свой для каждого. ' +
+    'Пусто — возьмётся склад по умолчанию.</p><div class="grid2">' +
+    подр.map(p => '<div class="fld"><label>' + esc(p) + '</label>' +
+      '<input data-sklad="' + esc(p) + '" value="' + esc(SKLADY[p] || "") + '"></div>').join("") +
+    '</div>';
+}
+
+/* ---------- файлы ---------- */
+const FILES = {xml:null, ofd:null, pay:null};
+let FIXED_TEXT = "", FIXED_NAME = "";
+
+function slot(id, key, accept, label){
+  const el = $("#" + id);
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = accept; input.hidden = true;
+  el.appendChild(input);
+  el.addEventListener("click", () => input.click());
+  input.addEventListener("change", () => { if (input.files[0]) take(key, input.files[0]); });
+  ["dragenter","dragover"].forEach(e => el.addEventListener(e, ev => {
+    ev.preventDefault(); el.classList.add("over"); }));
+  ["dragleave","drop"].forEach(e => el.addEventListener(e, ev => {
+    ev.preventDefault(); el.classList.remove("over"); }));
+  el.addEventListener("drop", ev => { if (ev.dataTransfer.files[0]) take(key, ev.dataTransfer.files[0]); });
+  el.dataset.key = key; el.dataset.label = label;
+}
+function take(key, file){
+  FILES[key] = file;
+  const el = document.querySelector('[data-key="' + key + '"]');
+  el.classList.add("ok");
+  const got = el.querySelector(".got");
+  got.hidden = false; got.textContent = file.name;
+  $("#run").disabled = !FILES.xml;
+  $("#err").innerHTML = "";
+}
+["s-xml","s-ofd","s-pay"].forEach((id, i) =>
+  slot(id, ["xml","ofd","pay"][i], [".xml",".xlsx,.xls",".xlsx,.xls"][i], id));
+
+const readText = f => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => res(r.result); r.onerror = () => rej(new Error("не читается " + f.name));
+  r.readAsText(f, "utf-8");
+});
+const readBook = f => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => { try { res(XLSX.read(new Uint8Array(r.result), {type:"array", cellDates:true})); }
+                     catch(e){ rej(new Error(f.name + ": " + e.message)); } };
+  r.onerror = () => rej(new Error("не читается " + f.name));
+  r.readAsArrayBuffer(f);
+});
+
+$("#run").addEventListener("click", async () => {
+  $("#err").innerHTML = ""; $("#out").innerHTML = "";
+  $("#save").disabled = true;
+  try {
+    saveCfg();
+    const text = await readText(FILES.xml);
+    const ex = parseExchange(text);
+    skladInputs(ex.objs);
+    const fixres = fixAll(ex);
+    const ofd = FILES.ofd ? parseOfd(await readBook(FILES.ofd)) : null;
+    if (FILES.ofd && !ofd) throw new Error("В отчёте ОФД не нашлась таблица с колонками «Наличными» и «Сумма».");
+    const pay = FILES.pay ? parsePayments(await readBook(FILES.pay)) : null;
+    if (FILES.pay && !pay) throw new Error("В реестре оплат не нашлось строк «Оказание услуг …».");
+    render(ex, fixres, ofd, pay);
+    /* сериализатор сам ставит объявление кодировки — второе сломает файл */
+    const body = new XMLSerializer().serializeToString(ex.xdoc);
+    FIXED_TEXT = body.startsWith("<?xml")
+      ? body : '<?xml version="1.0" encoding="UTF-8"?>\n' + body;
+    FIXED_NAME = FILES.xml.name.replace(/\.xml$/i, "") + "-исправленный.xml";
+    $("#save").disabled = !fixres.fixed.length;
+    if (!fixres.fixed.length) $("#save").textContent = "Править нечего";
+  } catch (e){
+    $("#err").innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+  }
+});
+$("#save").addEventListener("click", () => {
+  const blob = new Blob([FIXED_TEXT], {type:"application/xml"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = FIXED_NAME;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+});
+$("#clear").addEventListener("click", () => {
+  for (const k in FILES) FILES[k] = null;
+  document.querySelectorAll(".slot").forEach(el => {
+    el.classList.remove("ok");
+    const g = el.querySelector(".got"); g.hidden = true; g.textContent = "";
+  });
+  $("#out").innerHTML = ""; $("#err").innerHTML = "";
+  $("#run").disabled = true; $("#save").disabled = true;
+  $("#save").textContent = "Скачать исправленный файл";
+});
+loadCfg();
+</script>
