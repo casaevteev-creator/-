@@ -1,0 +1,259 @@
+<title>Обмен УМЦ с бухгалтерией</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FAF9F6; --panel:#FFFFFF; --sunk:#F4F1EB; --line:#E7E3D9; --ghost:#D9D4C9;
+  --ink:#1C1B18; --ink2:#423E37; --mute:#7C766C; --faint:#9C968A;
+  --green:#2E5E4E; --green-edge:#4A7A68; --green-soft:#E8EFEA;
+  --bronze:#8A7350; --bronze-edge:#B9895A; --bronze-soft:#F4EDE3;
+  --red:#A3423B; --red-soft:#F7E9E7;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:'Cormorant Garamond',Cambria,Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,'Liberation Mono',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15140F; --panel:#1E1C17; --sunk:#232019; --line:#332F26; --ghost:#433D32;
+    --ink:#EFEBE1; --ink2:#D0C9BB; --mute:#9B9284; --faint:#7B7365;
+    --green:#8DC4AB; --green-edge:#5E8E79; --green-soft:#1B2822;
+    --bronze:#CFA97C; --bronze-edge:#9A7C51; --bronze-soft:#2A2318;
+    --red:#E59289; --red-soft:#2F1E1B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15140F; --panel:#1E1C17; --sunk:#232019; --line:#332F26; --ghost:#433D32;
+  --ink:#EFEBE1; --ink2:#D0C9BB; --mute:#9B9284; --faint:#7B7365;
+  --green:#8DC4AB; --green-edge:#5E8E79; --green-soft:#1B2822;
+  --bronze:#CFA97C; --bronze-edge:#9A7C51; --bronze-soft:#2A2318;
+  --red:#E59289; --red-soft:#2F1E1B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--bronze-edge);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1040px;margin:0 auto;padding-inline:18px;padding-block:0 76px;
+  display:flex;flex-direction:column;gap:0}
+@media(min-width:760px){.wrap{padding-inline:28px}}
+
+header.top{border-bottom:1px solid var(--line);background:var(--panel);position:sticky;
+  top:env(safe-area-inset-top,0px);z-index:40}
+.top-in{max-width:1040px;margin:0 auto;padding-inline:18px;padding-block:13px;
+  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+@media(min-width:760px){.top-in{padding-inline:28px}}
+.brand{font-size:11px;font-weight:700;letter-spacing:.38em;text-transform:uppercase}
+.brand em{font-style:normal;font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:0;
+  color:var(--mute);margin-left:11px;text-transform:none}
+.top-note{margin-left:auto;font-size:12px;color:var(--faint)}
+
+h1{font-family:var(--serif);font-size:clamp(30px,4.6vw,42px);font-weight:600;line-height:1.12;
+  margin-block:34px 10px;text-wrap:balance}
+.lede{color:var(--ink2);max-width:64ch;margin-bottom:26px}
+h2{font-family:var(--serif);font-size:24px;font-weight:600;margin-bottom:4px;text-wrap:balance}
+h3{font-size:13.5px;font-weight:600}
+.kick{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--bronze);margin-bottom:7px}
+.sb{color:var(--mute);font-size:13.5px;margin-bottom:16px}
+section{margin-top:42px}
+
+.slots{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:720px){.slots{grid-template-columns:repeat(3,1fr)}}
+.slot{background:var(--panel);border:1px dashed var(--ghost);border-radius:12px;
+  padding:16px 15px;cursor:pointer;position:relative;
+  transition:border-color .15s,background .15s}
+.slot:hover,.slot.over{border-color:var(--bronze-edge);background:var(--bronze-soft)}
+.slot.ok{border-style:solid;border-color:var(--green-edge);background:var(--green-soft)}
+.slot h3{margin-bottom:3px;padding-right:74px}
+.slot p{font-size:12.5px;color:var(--mute);line-height:1.45}
+.slot .got{font-size:12px;color:var(--green);margin-top:7px;word-break:break-all;font-weight:500}
+.slot .req{position:absolute;top:15px;right:14px;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint)}
+
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.btn{background:var(--ink);color:var(--bg);border:1px solid var(--ink);border-radius:8px;
+  padding:9px 17px;font-size:14px;font-weight:600;cursor:pointer}
+.btn[disabled]{opacity:.32;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ghost);font-weight:500}
+.btn.ghost:hover:not([disabled]){background:var(--sunk)}
+.hint{font-size:12.5px;color:var(--faint);flex-basis:100%}
+
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 13px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute);font-weight:600;
+  background:var(--sunk);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tr.sum td{font-weight:700;background:var(--sunk);border-top:1px solid var(--ghost)}
+td.ok{color:var(--green);font-weight:600}
+td.bad{color:var(--red);font-weight:600}
+tr.day-first td:first-child{font-weight:600}
+tr.gap td{padding-top:14px}
+td.acc{font-family:var(--mono);color:var(--mute);font-size:12.5px}
+
+.cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.card .l{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+.card .v{font-size:20px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card .n{font-size:12px;color:var(--faint);margin-top:3px}
+.card.good{border-color:var(--green-edge);background:var(--green-soft)}
+.card.good .n{color:var(--green)}
+.card.warn{border-color:var(--bronze-edge);background:var(--bronze-soft)}
+.card.warn .n{color:var(--bronze)}
+
+.note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bronze-edge);
+  border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
+.note b{color:var(--ink)}
+.note.good{border-left-color:var(--green-edge);background:var(--green-soft)}
+
+ul.log{list-style:none;font-size:13.5px}
+ul.log li{padding:7px 0 7px 16px;border-bottom:1px solid var(--line);position:relative;color:var(--ink2)}
+ul.log li:last-child{border-bottom:none}
+ul.log li::before{content:"";position:absolute;left:0;top:14px;width:5px;height:5px;border-radius:50%;
+  background:var(--green-edge)}
+ul.log li.w::before{background:var(--bronze-edge)}
+ul.log li b{color:var(--ink)}
+ul.log li .d{color:var(--faint);font-size:12.5px}
+
+details.set{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:14px}
+details.set>summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+details.set>summary::-webkit-details-marker{display:none}
+details.set>summary::before{content:"▸ ";color:var(--bronze)}
+details.set[open]>summary::before{content:"▾ "}
+.setbody{padding:4px 16px 18px;border-top:1px solid var(--line)}
+.fld{display:grid;gap:4px;margin-top:13px}
+.fld label{font-size:12px;color:var(--mute)}
+.fld input{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;
+  background:var(--bg);color:var(--ink);width:100%}
+@media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
+
+.err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;
+  padding:12px 15px;font-size:13.5px;margin-top:14px}
+
+.rules{display:grid;gap:10px;grid-template-columns:1fr;margin-top:14px}
+@media(min-width:720px){.rules{grid-template-columns:1fr 1fr}}
+.rule{border-left:2px solid var(--green-edge);padding:2px 0 2px 13px}
+.rule.w{border-left-color:var(--bronze-edge)}
+.rule b{font-size:13.5px}
+.rule span{display:block;font-size:12.5px;color:var(--mute);line-height:1.45}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--faint);max-width:78ch}
+</style>
+
+<header class="top"><div class="top-in">
+  <span class="brand">ОМЕГА<em>обмен с бухгалтерией</em></span>
+  <span class="top-note">файлы читаются в браузере</span>
+</div></header>
+
+<div class="wrap">
+
+<h1>Выгрузка из УМЦ в 1С:Бухгалтерию</h1>
+<p class="lede">Положите сюда файл обмена — приложение проверит его по бухгалтерскому чек-листу,
+подставит недостающие реквизиты, сверит кассу с фискальными данными ОФД и отдаст файл,
+готовый к загрузке.</p>
+
+<div class="slots">
+  <div class="slot" id="s-xml"><span class="req">обязательно</span>
+    <h3>Файл обмена</h3>
+    <p>XML из «Выгрузка в 1С:Бухгалтерию предприятия»</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-ofd">
+    <h3>Отчёт ОФД</h3>
+    <p>«Такском-Касса», сводный по фискальным документам (xlsx)</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-pay">
+    <h3>Реестр оплат</h3>
+    <p>«Детально по документам (Оплаты)» из УМЦ (xlsx)</p>
+    <div class="got" hidden></div></div>
+</div>
+
+<div class="btnrow">
+  <button class="btn" id="run" disabled>Проверить и исправить</button>
+  <button class="btn ghost" id="save" disabled>Скачать исправленный файл</button>
+  <button class="btn ghost" id="clear">Очистить</button>
+  <span class="hint" id="zip-hint" hidden>Файл придёт архивом — распакуйте, внутри готовый XML.</span>
+</div>
+
+<details class="set"><summary>Настройки подстановки</summary>
+  <div class="setbody">
+    <p class="sb" style="margin:10px 0 0">Названия должны совпадать с элементами справочников
+    в вашей бухгалтерии символ в символ: поиск при загрузке идёт по наименованию,
+    и опечатка создаст новый элемент вместо существующего.</p>
+    <div class="grid2">
+      <div class="fld"><label for="c-sklad">Склад по умолчанию</label><input id="c-sklad" placeholder="Основной склад"></div>
+      <div class="fld"><label for="c-kontr">Розничный покупатель (контрагент)</label><input id="c-kontr" placeholder="Розничный покупатель"></div>
+      <div class="fld"><label for="c-ddsr">Статья ДДС — розничная выручка</label><input id="c-ddsr" placeholder="Розничная выручка"></div>
+      <div class="fld"><label for="c-ddsi">Статья ДДС — инкассация</label><input id="c-ddsi" placeholder="Внутреннее перемещение денежных средств"></div>
+      <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb" placeholder="Получение наличных в банке"></div>
+      <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds" placeholder="БезНДС"></div>
+    </div>
+    <div id="sklady"></div>
+  </div>
+</details>
+
+<div id="err"></div>
+<div id="out"></div>
+
+<section id="ref">
+  <div class="kick">Справка</div>
+  <h2>Что попадёт в проводки</h2>
+  <div class="sb">Отчёт о розничных продажах разносит день одним документом. Счета берутся
+  из обработчиков правил обмена — вот что получится в бухгалтерии.</div>
+  <div class="tw"><table>
+    <thead><tr><th>Что в выгрузке</th><th>Дебет</th><th>Кредит</th>
+      <th style="text-align:left">Смысл</th></tr></thead>
+    <tbody>
+      <tr><td>Товары — реализация услуг</td><td class="acc">50.01 / 57.03 / 62.Р</td>
+        <td class="acc">90.01.1</td><td style="text-align:left">выручка признана</td></tr>
+      <tr><td>Предоплаты</td><td class="acc">50.01 / 57.03</td><td class="acc">62.Р</td>
+        <td style="text-align:left">деньги есть, выручки ещё нет</td></tr>
+      <tr><td>Зачёт авансов</td><td class="acc">62.Р</td><td class="acc">90.01.1</td>
+        <td style="text-align:left">выручка есть, денег нет</td></tr>
+      <tr><td>Оплата — эквайринг по терминалам</td><td class="acc">57.03</td><td class="acc">—</td>
+        <td style="text-align:left">аналитика по эквайеру</td></tr>
+      <tr><td>Приходный кассовый ордер</td><td class="acc">50.01</td><td class="acc">62.Р / 51</td>
+        <td style="text-align:left">оплата пациента или приход из банка</td></tr>
+      <tr><td>Расходный кассовый ордер</td><td class="acc">57.01</td><td class="acc">50.01</td>
+        <td style="text-align:left">инкассация</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 style="margin-top:34px">Что приложение делает с файлом</h2>
+  <div class="sb">Слева — что подставляется молча, справа — что выносится на ваши глаза.</div>
+  <div class="rules">
+    <div class="rule"><b>Склад</b><span>без него отчёт о розничных продажах не проводится;
+      подставляется по подразделению из комментария документа</span></div>
+    <div class="rule w"><b>Строка с НДС</b><span>бельё, кремы, карандаши — товар, а не медуслуга;
+      ставка не трогается, позиция показывается списком</span></div>
+    <div class="rule"><b>Статья ДДС</b><span>в приходных и расходных ордерах — по виду операции;
+      у отчёта о рознице её ставит сама бухгалтерия</span></div>
+    <div class="rule w"><b>Товар без ставки НДС</b><span>«Без НДС» ему ставить нельзя — это занизит
+      налог; ставку надо завести в карточке номенклатуры</span></div>
+    <div class="rule"><b>Ставка НДС медуслуг</b><span>пустая ставка заполняется освобождением
+      по пп. 2 п. 2 ст. 149 НК РФ</span></div>
+    <div class="rule w"><b>Дата ровно в полдень</b><span>почти всегда проставлена руками
+      и разъезжается с датой чека ОФД</span></div>
+    <div class="rule"><b>Номер чека ККМ</b><span>мусорное «-1» вычищается</span></div>
+    <div class="rule w"><b>Задвоенные услуги</b><span>один день, один клиент, одна сумма,
+      разные документы — список с номерами и временем</span></div>
+  </div>
+</section>
+
+<footer>
+  Наличные в отчёте о розничных продажах считаются как остаток суммы документа:
+  товары − возвраты + предоплата − возврат предоплаты − (эквайринг − возврат по карте) − зачёт аванса.
+  Проверено на 01–14.09.2026: наличная выручка сходится с фискальными данными все четырнадцать дней.
+  Повторная загрузка того же периода документы не задваивает — ордера ищутся по идентификатору,
+  отчёт о рознице по дню и ключу синхронизации.
+</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+__ЛОГИКА__
+</script>

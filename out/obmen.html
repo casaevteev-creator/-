@@ -600,7 +600,7 @@ function render(ex, fixres, ofd, pay){
     ', объектов всего ' + ex.objs.length + '</div>';
   html += '<div class="cards">' +
     card("Реализация", fmt0(tot.rev), "Кт 90.01") +
-    card("Получена предоплата", fmt0(tot.prepay), "Кт 62.Р") +
+    card("Предоплата", fmt0(tot.prepay), "получена, Кт 62.Р") +
     card("Зачёт аванса", fmt0(tot.adv), "Дт 62.Р Кт 90.01") +
     card("Наличные", fmt0(tot.cash), "Дт 50.01") +
     card("Эквайринг", fmt0(tot.card), "Дт 57.03") +
@@ -720,6 +720,9 @@ const HUMAN = {
   "РеализацияТоваровУслуг":"Реализация товаров и услуг",
   "ПоступлениеТоваровУслуг":"Поступление товаров и услуг",
   "ВидыОплатОрганизаций":"Виды оплат организаций",
+  "ВидыНоменклатуры":"Виды номенклатуры",
+  "СтатьиЗатрат":"Статьи затрат",
+  "ДоговорыКонтрагентов":"Договоры контрагентов",
   "СтатьиДвиженияДенежныхСредств":"Статьи движения денежных средств",
   "КлассификаторЕдиницИзмерения":"Классификатор единиц измерения"
 };
@@ -814,6 +817,7 @@ $("#run").addEventListener("click", async () => {
     $("#err").innerHTML = '<div class="err">' + esc(e.message) + '</div>';
   }
 });
+/*СОХРАНЕНИЕ*/
 $("#save").addEventListener("click", () => {
   const blob = new Blob([FIXED_TEXT], {type:"application/xml"});
   const a = document.createElement("a");
@@ -821,6 +825,7 @@ $("#save").addEventListener("click", () => {
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 });
+/*КОНЕЦ СОХРАНЕНИЯ*/
 $("#clear").addEventListener("click", () => {
   for (const k in FILES) FILES[k] = null;
   document.querySelectorAll(".slot").forEach(el => {
