@@ -129,6 +129,10 @@ class Doc:
                 return v
         return ""
 
+    def tab_total(self, name, field):
+        """Итог по колонке табличной части документа."""
+        return sum(_num(r.get(field)) or 0 for r in self.rows if r.get("__тч__") == name)
+
     @property
     def operation(self):
         return self.props.get("ВидОперации", "")
@@ -147,6 +151,9 @@ class Doc:
             v = _num(self.props.get(k))
             if v is not None:
                 return v
+        if self.type == "ОтчетОРозничныхПродажах":
+            return (self.tab_total("Товары", "Сумма")
+                    + self.tab_total("Предоплаты", "Сумма"))
         s = 0.0
         for row in self.rows:
             for k in ("СуммаПлатежа", "Сумма", "СуммаСНДС"):
@@ -189,9 +196,9 @@ def read_kd2(root):
             if _tag(tab) != "ТабличнаяЧасть":
                 continue
             for rec in tab:
-                row = {}
+                row = {"__тч__": tab.get("Имя") or ""}
                 _props_kd2(rec, d, row)
-                if row:
+                if len(row) > 1:
                     d.rows.append(row)
         docs.append(d)
     return docs
@@ -259,20 +266,48 @@ def duplicates(docs):
 
 
 def by_day(docs):
-    """Наличные, карты и возвраты по дням — то, что сверяется с ОФД."""
+    """Раскладка денег по дням так, как их видит бухгалтер.
+
+    cash/card    — живые деньги: наличные в кассу и эквайринг. Их и сверяем с ОФД.
+    advance_used — зачёт ранее полученного аванса: выручка есть, денег нет.
+    prepay       — полученная предоплата: деньги есть, выручки ещё нет.
+    revenue      — реализация (Кт 90.01).
+    other/out    — не выручка (получение налички в банке) и инкассация.
+    """
     days = defaultdict(lambda: {"cash": 0.0, "card": 0.0, "refund": 0.0,
-                                "other": 0.0, "out": 0.0})
+                                "other": 0.0, "out": 0.0, "advance_used": 0.0,
+                                "prepay": 0.0, "revenue": 0.0})
     for d in docs:
         if not d.day:
             continue
-        if d.type in REFUND_TYPES:
-            days[d.day]["refund"] += abs(d.total)
+        v = days[d.day]
+        if d.type == "ОтчетОРозничныхПродажах":
+            goods = d.tab_total("Товары", "Сумма")
+            prepay = d.tab_total("Предоплаты", "Сумма")
+            prepay_back = d.tab_total("Предоплаты", "СуммаВозврат")
+            card = d.tab_total("Оплата", "СуммаОплаты")
+            card_back = d.tab_total("ВозвратОплаты", "СуммаОплаты")
+            adv = d.tab_total("ЗачетАвансов", "СуммаЗачета")
+            # в ОРП наличных нет отдельной строкой: это остаток суммы документа
+            # после безналичных оплат и зачтённых авансов
+            v["cash"] += goods + prepay - card - adv
+            v["card"] += card - card_back
+            # возврат предоплаты и возврат оплаты — одна операция,
+            # показанная в двух табличных частях: деньги считаем один раз
+            v["refund"] += max(card_back, prepay_back)
+            v["advance_used"] += adv
+            v["prepay"] += prepay
+            v["revenue"] += goods
+        elif d.type in REFUND_TYPES:
+            v["refund"] += abs(d.total)
         elif d.type in CASHOUT_TYPES:
-            days[d.day]["out"] += d.total
+            v["out"] += d.total
         elif d.type in CASH_TYPES:
-            days[d.day]["cash" if d.is_revenue else "other"] += d.total
+            v["cash" if d.is_revenue else "other"] += d.total
         elif d.type in CARD_TYPES:
-            days[d.day]["card"] += d.total
+            v["card"] += d.total
+        elif d.type in SERVICE_TYPES:
+            v["revenue"] += d.total
     return days
 
 
@@ -303,7 +338,8 @@ def read_taksk(path):
               ("Дата и время", "Документ", "Тип операции", "Наличными",
                "Безналичными", "Аванс", "Сумма")}
         t = {"cash": 0.0, "card": 0.0, "adv": 0.0, "refund": 0.0,
-             "checks": 0, "byDay": defaultdict(float)}
+             "checks": 0, "byDay": defaultdict(float),
+             "days": defaultdict(lambda: {"cash": 0.0, "card": 0.0, "adv": 0.0})}
         for row in rows[i + 1:]:
             if ci["Документ"] < 0 or str(row[ci["Документ"]]).strip() != "Кассовый чек":
                 continue
@@ -323,6 +359,9 @@ def read_taksk(path):
             day = _day(row[ci["Дата и время"]])
             if day:
                 t["byDay"][day] += cash + card
+                t["days"][day]["cash"] += cash
+                t["days"][day]["card"] += card
+                t["days"][day]["adv"] += _num(row[ci["Аванс"]]) or 0 if ci["Аванс"] >= 0 else 0
         wb.close()
         return t
     wb.close()
@@ -350,21 +389,26 @@ def report(path, taksk_path=None):
 
     days = by_day(docs)
     if days:
-        print("\nВыручка по дням (из выгрузки)")
-        print(f"{'день':<13}{'наличные':>16}{'карты':>16}{'выручка':>16}"
-              f"{'не выручка':>16}{'инкассация':>16}")
-        s_cash = s_card = s_oth = s_out = 0.0
+        print("\nДеньги и выручка по дням (из выгрузки)")
+        print(f"{'день':<12}{'реализация':>15}{'предоплата':>15}{'зачёт аванса':>15}"
+              f"{'наличные':>15}{'карты':>15}")
+        agg = defaultdict(float)
         for day in sorted(days):
             v = days[day]
-            s_cash += v["cash"]
-            s_card += v["card"]
-            s_oth += v["other"]
-            s_out += v["out"]
-            print(f"{day:<13}{money(v['cash']):>16}{money(v['card']):>16}"
-                  f"{money(v['cash'] + v['card']):>16}{money(v['other']):>16}"
-                  f"{money(v['out']):>16}")
-        print(f"{'итого':<13}{money(s_cash):>16}{money(s_card):>16}"
-              f"{money(s_cash + s_card):>16}{money(s_oth):>16}{money(s_out):>16}")
+            for k in ("revenue", "prepay", "advance_used", "cash", "card",
+                      "refund", "other", "out"):
+                agg[k] += v[k]
+            print(f"{day:<12}{money(v['revenue']):>15}{money(v['prepay']):>15}"
+                  f"{money(v['advance_used']):>15}{money(v['cash']):>15}"
+                  f"{money(v['card']):>15}")
+        print(f"{'итого':<12}{money(agg['revenue']):>15}{money(agg['prepay']):>15}"
+              f"{money(agg['advance_used']):>15}{money(agg['cash']):>15}"
+              f"{money(agg['card']):>15}")
+        if agg["refund"] or agg["other"] or agg["out"]:
+            print(f"\n  возвраты покупателям: {money(agg['refund'])} ₽")
+            print(f"  приход не от пациентов (в ОФД не должно быть): "
+                  f"{money(agg['other'])} ₽")
+            print(f"  инкассация (Дт 57.01 Кт 50.01): {money(agg['out'])} ₽")
 
     dups = duplicates(docs)
     print("\nЗадвоенные документы услуг")
@@ -387,22 +431,22 @@ def report(path, taksk_path=None):
             print(f"\nОтчёт Такском не распознан: {taksk_path}")
             return 1
         print(f"\nСверка с ОФД (Такском): чеков {t['checks']}")
-        print(f"{'день':<13}{'выгрузка':>16}{'ОФД':>16}{'разница':>16}")
-        all_days = sorted(set(days) | set(t["byDay"]))
+        print(f"{'день':<12}{'':<14}{'выгрузка':>15}{'ОФД':>15}{'разница':>13}")
+        all_days = sorted(set(days) | set(t["days"]))
         bad = 0
         for day in all_days:
-            ours = days.get(day, {}).get("cash", 0) + days.get(day, {}).get("card", 0)
-            theirs = t["byDay"].get(day, 0.0)
-            diff = round(ours - theirs, 2)
-            mark = "" if abs(diff) < 1 else "  ← РАСХОЖДЕНИЕ"
-            if abs(diff) >= 1:
-                bad += 1
-            print(f"{day:<13}{money(ours):>16}{money(theirs):>16}{money(diff):>16}{mark}")
-        o = sum(v["cash"] + v["card"] for v in days.values())
-        th = sum(t["byDay"].values())
-        print(f"{'итого':<13}{money(o):>16}{money(th):>16}{money(round(o - th, 2)):>16}")
-        print(f"\nзачёт аванса в чеках (в сверку не входит): {money(t['adv'])} ₽")
-        print("дней с расхождением: " + (str(bad) if bad else "нет, сходится день в день"))
+            ours = days.get(day, {})
+            th = t["days"].get(day, {"cash": 0.0, "card": 0.0, "adv": 0.0})
+            for key, label in (("cash", "наличные"), ("card", "карты"),
+                               ("advance_used", "зачёт аванса")):
+                o = ours.get(key, 0.0)
+                x = th["adv" if key == "advance_used" else key]
+                diff = round(o - x, 2)
+                mark = "" if abs(diff) < 1 else "  ←"
+                if abs(diff) >= 1:
+                    bad += 1
+                print(f"{day if label == 'наличные' else '':<12}{label:<14}"
+                      f"{money(o):>15}{money(x):>15}{money(diff):>13}{mark}")
         return 1 if bad else 0
     return 0
 
