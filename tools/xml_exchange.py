@@ -255,7 +255,9 @@ def read_taksk(path):
     """
     import openpyxl
 
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    # без read_only: в коротких выгрузках Такском объявленный диапазон листа
+    # врёт, и быстрый режим обрезает таблицу на первых строках
+    wb = openpyxl.load_workbook(path, data_only=True)
     for name in wb.sheetnames:
         ws = wb[name]
         rows = list(ws.iter_rows(values_only=True))
