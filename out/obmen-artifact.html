@@ -123,6 +123,8 @@ td.acc{font-family:var(--mono);color:var(--mute);font-size:12.5px}
 .card.good .n{color:var(--green)}
 .card.warn{border-color:var(--bronze-edge);background:var(--bronze-soft)}
 .card.warn .n{color:var(--bronze)}
+.card .good-t{color:var(--green);font-weight:600;margin-top:5px}
+.card .warn-t{color:var(--bronze);font-weight:600;margin-top:5px}
 
 .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bronze-edge);
   border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
@@ -384,12 +386,58 @@ function refUid(rec, name){
   return u ? S(kid(u, "Значение") ? kid(u, "Значение").textContent : "") : "";
 }
 
-function parseExchange(text){
+/* Обработка в УМЦ умеет отдавать только один день. Чтобы грузить месяц одним
+   заходом, дневные файлы склеиваем. Тонкость одна, но важная: объекты внутри
+   файла ссылаются друг на друга номером Нпп, и нумерация у каждого файла своя.
+   Если просто сложить файлы, ссылки второго попадут на объекты первого — и
+   в бухгалтерию уедет каша. Поэтому номера каждого следующего файла сдвигаем
+   так, чтобы они не пересекались с уже занятыми. */
+function читатьОбмен(text, номер){
   const xdoc = new DOMParser().parseFromString(text, "application/xml");
+  const где = номер ? "Файл " + номер : "Файл";
   if (xdoc.getElementsByTagName("parsererror").length)
-    throw new Error("Файл не читается как XML.");
+    throw new Error(где + " не читается как XML.");
   if (xdoc.documentElement.tagName !== "ФайлОбмена")
-    throw new Error("Это не файл обмена 1С: корневой узел «" + xdoc.documentElement.tagName + "».");
+    throw new Error(где + " — не файл обмена 1С: корневой узел «" +
+                    xdoc.documentElement.tagName + "».");
+  return xdoc;
+}
+const максНпп = x => Math.max(0, ...[...x.getElementsByTagName("*")]
+  .map(e => parseInt(e.getAttribute("Нпп"), 10) || 0));
+
+function слитьОбмен(тексты){
+  const части = тексты.map((t, i) => читатьОбмен(t, тексты.length > 1 ? i + 1 : 0));
+  if (части.length === 1) return {xdoc:части[0], файлов:1, дни:[]};
+
+  const атр = (x, имя) => S(x.documentElement.getAttribute(имя));
+  const ид = [...new Set(части.map(x => атр(x, "ИдПравилКонвертации")))];
+  if (ид.length > 1)
+    throw new Error("Файлы выгружены по разным правилам обмена — склеивать их нельзя. " +
+                    "Выгрузите все дни одной и той же настройкой обмена.");
+
+  части.sort((a, b) => атр(a, "НачалоПериодаВыгрузки") < атр(b, "НачалоПериодаВыгрузки") ? -1 : 1);
+  const база = части[0], корень = база.documentElement;
+  let занято = максНпп(база);
+  for (const часть of части.slice(1)){
+    const свой = максНпп(часть);
+    for (const e of часть.getElementsByTagName("*")){
+      const n = parseInt(e.getAttribute("Нпп"), 10);
+      if (n) e.setAttribute("Нпп", String(n + занято));
+    }
+    занято += свой;
+    /* правила обмена и параметры у всех файлов одни и те же — берём из первого */
+    for (const o of [...часть.documentElement.children])
+      if (o.tagName === "Объект") корень.appendChild(база.importNode(o, true));
+  }
+  корень.setAttribute("НачалоПериодаВыгрузки", атр(части[0], "НачалоПериодаВыгрузки"));
+  корень.setAttribute("ОкончаниеПериодаВыгрузки",
+    части.map(x => атр(x, "ОкончаниеПериодаВыгрузки")).sort().pop());
+  return {xdoc:база, файлов:части.length,
+          дни:части.map(x => атр(x, "НачалоПериодаВыгрузки").slice(0, 10))};
+}
+
+function parseExchange(тексты){
+  const {xdoc, файлов, дни} = слитьОбмен([].concat(тексты));
   const objs = [...xdoc.getElementsByTagName("Объект")].map(o => {
     const ref = kid(o, "Ссылка");
     const props = Object.assign({}, ref ? propsOf(ref) : {}, propsOf(o));
@@ -402,7 +450,7 @@ function parseExchange(text){
             day:(props["Дата"] || "").slice(0,10)};
   });
   const head = xdoc.documentElement.attributes;
-  return {xdoc, objs,
+  return {xdoc, objs, файлов, дни,
     period:[S(head["НачалоПериодаВыгрузки"] && head["НачалоПериодаВыгрузки"].value).slice(0,10),
             S(head["ОкончаниеПериодаВыгрузки"] && head["ОкончаниеПериодаВыгрузки"].value).slice(0,10)]};
 }
@@ -852,6 +900,45 @@ function двинуть(xdoc, заДень, откуда, куда, сумма, 
   return осталось <= 0.5;
 }
 
+/* ---------- перемещение денег между кассами ----------
+
+   В клинике две кассы. Деньги пришли в одну, часть перенесли во вторую —
+   и УМЦ выгружает это парой: расходный ордер «Инкассация» из первой кассы
+   и приходный «Получение наличных в банке» во второй. Вторая половина
+   неверна: из банка ничего не приходило.
+
+   Чем это плохо в бухгалтерии. «Инкассация» даёт Дт 57.01 Кт 50.01 — деньги
+   в пути. «Получение наличных в банке» даёт Дт 50.01 Кт 51 — списание с
+   расчётного счёта, которого не было. В итоге на 57.01 навсегда зависает
+   сумма, а на 51 появляется несуществующий расход. Правильно обе половинки
+   проводить через 57.01: тогда они друг друга закрывают.
+
+   Находим такие пары по совпадению суммы в пределах трёх дней. */
+function перемещенияМеждуКассами(objs){
+  const приход = [], расход = [];
+  for (const d of objs){
+    if (!d.day) continue;
+    const сумма = num(d.props["СуммаДокумента"]);
+    if (сумма <= 0.5) continue;
+    if (d.type === "ПриходныйКассовыйОрдер" && d.props["ВидОперации"] === "ПолучениеНаличныхВБанке")
+      приход.push({d, сумма, взят:false});
+    if (d.type === "РасходныйКассовыйОрдер" && d.props["ВидОперации"] === "Инкассация")
+      расход.push({d, сумма, взят:false});
+  }
+  const пары = [];
+  for (const п of приход){
+    const р = расход.find(x => !x.взят && Math.abs(x.сумма - п.сумма) < 0.5 &&
+      Math.abs(вДнях(п.d.day, x.d.day)) <= 3);
+    if (!р) continue;
+    п.взят = р.взят = true;
+    пары.push({сумма:п.сумма, вКассу:п.d.day, изКассы:р.d.day});
+  }
+  return {пары,
+          сумма: пары.reduce((s, x) => s + x.сумма, 0),
+          изБанка: приход.filter(x => !x.взят).reduce((s, x) => s + x.сумма, 0),
+          вБанк: расход.filter(x => !x.взят).reduce((s, x) => s + x.сумма, 0)};
+}
+
 /* ---------- строки оплаты без терминала ----------
 
    Бывают двух пород, и лечатся по-разному.
@@ -1268,11 +1355,6 @@ const ВИД = {cash:"наличными", card:"по картам", adv:"зач
 const дн = d => d.slice(8) + "." + d.slice(5, 7);
 
 function объяснение(р, налСошлись, живые){
-  /* Вердикт решают две вещи: сошлись ли наличные и много ли осталось
-     необъяснённого. Полпроцента живых денег — предел, за которым файл
-     разносит в бухгалтерию суммы, которых по кассе не было. */
-  const мелочь = р.безЧека <= Math.abs(живые) * 0.005;
-  const грузить = налСошлись && мелочь;
   const из = [];
   из.push('<div class="why ' + (налСошлись ? "ok" : "bad") + '"><b>' +
     (налСошлись ? "Наличные сошлись полностью." : "Наличные не сошлись.") + "</b> " +
@@ -1314,18 +1396,8 @@ function объяснение(р, налСошлись, живые){
       '<span class="d">' + где + "</span></div>");
   }
 
-  из.push('<div class="why ' + (грузить ? "ok" : "bad") + '"><b>' +
-    (грузить ? "Загружать можно." : "Загружать рано.") + "</b> " +
-    (грузить
-      ? ("В бухгалтерию поедут те же суммы, что пробиты по кассе" +
-         (Math.abs(р.авансСумма) > 0.5 || р.безЧека > 0.5
-           ? ". Пункты выше загрузке не мешают, но закрыть их надо до закрытия месяца: " +
-             "они про кассовую дисциплину, а не про файл." : "."))
-      : !налСошлись
-        ? "Сначала наличные — всё остальное вторично."
-        : ("Необъяснённого слишком много — " + fmt0(р.безЧека) + " ₽ при " + fmt0(живые) +
-           " ₽ живых денег. Загрузите — и в бухгалтерию поедут суммы, которых по кассе не было.")) +
-    "</div>");
+  /* вердикт «грузить или нет» стоит наверху страницы — здесь он был бы вторым
+     таким же блоком, а человек читает сверху вниз и путается */
   return '<div class="whys">' + из.join("") + "</div>";
 }
 
@@ -1364,30 +1436,81 @@ function render(ex, fixres, ofd, pay, услуги, перенос, привяз
   let html = "";
 
   /* карточки */
-  html += '<section><div class="kick">§ 1 · Что в файле</div><h2>Состав выгрузки</h2>' +
+  html += '<section><div class="kick">Шаг 1</div><h2>Что в файле и куда это ляжет</h2>' +
     '<div class="sb">Период ' + esc(ex.period[0]) + ' — ' + esc(ex.period[1]) +
     ', документов ' + ex.objs.filter(o => o.full.indexOf("Документ") === 0).length +
-    ', объектов всего ' + ex.objs.length + '</div>';
+    ', объектов всего ' + ex.objs.length +
+    (ex.файлов > 1 ? '. Склеено из ' + скл(ex.файлов, "файла", "файлов", "файлов") : '') +
+    '</div>' +
+    (ex.файлов > 1 ? '<div class="note good"><b>Склеено ' +
+      скл(ex.файлов, "дневной файл", "дневных файла", "дневных файлов") + '.</b> ' +
+      'Внутренняя нумерация каждого файла сдвинута, чтобы ссылки между объектами ' +
+      'не перепутались. Правила обмена взяты из первого файла — они у всех одни. ' +
+      'Дальше всё считается как по одной выгрузке за период.' +
+      (пропуски(ex.дни).length
+        ? '<span class="d">Дни без файла: ' + пропуски(ex.дни).map(дн).join(", ") +
+          ' — если в эти дни была выручка, файлы за них потерялись.</span>'
+        : '') + '</div>' : '');
+  const касса = ofd ? {нал:ofd.cash, карт:ofd.card, зач:ofd.adv} : {};
   html += '<div class="cards">' +
-    card("Реализация", fmt0(tot.rev), "Кт 90.01") +
-    card("Предоплата", fmt0(tot.prepay), "получена, Кт 62.Р") +
-    card("Зачёт аванса", fmt0(tot.adv), "Дт 62.Р Кт 90.01") +
-    card("Наличные", fmt0(tot.cash), "Дт 50.01") +
-    card("Эквайринг", fmt0(tot.card), "Дт 57.03") +
-    (tot.out ? card("Инкассация", fmt0(tot.out), "Дт 57.01 Кт 50.01") : "") +
+    card("Выручка", fmt0(tot.rev), "Кт 90.01.1 — продали услуг и товаров") +
+    card("Наличные", fmt0(tot.cash), "Дт 50.01 — легли в кассу",
+         противОФД(tot.cash, касса.нал)) +
+    card("Эквайринг", fmt0(tot.card), "Дт 57.03 — банк перечислит на счёт",
+         противОФД(tot.card, касса.карт)) +
+    card("Предоплата", fmt0(tot.prepay), "Кт 62.Р — деньги взяли, услугу ещё не оказали") +
+    card("Зачёт аванса", fmt0(tot.adv), "Дт 62.Р Кт 90.01.1 — услугу оказали, денег не было",
+         противОФД(tot.adv, касса.зач)) +
+    (tot.out ? card("Инкассация", fmt0(tot.out), "Дт 57.01 Кт 50.01 — увезли из кассы") : "") +
     '</div>';
-  html += '<div class="tw"><table><thead><tr><th>Документ</th><th>Штук</th><th>Сумма, ₽</th></tr></thead><tbody>' +
-    Object.keys(состав).sort((a, b) => состав[b].n - состав[a].n).map(t =>
+  /* документы — это то, что появится в бухгалтерии. Справочники (номенклатура,
+     склады, пользователи) нужны обмену, но человеку про них знать незачем —
+     прячем, чтобы таблица не выглядела списком непонятных слов */
+  const доки = Object.keys(состав).filter(k => состав[k].док);
+  const справ = Object.keys(состав).filter(k => !состав[k].док);
+  html += '<h3 style="font-size:15px;margin:22px 0 6px">Документы, которые появятся в бухгалтерии</h3>' +
+    '<div class="tw"><table><thead><tr><th>Документ</th><th>Штук</th><th>Сумма, ₽</th></tr></thead><tbody>' +
+    доки.sort((a, b) => состав[b].n - состав[a].n).map(t =>
       '<tr><td>' + esc(HUMAN[t] || t) + '</td><td class="mono">' + состав[t].n +
       '</td><td class="mono">' + (состав[t].s ? fmt(состав[t].s) : "—") + '</td></tr>').join("") +
-    '</tbody></table></div>';
-  if (tot.other) html += '<div class="note">Из наличных <b>' + fmt0(tot.other) +
-    ' ₽</b> пришло не от пациентов (получение налички в банке) — в фискальных данных этого быть не должно, ' +
-    'в сверку с ОФД не идёт.</div>';
+    '</tbody></table></div>' +
+    (справ.length
+      ? '<div class="sb" style="margin-top:8px">Плюс ' + скл(справ.length, "справочник", "справочника", "справочников") +
+        ' — номенклатура, склады, виды оплат и прочее. Они не документы: обмен ' +
+        'передаёт их, чтобы бухгалтерия нашла у себя те же элементы, а не завела новые. ' +
+        'Проводок не делают.</div>'
+      : '');
+  /* приход налички не от пациентов путает: он не выручка и в кассу ОФД не попадает */
+  const пм = перемещенияМеждуКассами(ex.objs);
+  if (пм.пары.length){
+    ИТОГ.позже.push("Перемещение между кассами на " + fmt0(пм.сумма) +
+      " ₽ оформлено как инкассация в банк — 57.01 не закроется");
+    html += '<div class="note alarm"><b>Деньги перекладывали между кассами: ' +
+      скл(пм.пары.length, "раз", "раза", "раз") + ' на ' + fmt0(пм.сумма) + ' ₽.</b><br>' +
+      'У вас две кассы. Деньги пришли в одну, часть перенесли во вторую — и УМЦ выгрузил ' +
+      'это парой: расходный ордер «Инкассация» из первой и приходный ' +
+      '«Получение наличных в банке» во второй. Вторая половина неверна: из банка ничего ' +
+      'не приходило.<br><br>' +
+      '<b>Чем это плохо.</b> «Инкассация» даёт проводку Дт 57.01 Кт 50.01 — деньги в пути. ' +
+      '«Получение наличных в банке» даёт Дт 50.01 Кт 51 — списание с расчётного счёта, ' +
+      'которого не было. Половинки не закрывают друг друга: на 57.01 навсегда зависает ' +
+      'сумма, а на расчётном счёте появляется несуществующий расход.<br><br>' +
+      '<b>Как правильно.</b> Обе половинки проводить через 57.01: расходный ордер «Прочий ' +
+      'расход» со счётом 57.01 и приходный «Прочий приход» с тем же счётом. Тогда они ' +
+      'схлопываются в ноль. Настраивается это в правилах обмена в УМЦ.' +
+      '<span class="d">' + пм.пары.slice(0, 8).map(x =>
+        fmt0(x.сумма) + " ₽: ушли " + дн(x.изКассы) + ", пришли " + дн(x.вКассу)).join("; ") +
+      (пм.пары.length > 8 ? " и ещё " + (пм.пары.length - 8) : "") + '</span></div>';
+  }
+  if (пм.изБанка > 0.5) html += '<div class="note"><b>Снято в банке: ' + fmt0(пм.изБанка) +
+    ' ₽.</b> Это приходные ордера «Получение наличных в банке», которым не нашлось пары ' +
+    'среди инкассаций, — похоже на настоящее снятие наличных со счёта. Проводка ' +
+    'Дт 50.01 Кт 51. Выручкой это не является и в сверку с кассой не идёт: ' +
+    'фискальный накопитель такие деньги не видит.</div>';
   html += '</section>';
 
   /* протокол */
-  html += '<section><div class="kick">§ 2 · Доводка</div><h2>Что поправлено в файле</h2>' +
+  html += '<section><div class="kick">Шаг 2</div><h2>Что я дозаполнил и поправил</h2>' +
     '<div class="sb">Исправлено ' + fixres.fixed.length + ' · смотреть руками ' +
     fixres.warned.length + '</div>';
   html += fixres.fixed.length ? logList(fixres.fixed, "") :
@@ -1425,13 +1548,9 @@ function render(ex, fixres, ofd, pay, услуги, перенос, привяз
       fmt(sums.cash[1] + sums.card[1]) + '</td><td class="mono ' +
       (Math.abs(sums.cash[0]+sums.card[0]-sums.cash[1]-sums.card[1]) < 1 ? "ok" : "bad") + '">' +
       fmt(R2(sums.cash[0] + sums.card[0] - sums.cash[1] - sums.card[1])) + '</td></tr>';
-    html += '<section><div class="kick">§ 3 · Сверка</div><h2>Выгрузка против фискальных данных</h2>' +
+    html += '<section><div class="kick">Шаг 3</div><h2>Сверка с кассой, день за днём</h2>' +
       '<div class="sb">Чеков в отчёте ОФД: ' + ofd.checks + '</div>';
     const нал = R2(sums.cash[0] - sums.cash[1]);
-    html += '<div class="cards">' +
-      cardCmp("Наличные", sums.cash[0], sums.cash[1]) +
-      cardCmp("Карты", sums.card[0], sums.card[1]) +
-      cardCmp("Зачёт аванса", sums.adv[0], sums.adv[1]) + '</div>';
     html += '<div class="tw"><table><thead><tr><th>День и что сверяем</th>' +
       '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' + rows +
       '</tbody></table></div>';
@@ -1702,7 +1821,7 @@ function render(ex, fixres, ofd, pay, услуги, перенос, привяз
   /* услуги без чека — только реестр услуг это показывает */
   if (услуги){
     const б = безЧека(услуги.recs, days);
-    html += '<section><div class="kick">§ 4 · Чеки</div><h2>Услуги без пробитого чека</h2>' +
+    html += '<section><div class="kick">Шаг 4</div><h2>Услуги без пробитого чека</h2>' +
       '<div class="sb">Услуг в реестре: ' + услуги.recs.length +
       '. «Нет чека» значит разное — смотрите пояснение под таблицей.</div>';
     html += '<div class="cards">' +
@@ -1783,8 +1902,7 @@ function render(ex, fixres, ofd, pay, услуги, перенос, привяз
     const свои = услуги ? услуги.recs.filter(r => r.чек) : pay.recs;
     const р = разборДублей(duplicates(свои), pay);
     const всего = р.все.length;
-    html += '<section><div class="kick">§ ' + (услуги ? "5" : "4") +
-      ' · Задвоение</div><h2>Повторно заведённые услуги</h2>' +
+    html += '<section><div class="kick">Шаг 5</div><h2>Повторно заведённые услуги</h2>' +
       '<div class="sb">' + (услуги ? "Документов услуг с пробитым чеком: " : "Оплат через «Оказание услуг»: ") +
       свои.length + '. Признак дубля — один день, один клиент' + (услуги ? ", один врач" : "") +
       ', одна сумма, разные документы.</div>';
@@ -1888,7 +2006,7 @@ function render(ex, fixres, ofd, pay, услуги, перенос, привяз
   $("#out").innerHTML = вердикт(ИТОГ, fixres, !!ofd) + html + инструкция();
 }
 function составAdd(состав, t, o){
-  const e = состав[t] || (состав[t] = {n:0, s:0});
+  const e = состав[t] || (состав[t] = {n:0, s:0, док:o.full.indexOf("Документ") === 0});
   e.n++;
   if (o.type === "ОтчетОРозничныхПродажах")
     e.s += tabSum(o, "Товары", "Сумма") + tabSum(o, "Предоплаты", "Сумма");
@@ -1916,7 +2034,7 @@ const HUMAN = {
    месяца закрыть надо. */
 function вердикт(И, fixres, естьОФД){
   const стоп = И.стоп.length;
-  let h = '<section style="margin-top:34px"><div class="kick">Итог</div>' +
+  let h = '<section style="margin-top:34px"><div class="kick">Главное</div>' +
     '<h2>' + (стоп ? "Загружать рано" : "Файл можно загружать") + '</h2>' +
     '<div class="sb">' +
     (стоп
@@ -1973,15 +2091,36 @@ function инструкция(){
     '</section>';
 }
 
-const card = (l, v, n) =>
-  '<div class="card"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' +
-  (n ? '<div class="n">' + esc(n) + '</div>' : '') + '</div>';
-const cardCmp = (l, a, b) => {
-  const d = R2(a - b), ok = Math.abs(d) < 1;
-  return '<div class="card ' + (ok ? "good" : "warn") + '"><div class="l">' + esc(l) +
-    '</div><div class="v">' + fmt0(a) + '</div><div class="n">' +
-    (ok ? "сходится с ОФД" : "ОФД " + fmt0(b) + ", разница " + fmt0(d)) + '</div></div>';
+const card = (l, v, n, сверка) =>
+  '<div class="card' + (сверка ? " " + сверка.класс : "") + '">' +
+  '<div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' +
+  (n ? '<div class="n">' + esc(n) + '</div>' : '') +
+  (сверка ? '<div class="n ' + сверка.класс + '-t">' + esc(сверка.текст) + '</div>' : '') +
+  '</div>';
+/* одна карточка — одна величина: и куда она ляжет в учёте, и что про неё
+   говорит касса. Раньше это были две одинаковые карточки в разных разделах */
+const противОФД = (наше, кассовое) => {
+  if (kассовоеНет(кассовое)) return null;
+  const d = R2(наше - кассовое);
+  return Math.abs(d) < 1
+    ? {класс:"good", текст:"сходится с кассой"}
+    : {класс:"warn", текст:"касса: " + fmt0(кассовое) + " (" + (d > 0 ? "+" : "") + fmt0(d) + ")"};
 };
+const kассовоеНет = v => v === null || v === undefined;
+
+/* Если между самым ранним и самым поздним днём какой-то день пропущен, это
+   стоит показать: скорее всего файл за него просто забыли выгрузить. */
+function пропуски(дни){
+  if (!дни || дни.length < 2) return [];
+  const есть = new Set(дни), нет = [];
+  const d = new Date(дни[0] + "T00:00:00"), конец = new Date(дни[дни.length - 1] + "T00:00:00");
+  while (d < конец){
+    d.setDate(d.getDate() + 1);
+    const s = d.toISOString().slice(0, 10);
+    if (!есть.has(s) && d < конец) нет.push(s);
+  }
+  return нет;
+}
 
 /* ---------- склады по подразделениям ---------- */
 function skladInputs(objs){
@@ -2013,30 +2152,40 @@ function терминалInputs(св){
 }
 
 /* ---------- файлы ---------- */
-const FILES = {xml:null, x1:null, x2:null, x3:null};
+const FILES = {xml:[], x1:null, x2:null, x3:null};
 let FIXED_TEXT = "", FIXED_NAME = "";
 
 function slot(id, key, accept, label){
   const el = $("#" + id);
   const input = document.createElement("input");
   input.type = "file"; input.accept = accept; input.hidden = true;
+  /* файлов обмена может быть много: обработка в УМЦ отдаёт по одному дню */
+  if (key === "xml") input.multiple = true;
   el.appendChild(input);
   el.addEventListener("click", () => input.click());
-  input.addEventListener("change", () => { if (input.files[0]) take(key, input.files[0]); });
+  input.addEventListener("change", () => take(key, [...input.files]));
   ["dragenter","dragover"].forEach(e => el.addEventListener(e, ev => {
     ev.preventDefault(); el.classList.add("over"); }));
   ["dragleave","drop"].forEach(e => el.addEventListener(e, ev => {
     ev.preventDefault(); el.classList.remove("over"); }));
-  el.addEventListener("drop", ev => { if (ev.dataTransfer.files[0]) take(key, ev.dataTransfer.files[0]); });
+  el.addEventListener("drop", ev => take(key, [...ev.dataTransfer.files]));
   el.dataset.key = key; el.dataset.label = label;
 }
-function take(key, file){
-  FILES[key] = file;
+function take(key, файлы){
+  файлы = [].concat(файлы).filter(Boolean);
+  if (!файлы.length) return;
+  const много = key === "xml";
+  if (много) FILES.xml = FILES.xml.concat(файлы);
+  else FILES[key] = файлы[0];
   const el = document.querySelector('[data-key="' + key + '"]');
   el.classList.add("ok");
   const got = el.querySelector(".got");
-  got.hidden = false; got.textContent = file.name;
-  $("#run").disabled = !FILES.xml;
+  got.hidden = false;
+  got.textContent = много && FILES.xml.length > 1
+    ? "файлов: " + FILES.xml.length + " — " + скл(FILES.xml.length, "день", "дня", "дней") +
+      " склеим в один"
+    : файлы[0].name;
+  $("#run").disabled = !FILES.xml.length;
   $("#err").innerHTML = "";
 }
 ["s-xml","s-ofd","s-srv","s-pay"].forEach((id, i) =>
@@ -2060,8 +2209,9 @@ $("#run").addEventListener("click", async () => {
   $("#save").disabled = true;
   try {
     saveCfg();
-    const text = await readText(FILES.xml);
-    const ex = parseExchange(text);
+    const тексты = [];
+    for (const f of FILES.xml) тексты.push(await readText(f));
+    const ex = parseExchange(тексты);
     skladInputs(ex.objs);
     /* таблицы узнаём по содержимому — какую в какую ячейку положили, неважно */
     let ofd = null, услуги = null, pay = null;
@@ -2107,7 +2257,9 @@ $("#run").addEventListener("click", async () => {
     const body = new XMLSerializer().serializeToString(ex.xdoc);
     FIXED_TEXT = body.startsWith("<?xml")
       ? body : '<?xml version="1.0" encoding="UTF-8"?>\n' + body;
-    FIXED_NAME = FILES.xml.name.replace(/\.xml$/i, "") + "-исправленный.xml";
+    FIXED_NAME = (ex.файлов > 1
+      ? "Обмен " + ex.period[0] + " — " + ex.period[1]
+      : FILES.xml[0].name.replace(/\.xml$/i, "")) + "-исправленный.xml";
     $("#save").disabled = !fixres.fixed.length;
     if (!fixres.fixed.length) $("#save").textContent = "Править нечего";
   } catch (e){
@@ -2179,7 +2331,7 @@ $("#save").addEventListener("click", async () => {
   }
 });
 $("#clear").addEventListener("click", () => {
-  for (const k in FILES) FILES[k] = null;
+  FILES.xml = []; FILES.x1 = FILES.x2 = FILES.x3 = null;
   document.querySelectorAll(".slot").forEach(el => {
     el.classList.remove("ok");
     const g = el.querySelector(".got"); g.hidden = true; g.textContent = "";
