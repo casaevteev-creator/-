@@ -31,13 +31,33 @@ const APP = join(ROOT, "out", process.env.APP || "obmen.html");
 if (!existsSync(SRC)) { console.error("нет папки " + SRC); process.exit(2); }
 if (!existsSync(APP)) { console.error("нет " + APP + " — соберите: python3 tools/obmen_app/build.py"); process.exit(2); }
 
-/* браузер не принимает файлы с кириллицей в имени — кладём копии с латинскими */
+/* В папке периода лежат не только файлы обмена, но и выгрузки из самой
+   бухгалтерии — их приложению давать нельзя, оно на них ругается. Поэтому
+   берём по одному файлу каждого нужного вида, узнавая их по имени. */
+const ВИДЫ = [
+  [/\.xml$/i,                       "обмен"],
+  [/такском|фискальн/i,             "ОФД"],
+  [/услуг/i,                        "реестр услуг"],
+  [/оплат/i,                        "реестр оплат"]
+];
 const TMP = mkdtempSync(join(tmpdir(), "obmen-show-"));
-const все = readdirSync(SRC);
-const взять = маска => все.filter(f => маска.test(f))
-  .map((f, i) => { const to = join(TMP, "f" + i + extname(f)); copyFileSync(join(SRC, f), to); return to; });
-const файлы = [...взять(/\.xml$/i), ...взять(/\.xlsx$/i)].slice(0, 4);
-if (!файлы.length){ console.error("в " + SRC + " нет ни одного файла"); process.exit(2); }
+/* В папке лежат и файлы из старой программы, и выгрузки самой бухгалтерии.
+   Отодвигаем их в конец, чтобы по имени выбирался файл ровно того периода. */
+const второсорт = f => /^(1С-|Новая-|Старая-)/i.test(f) ? 1 : 0;
+const все = readdirSync(SRC).filter(f => /\.(xml|xlsx)$/i.test(f))
+  .sort((a, b) => второсорт(a) - второсорт(b) || a.localeCompare(b, "ru"));
+const файлы = [], занято = new Set();
+for (const [маска, что] of ВИДЫ){
+  const f = все.find(x => !занято.has(x) && маска.test(x) &&
+    (что === "обмен" ? true : /\.xlsx$/i.test(x)));
+  if (!f){ if (что !== "обмен") console.error("нет файла: " + что); continue; }
+  занято.add(f);
+  const to = join(TMP, "f" + файлы.length + extname(f));
+  copyFileSync(join(SRC, f), to);
+  файлы.push(to);
+  console.error("· " + что + ": " + f);
+}
+if (!файлы.length){ console.error("в " + SRC + " нет ни файла обмена, ни таблиц"); process.exit(2); }
 
 const BIN = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
              "/opt/pw-browsers/chromium/chrome-linux/chrome"].find(existsSync);

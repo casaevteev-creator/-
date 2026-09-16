@@ -126,6 +126,14 @@ npm install xlsx@0.18.5 playwright@1.49.1 --no-save
 node tools/obmen_app/test.mjs
 ```
 
+Разбор периода можно посмотреть текстом, не открывая браузер, — так его удобно
+грепать. Файлы скрипт выбирает из `data/source/<период>` сам, по именам:
+
+```bash
+node tools/obmen_app/show.mjs 2026-08
+node tools/obmen_app/show.mjs 2026-09 | sed -n '/§ 3/,/§ 4/p'
+```
+
 ## Структура
 
 ```
@@ -137,7 +145,7 @@ tools/report_html.py     HTML-отчёт (11 разделов, mobile-first)
 tools/build.py           CLI сборки
 tools/xml_exchange.py    разбор файла обмена с БП и сверка кассы с ОФД
 tools/xml_fix.py         доводка файла обмена до загрузки в бухгалтерию
-tools/obmen_app/         приложение «Обмен УМЦ → Бухгалтерия» (сборка, тест)
+tools/obmen_app/         приложение «Обмен УМЦ → Бухгалтерия» (сборка, тест, разбор периода)
 tools/roundtrip_test.py  проверка нового формата на эталоне июня
 data/source/             исходные файлы за июнь 2026 (эталон)
 data/canonical/          канонические данные по месяцам (JSON)
