@@ -222,6 +222,10 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
       <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
       <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds"></div>
     </div>
+    <label class="chk"><input type="checkbox" id="c-dopisat">
+      <span><b>Дописывать кассу, которой нет в выгрузке</b> — по данным ОФД, и только
+      если по ней все чеки авансовые: аванс номенклатуры не требует. Это добавляет
+      в файл деньги, поэтому по умолчанию выключено — включайте осознанно.</span></label>
     <label class="chk"><input type="checkbox" id="c-perenos" checked>
       <span><b>Переставлять эквайринг на правильный терминал</b> — когда за день у одного
       терминала ровно столько же лишних денег, сколько у другого не хватает. Сумма документа

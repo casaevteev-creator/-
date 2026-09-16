@@ -179,6 +179,55 @@ if (Math.round(свод.день13["Онлайн-касса Карта"] || 0) !
 if (Math.round(свод.день13["Корпус 1 / Терминал"] || 0) !== 5381300)
   беда.push("август 13.08: Штрих " + свод.день13["Корпус 1 / Терминал"] + ", ждали 5381300");
 
+/* Третий прогон: август с дописыванием кассы из ОФД. Правка добавляет в файл
+   деньги, поэтому следим за главным — наличные не должны сдвинуться. */
+const стр3 = await browser.newPage();
+стр3.on("pageerror", e => errors.push("дописывание, ошибка страницы: " + e.message));
+await стр3.goto("file://" + APP);
+await стр3.locator("details.set summary").first().click();
+await стр3.check("#c-dopisat");
+const in3 = await стр3.locator(".slot input[type=file]").all();
+await in3[0].setInputFiles(авг("Выгрузка-в-БП-11-31.08.2026.xml", "b.xml"));
+await in3[1].setInputFiles(авг("Такском-фискальные-документы-11-31.08.2026.xlsx", "b-ofd.xlsx"));
+await стр3.click("#run");
+await стр3.waitForSelector("#out section", { timeout: 60000 });
+
+const текст3 = ровно(await стр3.locator("#out").innerText());
+if (!текст3.includes("Дописано из ОФД 2 073 500 ₽ авансов"))
+  беда.push("дописывание: не добавлены авансы облачной кассы");
+if (!текст3.includes("Наличные сходятся с фискальными данными до рубля"))
+  беда.push("дописывание: наличные разъехались с ОФД — правка тронула не то");
+
+const баланс = await стр3.evaluate(() => {
+  const x = new DOMParser().parseFromString(FIXED_TEXT, "application/xml");
+  const итог = {товары:0, предоплата:0, зачёт:0, карты:0, наличные:0};
+  const сум = (o, таб, поле) => {
+    let s = 0;
+    for (const t of o.getElementsByTagName("ТабличнаяЧасть")){
+      if (t.getAttribute("Имя") !== таб) continue;
+      for (const rec of t.children)
+        for (const p of rec.children)
+          if (p.getAttribute("Имя") === поле) s += parseFloat(p.textContent) || 0;
+    }
+    return s;
+  };
+  for (const o of x.getElementsByTagName("Объект")){
+    if (o.getAttribute("Тип") !== "ДокументСсылка.ОтчетОРозничныхПродажах") continue;
+    const g = сум(o, "Товары", "Сумма"), gb = сум(o, "Возвраты", "Сумма"),
+          pp = сум(o, "Предоплаты", "Сумма"), pb = сум(o, "Предоплаты", "СуммаВозврат"),
+          c = сум(o, "Оплата", "СуммаОплаты"), cb = сум(o, "ВозвратОплаты", "СуммаОплаты"),
+          a = сум(o, "ЗачетАвансов", "СуммаЗачета");
+    итог.товары += g - gb; итог.предоплата += pp; итог.зачёт += a;
+    итог.карты += c - cb; итог.наличные += g - gb + pp - pb - (c - cb) - a;
+  }
+  return итог;
+});
+const ЖДЁМ3 = {товары:62102240, предоплата:20182500, зачёт:15730400,
+               карты:41568940, наличные:24293400};
+for (const [k, v] of Object.entries(ЖДЁМ3))
+  if (Math.round(баланс[k]) !== v)
+    беда.push(`дописывание, ${k}: стало ${Math.round(баланс[k])}, ждали ${v}`);
+
 await browser.close();
 беда.push(...errors);
 
@@ -189,4 +238,4 @@ if (беда.length){
 }
 console.log("всё сошлось: сентябрь — карточки, " + ПРАВОК + " правок, наличные и терминалы " +
             "против ОФД, итог, памятка, скачивание; август — перенос эквайринга 13.08 " +
-            "без изменения итога");
+            "без изменения итога, дописывание авансов без сдвига наличных");
