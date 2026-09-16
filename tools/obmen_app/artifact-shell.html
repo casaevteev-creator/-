@@ -62,7 +62,8 @@ h3{font-size:13.5px;font-weight:600}
 section{margin-top:42px}
 
 .slots{display:grid;gap:12px;grid-template-columns:1fr}
-@media(min-width:720px){.slots{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:620px){.slots{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:980px){.slots{grid-template-columns:repeat(4,1fr)}}
 .slot{background:var(--panel);border:1px dashed var(--ghost);border-radius:12px;
   padding:16px 15px;cursor:pointer;position:relative;
   transition:border-color .15s,background .15s}
@@ -181,13 +182,20 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
     <div class="got" hidden></div></div>
   <div class="slot" id="s-ofd">
     <h3>Отчёт ОФД</h3>
-    <p>«Такском-Касса», сводный по фискальным документам (xlsx)</p>
+    <p>«Такском-Касса» → Фискальные документы (xlsx)</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-srv">
+    <h3>Реестр услуг</h3>
+    <p>Оказанные услуги с колонками «Сумма» и «Чек пробит» (xlsx)</p>
     <div class="got" hidden></div></div>
   <div class="slot" id="s-pay">
     <h3>Реестр оплат</h3>
     <p>«Детально по документам (Оплаты)» из УМЦ (xlsx)</p>
     <div class="got" hidden></div></div>
 </div>
+<p class="sb" style="margin-top:10px">Ячейки можно перепутать — приложение узнаёт файл по его
+содержимому, а не по тому, куда вы его положили. Обязателен только XML; каждый следующий файл
+добавляет проверку, без него она просто не показывается.</p>
 
 <div class="btnrow">
   <button class="btn" id="run" disabled>Проверить и исправить</button>
@@ -202,14 +210,16 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
     в вашей бухгалтерии символ в символ: поиск при загрузке идёт по наименованию,
     и опечатка создаст новый элемент вместо существующего.</p>
     <div class="grid2">
-      <div class="fld"><label for="c-sklad">Склад по умолчанию</label><input id="c-sklad" placeholder="Основной склад"></div>
-      <div class="fld"><label for="c-kontr">Розничный покупатель (контрагент)</label><input id="c-kontr" placeholder="Розничный покупатель"></div>
-      <div class="fld"><label for="c-ddsr">Статья ДДС — розничная выручка</label><input id="c-ddsr" placeholder="Розничная выручка"></div>
-      <div class="fld"><label for="c-ddsi">Статья ДДС — инкассация</label><input id="c-ddsi" placeholder="Внутреннее перемещение денежных средств"></div>
-      <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb" placeholder="Получение наличных в банке"></div>
-      <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds" placeholder="БезНДС"></div>
+      <div class="fld"><label for="c-sklad">Склад по умолчанию — обязательно типа «Розничный магазин»</label><input id="c-sklad"></div>
+      <div class="fld"><label for="c-kontr">Розничный покупатель (контрагент)</label><input id="c-kontr"></div>
+      <div class="fld"><label for="c-ddsr">Статья ДДС — розничная выручка</label><input id="c-ddsr"></div>
+      <div class="fld"><label for="c-ddsv">Статья ДДС — возврат покупателю</label><input id="c-ddsv"></div>
+      <div class="fld"><label for="c-ddsi">Статья ДДС — инкассация</label><input id="c-ddsi"></div>
+      <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
+      <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds"></div>
     </div>
     <div id="sklady"></div>
+    <div id="terminaly"></div>
   </div>
 </details>
 
@@ -257,7 +267,9 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
       и разъезжается с датой чека ОФД</span></div>
     <div class="rule"><b>Номер чека ККМ</b><span>мусорное «-1» вычищается</span></div>
     <div class="rule w"><b>Задвоенные услуги</b><span>один день, один клиент, одна сумма,
-      разные документы — список с номерами и временем</span></div>
+      разные документы; по реестру оплат видно, погашена пара или деньги правда посчитаны дважды</span></div>
+    <div class="rule w"><b>Эквайринг по терминалам</b><span>каждый вид оплаты сверяется со своей
+      кассой в ОФД — так ловится оплата, заведённая не на тот терминал</span></div>
   </div>
 </section>
 

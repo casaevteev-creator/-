@@ -48,7 +48,8 @@ section{margin-top:40px}
 
 /* ---- загрузка файлов ---- */
 .slots{display:grid;gap:12px;grid-template-columns:1fr}
-@media(min-width:720px){.slots{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:620px){.slots{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:980px){.slots{grid-template-columns:repeat(4,1fr)}}
 .slot{background:var(--panel);border:1px dashed var(--ghost);border-radius:12px;padding:16px 15px;
   cursor:pointer;transition:border-color .15s,background .15s;position:relative}
 .slot:hover,.slot.over{border-color:var(--bronze2);background:var(--bronze-soft)}
@@ -110,8 +111,15 @@ tr.gap td{padding-top:14px}
   border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
 .note b{color:var(--ink)}
 .note.alarm{border-left-color:var(--red);background:var(--red-soft)}
+.note .d{display:block;margin-top:6px;color:var(--faint);font-size:12.5px}
 .note.good{border-left-color:var(--green2);background:var(--green-soft)}
 
+ol.steps{margin:0;padding-left:0;list-style:none;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:13px 16px 13px 46px;position:relative;font-size:13.5px}
+ol.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:20px;height:20px;
+  border-radius:50%;background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
 ul.log{list-style:none;font-size:13.5px}
 ul.log li{padding:7px 0 7px 16px;border-bottom:1px solid var(--line);position:relative;color:var(--ink2)}
 ul.log li:last-child{border-bottom:none}
@@ -129,7 +137,8 @@ details.set[open]>summary::before{content:"▾ "}
 .setbody{padding:4px 16px 18px;border-top:1px solid var(--line)}
 .fld{display:grid;gap:4px;margin-top:13px}
 .fld label{font-size:12px;color:var(--mute)}
-.fld input{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;background:var(--bg);width:100%}
+.fld input,.fld select{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;
+  background:var(--bg);width:100%}
 @media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
 
 .err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;
@@ -159,13 +168,20 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-si
     <div class="got" hidden></div></div>
   <div class="slot" id="s-ofd">
     <h3>Отчёт ОФД</h3>
-    <p>«Такском-Касса», сводный по фискальным документам (xlsx)</p>
+    <p>«Такском-Касса» → Фискальные документы (xlsx)</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-srv">
+    <h3>Реестр услуг</h3>
+    <p>Оказанные услуги с колонками «Сумма» и «Чек пробит» (xlsx)</p>
     <div class="got" hidden></div></div>
   <div class="slot" id="s-pay">
     <h3>Реестр оплат</h3>
     <p>«Детально по документам (Оплаты)» из УМЦ (xlsx)</p>
     <div class="got" hidden></div></div>
 </div>
+<p class="sb" style="margin-top:10px">Ячейки можно перепутать — приложение узнаёт файл по его
+содержимому, а не по тому, куда вы его положили. Обязателен только XML; каждый следующий файл
+добавляет проверку, без него она просто не показывается.</p>
 
 <div class="btnrow">
   <button class="btn" id="run" disabled>Проверить и исправить</button>
@@ -177,16 +193,21 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-si
   <div class="setbody">
     <p class="sb" style="margin:10px 0 0">Названия должны совпадать с элементами справочников
     в вашей бухгалтерии символ в символ: поиск при загрузке идёт по наименованию,
-    и опечатка создаст новый элемент вместо существующего. Настройки сохраняются в этом браузере.</p>
+    и опечатка создаст новый элемент вместо существующего. Осторожно: «Основной»
+    и «Основной склад» — это разные склады. Отчёт о розничных продажах проводится
+    только на складе с типом «Розничный магазин», на оптовом он не проведётся.
+    Настройки сохраняются в этом браузере.</p>
     <div class="grid2">
-      <div class="fld"><label>Склад по умолчанию</label><input id="c-sklad" placeholder="Основной склад"></div>
-      <div class="fld"><label>Розничный покупатель (контрагент)</label><input id="c-kontr" placeholder="Розничный покупатель"></div>
-      <div class="fld"><label>Статья ДДС — розничная выручка</label><input id="c-ddsr" placeholder="Розничная выручка"></div>
-      <div class="fld"><label>Статья ДДС — инкассация</label><input id="c-ddsi" placeholder="Внутреннее перемещение денежных средств"></div>
-      <div class="fld"><label>Статья ДДС — получение наличных в банке</label><input id="c-ddsb" placeholder="Получение наличных в банке"></div>
-      <div class="fld"><label>Ставка НДС для медуслуг</label><input id="c-nds" placeholder="БезНДС"></div>
+      <div class="fld"><label>Склад по умолчанию — обязательно типа «Розничный магазин»</label><input id="c-sklad"></div>
+      <div class="fld"><label>Розничный покупатель (контрагент)</label><input id="c-kontr"></div>
+      <div class="fld"><label>Статья ДДС — розничная выручка</label><input id="c-ddsr"></div>
+      <div class="fld"><label>Статья ДДС — возврат покупателю</label><input id="c-ddsv"></div>
+      <div class="fld"><label>Статья ДДС — инкассация</label><input id="c-ddsi"></div>
+      <div class="fld"><label>Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
+      <div class="fld"><label>Ставка НДС для медуслуг</label><input id="c-nds"></div>
     </div>
     <div id="sklady"></div>
+    <div id="terminaly"></div>
   </div>
 </details>
 
@@ -239,28 +260,41 @@ const fmt = x => (x == null || !isFinite(x)) ? "—"
 const fmt0 = x => (x == null || !isFinite(x)) ? "—" : Math.round(x).toLocaleString("ru-RU");
 const esc = s => S(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const R2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+/* «1 группа, 2 группы, 5 групп» — иначе итог читается как машинный */
+const скл = (n, одна, две, много) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  return n + " " + (a > 10 && a < 20 ? много : b === 1 ? одна : b > 1 && b < 5 ? две : много);
+};
 
 /* ---------- настройки ---------- */
 const CFG_KEY = "obmen-nastroyki-v1";
-const CFG_FIELDS = {"c-sklad":"Основной склад", "c-kontr":"Розничный покупатель",
-  "c-ddsr":"Розничная выручка", "c-ddsi":"Внутреннее перемещение денежных средств",
-  "c-ddsb":"Получение наличных в банке", "c-nds":"БезНДС"};
-let CFG = {}, SKLADY = {};
+/* Значения по умолчанию — из реальной базы «Омеги». Отдельной статьи под
+   получение наличных из банка там нет: это перемещение между своими счетами,
+   поэтому статья та же, что у инкассации. */
+const CFG_FIELDS = {"c-sklad":"Самокатная 1, стр 1", "c-kontr":"Розничный покупатель",
+  "c-ddsr":"Розничная выручка", "c-ddsv":"Возврат покупателям",
+  "c-ddsi":"Внутреннее перемещение денежных средств",
+  "c-ddsb":"Внутреннее перемещение денежных средств", "c-nds":"БезНДС"};
+let CFG = {}, SKLADY = {}, ТЕРМИНАЛЫ = {};
 function loadCfg(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(CFG_KEY) || "{}"); } catch(e){}
   CFG = Object.assign({}, CFG_FIELDS, saved.fields || {});
   SKLADY = saved.sklady || {};
+  ТЕРМИНАЛЫ = saved.терминалы || {};
   for (const k in CFG_FIELDS) $("#" + k).value = CFG[k];
 }
 function saveCfg(){
   for (const k in CFG_FIELDS) CFG[k] = S($("#" + k).value) || CFG_FIELDS[k];
   document.querySelectorAll("[data-sklad]").forEach(i => { SKLADY[i.dataset.sklad] = S(i.value); });
-  try { localStorage.setItem(CFG_KEY, JSON.stringify({fields:CFG, sklady:SKLADY})); } catch(e){}
+  document.querySelectorAll("[data-kkt]").forEach(i => { ТЕРМИНАЛЫ[i.dataset.kkt] = S(i.value); });
+  try { localStorage.setItem(CFG_KEY,
+    JSON.stringify({fields:CFG, sklady:SKLADY, терминалы:ТЕРМИНАЛЫ})); } catch(e){}
 }
 document.addEventListener("input", e => {
   if (e.target.matches("[id^=c-],[data-sklad]")) saveCfg();
 });
+document.addEventListener("change", e => { if (e.target.matches("[data-kkt]")) saveCfg(); });
 
 /* ---------- чтение файла обмена (формат «Конвертации данных 2.0») ---------- */
 const kids = (el, tag) => [...el.children].filter(c => c.tagName === tag);
@@ -306,7 +340,8 @@ function parseExchange(text){
       tabs[t.getAttribute("Имя")] = [...t.children].map(r => propsOf(r));
     const full = o.getAttribute("Тип") || "";
     return {el:o, ref, full, type:full.split(".").pop(), rule:o.getAttribute("ИмяПравила") || "",
-            props, tabs, day:(props["Дата"] || "").slice(0,10)};
+            npp:o.getAttribute("Нпп") || "", props, tabs,
+            day:(props["Дата"] || "").slice(0,10)};
   });
   const head = xdoc.documentElement.attributes;
   return {xdoc, objs,
@@ -326,6 +361,46 @@ function nomenclature(objs){
   return map;
 }
 
+/* ---------- виды оплат (эквайринговые терминалы) ----------
+   В строке оплаты внутри отчёта о розничных продажах вид оплаты лежит
+   не наименованием, а указателем: <Ссылка Нпп="1045">. Сам справочник
+   выгружен отдельными объектами — по Нпп и находим название терминала. */
+function payTypeNames(objs){
+  const map = {};
+  for (const o of objs)
+    if (o.full === "СправочникСсылка.ВидыОплатОрганизаций" && o.npp)
+      map[o.npp] = o.props["Наименование"] || ("вид оплаты " + o.npp);
+  return map;
+}
+const БЕЗВИДА = "вид оплаты не заполнен";
+const refNpp = (rec, name) => {
+  const p = propEl(rec, name); if (!p) return "";
+  const r = kid(p, "Ссылка");
+  return r ? S(r.getAttribute("Нпп")) : "";
+};
+/* эквайринг по терминалам и дням: именно здесь вылезает путаница,
+   когда оплату завели не на тот терминал — в сумме за день её не видно */
+function cardByType(objs, names){
+  const итог = {}, дни = {};
+  for (const d of objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const знак = t.getAttribute("Имя") === "Оплата" ? 1
+                 : t.getAttribute("Имя") === "ВозвратОплаты" ? -1 : 0;
+      if (!знак) continue;
+      for (const rec of [...t.children]){
+        const sp = propEl(rec, "СуммаОплаты");
+        const s = знак * (sp ? num(propVal(sp)) : 0);
+        if (!s) continue;
+        const имя = names[refNpp(rec, "ВидОплаты")] || БЕЗВИДА;
+        итог[имя] = (итог[имя] || 0) + s;
+        (дни[имя] || (дни[имя] = {}))[d.day] = (дни[имя][d.day] || 0) + s;
+      }
+    }
+  }
+  return {итог, дни};
+}
+
 /* ---------- деньги по дням ---------- */
 const NOT_REVENUE = ["ПолучениеНаличныхВБанке", "ВозвратОтПоставщика", "ПрочийПриход",
                      "РасчетыПоКредитамИЗаймам", "ВозвратДенежныхСредствПодотчетником"];
@@ -334,7 +409,7 @@ const tabSum = (d, tab, field) => (d.tabs[tab] || []).reduce((s, r) => s + num(r
 function moneyByDay(objs){
   const days = {};
   const D = k => days[k] || (days[k] = {cash:0, card:0, adv:0, prepay:0, rev:0,
-                                        refund:0, other:0, out:0});
+                                        tovary:0, refund:0, other:0, out:0});
   for (const d of objs){
     if (!d.day || d.full.indexOf("Документ") !== 0) continue;
     const v = D(d.day);
@@ -347,7 +422,7 @@ function moneyByDay(objs){
          после всех прочих способов её закрыть */
       v.cash += g - gb + pp - pb - (c - cb) - a;
       v.card += c - cb;
-      v.adv += a; v.prepay += pp; v.rev += g - gb;
+      v.adv += a; v.prepay += pp; v.rev += g - gb; v.tovary += g;
       v.refund += Math.max(cb, pb);
     } else if (d.type === "ПриходныйКассовыйОрдер"){
       const s = num(d.props["СуммаДокумента"]) || tabSum(d, "РасшифровкаПлатежа", "СуммаПлатежа");
@@ -412,10 +487,10 @@ function parseOfd(wb){
     const H = findHead(rows, ["Наличными", "Сумма"]);
     if (!H) continue;
     const ci = {};
-    ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","Сумма"]
-      .forEach(k => ci[k] = H.h.indexOf(k));
+    ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","Сумма",
+     "Название ККТ","Зав. № ККТ","Торговая точка"].forEach(k => ci[k] = H.h.indexOf(k));
     if (ci["Документ"] < 0) continue;
-    const t = {checks:0, days:{}, cash:0, card:0, adv:0, refund:0};
+    const t = {checks:0, days:{}, cash:0, card:0, adv:0, refund:0, kkt:{}};
     for (let r = H.r + 1; r < rows.length; r++){
       if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;
       const sum = num(rows[r][ci["Сумма"]]);
@@ -426,6 +501,12 @@ function parseOfd(wb){
       t.cash += cash; t.card += card; t.adv += adv;
       if (/озврат/i.test(S(rows[r][ci["Тип операции"]]))) t.refund += Math.abs(sum);
       const day = dayOf(rows[r][ci["Дата и время"]]);
+      /* касса подписана то названием, то заводским номером — берём, что есть */
+      const имя = S(rows[r][ci["Название ККТ"]]) || S(rows[r][ci["Зав. № ККТ"]]) || "без названия";
+      const k = t.kkt[имя] || (t.kkt[имя] = {cash:0, card:0, adv:0, checks:0, days:{},
+                                             точка:S(rows[r][ci["Торговая точка"]])});
+      k.cash += cash; k.card += card; k.adv += adv; k.checks++;
+      if (day) k.days[day] = (k.days[day] || 0) + card;
       if (!day) continue;
       const d = t.days[day] || (t.days[day] = {cash:0, card:0, adv:0});
       d.cash += cash; d.card += card; d.adv += adv;
@@ -440,10 +521,17 @@ function parsePayments(wb){
   for (const name of wb.SheetNames){
     const rows = gridOf(wb.Sheets[name]);
     let kind = "", recs = [], total = 0;
+    const итоги = {"Наличными":0, "Безналичными":0, "Итого":0};
+    const числоСправа = row => {
+      for (let c = row.length - 1; c >= 1; c--) if (typeof row[c] === "number") return row[c];
+      return 0;
+    };
     for (const row of rows){
       const label = S(row[0]);
-      if (label === "Наличными" || label === "Безналичными"){ kind = label; continue; }
-      if (label === "Итого") { kind = ""; continue; }
+      /* в этих строках лежит итог раздела — сколько всего денег видит УМЦ */
+      if (label === "Наличными" || label === "Безналичными"){
+        kind = label; итоги[label] = числоСправа(row); continue; }
+      if (label === "Итого") { итоги["Итого"] = числоСправа(row); kind = ""; continue; }
       if (!label || label.indexOf("Оказание услуг") !== 0) continue;
       let sum = 0;
       for (let c = row.length - 1; c >= 1; c--) if (typeof row[c] === "number"){ sum = row[c]; break; }
@@ -458,7 +546,7 @@ function parsePayments(wb){
       recs.push({kind, num:m[1], day:dayOf(m[2]), time:m[3], client, sum});
       total += sum;
     }
-    if (recs.length) return {recs, total};
+    if (recs.length) return {recs, total, итоги};
   }
   return null;
 }
@@ -472,6 +560,39 @@ function duplicates(recs){
   for (const k in g) if (g[k].length > 1) out.push(g[k]);
   out.sort((a, b) => a[0].day < b[0].day ? -1 : 1);
   return out;
+}
+
+/* Задвоение задвоению рознь, и это главное, что нельзя путать.
+   Администратор, заметив лишний документ, перевешивает оплату на правильный
+   и помечает лишний на удаление. В реестре услуг обе половинки такой пары
+   так и стоят плюсом — колонка «Сумма» знака не имеет, — и со стороны кажется,
+   будто деньги посчитаны дважды. В реестре оплат видно правду: у одного
+   документа плюс, у его близнеца ровно такой же минус, денег пришло один раз.
+   Поэтому вывод делаем по деньгам, а не по количеству документов:
+   сколько нетто оплачено по документам группы — одна сумма или две. */
+function нетоПоДокументам(pay){
+  const н = {};
+  if (pay) for (const r of pay.recs) н[r.num] = R2((н[r.num] || 0) + r.sum);
+  return н;
+}
+function разборДублей(группы, pay){
+  const нетто = нетоПоДокументам(pay);
+  const из = группы.map(g => {
+    const номера = g.map(x => x.num);
+    const известно = pay && номера.some(n => нетто[n] !== undefined);
+    const оплачено = R2(номера.reduce((s, n) => s + (нетто[n] || 0), 0));
+    const одна = g[0].sum;
+    /* «погашен» — денег по группе не больше, чем за одну услугу */
+    const статус = !известно ? "неясно" : оплачено <= одна * 1.005 + 1 ? "погашен" : "живой";
+    return {g, номера, оплачено, одна, лишних: g.length - 1,
+            лишниеДеньги: статус === "живой" ? R2(оплачено - одна) : 0, статус};
+  });
+  const по = s => из.filter(x => x.статус === s);
+  return {
+    все: из, живые: по("живой"), погашенные: по("погашен"), неясные: по("неясно"),
+    ущерб: по("живой").reduce((s, x) => s + x.лишниеДеньги, 0),
+    погашеноНа: по("погашен").reduce((s, x) => s + x.одна * x.лишних, 0)
+  };
 }
 
 /* Реестр услуг: тут видно то, чего не видно нигде больше — какие услуги
@@ -519,8 +640,10 @@ function безЧека(recs, поДням){
      реализация в выгрузке больше суммы услуг с чеком */
   let прошло = 0;
   const дни = [];
-  for (const day of Object.keys(поДням).sort()){
-    const было = сЧеком[day] || 0, стало = поДням[day].rev;
+  const все = [...new Set(Object.keys(поДням).concat(Object.keys(сЧеком)))].sort();
+  for (const day of все){
+    const было = сЧеком[day] || 0;
+    const стало = (поДням[day] || {}).tovary || (поДням[day] || {}).rev || 0;
     дни.push({day, было, стало, сверх: R2(стало - было)});
     if (стало > было) прошло += стало - было;
   }
@@ -555,7 +678,7 @@ function setValue(xdoc, prop, value){
 
 const DDS_BY_OP = () => ({
   "ОплатаПокупателя": CFG["c-ddsr"],
-  "ВозвратПокупателю": CFG["c-ddsr"],
+  "ВозвратПокупателю": CFG["c-ddsv"],
   "ПолучениеНаличныхВБанке": CFG["c-ddsb"],
   "Инкассация": CFG["c-ddsi"]
 });
@@ -667,6 +790,44 @@ function разборРасхождений(список){
   };
 }
 
+/* Соответствие «вид оплаты в УМЦ ↔ касса в ОФД» приложение угадывает по размеру:
+   самый оборотистый терминал в программе — это самая оборотистая касса у ОФД.
+   Угадывание можно поправить руками в настройках, оно там и запоминается. */
+function сводТерминалов(карты, ofd){
+  const виды = Object.keys(карты.итог).sort((a, b) => карты.итог[b] - карты.итог[a]);
+  const кассы = Object.keys(ofd.kkt).sort((a, b) => ofd.kkt[b].card - ofd.kkt[a].card);
+  const пары = [];
+  кассы.forEach((к, i) => {
+    const вид = ТЕРМИНАЛЫ[к] !== undefined ? ТЕРМИНАЛЫ[к] : (виды[i] || "");
+    пары.push({касса:к, вид, точка:ofd.kkt[к].точка,
+               ofd:ofd.kkt[к].card, наш: вид ? (карты.итог[вид] || 0) : 0,
+               дниOfd:ofd.kkt[к].days, дниНаш: вид ? (карты.дни[вид] || {}) : {}});
+  });
+  /* виды оплат, которым не нашлось кассы, — тоже показать, иначе потеряются */
+  const занятые = пары.map(x => x.вид);
+  виды.filter(v => занятые.indexOf(v) < 0).forEach(v =>
+    пары.push({касса:"", вид:v, точка:"", ofd:0, наш:карты.итог[v], дниOfd:{}, дниНаш:карты.дни[v]}));
+  return {пары, виды, кассы};
+}
+/* Если в один день у одного терминала минус, а у другого ровно такой же плюс —
+   оплату завели не на тот терминал. Денег не потеряно, но разнесены они неверно. */
+function зеркала(пары){
+  const дни = [...new Set(пары.flatMap(x =>
+    Object.keys(x.дниOfd).concat(Object.keys(x.дниНаш))))].sort();
+  const out = [];
+  for (const d of дни){
+    const раз = пары.filter(x => x.вид !== БЕЗВИДА).map(x => ({имя:x.вид || x.касса,
+      d:R2((x.дниНаш[d] || 0) - (x.дниOfd[d] || 0))})).filter(x => Math.abs(x.d) > 0.5);
+    for (const a of раз) for (const b of раз){
+      if (a === b || a.d >= 0 || b.d <= 0) continue;
+      if (Math.abs(a.d + b.d) > 0.5) continue;
+      if (out.some(x => x.day === d && x.сумма === b.d)) continue;
+      out.push({day:d, откуда:b.имя, куда:a.имя, сумма:b.d});
+    }
+  }
+  return out;
+}
+
 const ВИД = {cash:"наличными", card:"по картам", adv:"зачётом аванса"};
 const дн = d => d.slice(8) + "." + d.slice(5, 7);
 
@@ -754,6 +915,8 @@ function logList(items, cls){
 }
 
 function render(ex, fixres, ofd, pay, услуги){
+  /* сюда складываем всё, что решает судьбу загрузки, — вердикт собирается в конце */
+  const ИТОГ = {стоп:[], позже:[], хорошо:[]};
   const days = moneyByDay(ex.objs);
   const keys = Object.keys(days).sort();
   const tot = {cash:0, card:0, adv:0, prepay:0, rev:0, refund:0, other:0, out:0};
@@ -835,11 +998,71 @@ function render(ex, fixres, ofd, pay, услуги){
     html += '<div class="tw"><table><thead><tr><th>День и что сверяем</th>' +
       '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' + rows +
       '</tbody></table></div>';
+
+    /* эквайринг по терминалам: в сумме за день ошибка «не тот терминал» не видна */
+    const карты = cardByType(ex.objs, payTypeNames(ex.objs));
+    if (Object.keys(карты.итог).length && Object.keys(ofd.kkt).length){
+      const св = сводТерминалов(карты, ofd);
+      терминалInputs(св);
+      const зерк = зеркала(св.пары);
+      html += '<h2 style="margin-top:32px">Эквайринг по терминалам</h2>' +
+        '<div class="sb">Слева — вид оплаты из УМЦ, справа — касса из отчёта ОФД. ' +
+        'Сопоставление угадано по обороту; если угадано неверно, поправьте в настройках ' +
+        'и нажмите «Проверить» ещё раз.</div>' +
+        '<div class="tw"><table><thead><tr><th>Вид оплаты в УМЦ</th><th>Касса ОФД</th>' +
+        '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' +
+        св.пары.map(x => {
+          const d = R2(x.наш - x.ofd), ok = Math.abs(d) < 1;
+          return '<tr><td>' + esc(x.вид || '<span class="what">не сопоставлен</span>') + '</td>' +
+            '<td style="text-align:left" class="what">' + esc(x.касса || "—") + '</td>' +
+            '<td class="mono">' + fmt0(x.наш) + '</td><td class="mono">' + fmt0(x.ofd) + '</td>' +
+            '<td class="mono ' + (ok ? "ok" : "bad") + '">' + (ok ? "0" : fmt0(d)) + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+      const пусто = карты.итог[БЕЗВИДА];
+      const сколько = пусто < 0 ? fmt0(-пусто) + " ₽ возврата" : fmt0(пусто) + " ₽ оплаты";
+      if (пусто){
+        ИТОГ.стоп.push("Без терминала проведено " + сколько);
+        html += '<div class="note alarm"><b>Вид оплаты не заполнен — ' + сколько + '.</b> ' +
+          'В отчёте о розничных продажах есть строки оплаты без терминала. ' +
+          'При загрузке такая строка не найдёт счёт эквайринга — документ либо не проведётся, ' +
+          'либо повесит деньги не туда. Найдите эти оплаты в УМЦ и укажите терминал.' +
+          '<span class="d">Чаще всего так выглядит возврат по карте, оформленный вручную.</span></div>';
+      }
+      if (зерк.length){
+        const сум = зерк.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.стоп.push("Оплату на " + fmt0(сум) + " ₽ завели не на тот терминал — " +
+          зерк.map(x => дн(x.day)).join(", "));
+        html += '<div class="note alarm"><b>Оплату завели не на тот терминал: ' + fmt0(сум) +
+          ' ₽.</b> В эти дни у одного терминала ровно столько же лишних денег, сколько ' +
+          'у другого не хватает, — деньги на месте, но разнесены неверно. ' +
+          'Исправлять надо в УМЦ, до выгрузки: в бухгалтерии это разные счета эквайринга ' +
+          'и разные договоры с банком.<span class="d">' +
+          зерк.map(x => дн(x.day) + ": " + fmt0(x.сумма) + " ₽ переставить с «" +
+            esc(x.откуда) + "» на «" + esc(x.куда) + "»").join("; ") + '</span></div>';
+      } else if (св.пары.every(x => Math.abs(x.наш - x.ofd) < 1)){
+        ИТОГ.хорошо.push("Каждый терминал сходится со своей кассой");
+        html += '<div class="note good">Каждый терминал сходится с его кассой до рубля. ' +
+          'Эквайринг разнесён правильно.</div>';
+      }
+    }
+
     html += '<h2 style="margin-top:32px">Что это значит</h2>' +
       '<div class="sb">Расхождения разобраны по причинам: что само себя объясняет, ' +
       'а что надо смотреть руками.</div>';
-    html += bad ? объяснение(разборРасхождений(расхождения), Math.abs(нал) < 1,
-                             sums.cash[1] + sums.card[1])
+    const живые = sums.cash[1] + sums.card[1];
+    const р = bad ? разборРасхождений(расхождения) : null;
+    if (Math.abs(нал) >= 1)
+      ИТОГ.стоп.push("Наличные не сходятся с ОФД на " + fmt0(нал) + " ₽");
+    else ИТОГ.хорошо.push("Наличные сходятся с фискальными данными до рубля");
+    if (р && р.безЧека > Math.abs(живые) * 0.005)
+      ИТОГ.стоп.push("Не объяснено " + fmt0(р.безЧека) + " ₽ при " + fmt0(живые) + " ₽ живых денег");
+    else if (р && р.безЧека > 0.5)
+      ИТОГ.позже.push("Мелкие расхождения на " + fmt0(р.безЧека) + " ₽ — разобрать до закрытия месяца");
+    if (р && Math.abs(р.авансСумма) > 0.5)
+      ИТОГ.позже.push("Зачёт аванса без чека на " + fmt0(р.авансСумма) + " ₽ — пробить чеки коррекции");
+    if (р && р.перенос > 0.5)
+      ИТОГ.хорошо.push("Перенос даты на " + fmt0(р.перенос) + " ₽ — деньги на месте, править нечего");
+    html += bad ? объяснение(р, Math.abs(нал) < 1, живые)
       : '<div class="whys"><div class="why ok"><b>Сходится день в день по всем трём величинам.</b> ' +
         'Выгрузка совпадает с фискальными данными полностью — можно грузить.</div></div>';
     html += '</section>';
@@ -857,8 +1080,46 @@ function render(ex, fixres, ofd, pay, услуги){
       card("Из них доехало до выручки", fmt0(б.прошло),
            б.без ? "фильтр отсёк " + fmt0(б.без - б.прошло) + " ₽" : "") +
       '</div>';
+
+    /* реестр против выгрузки, день в день: видно и лишнее, и недостающее */
+    const разн = б.дни.filter(d => Math.abs(d.сверх) > 0.5);
+    html += '<h3 style="font-size:15px;margin:22px 0 6px">Реестр услуг против выгрузки, по дням</h3>' +
+      '<div class="sb">Слева — услуги с пробитым чеком по «дате работ». Справа — строки ' +
+      '«Товары» в отчёте о розничных продажах. Совпадающие дни свёрнуты.</div>' +
+      '<div class="tw"><table><thead><tr><th>День</th><th>Реестр, с чеком</th>' +
+      '<th>Выгрузка, товары</th><th>Разница</th></tr></thead><tbody>' +
+      (разн.length ? разн.map(d =>
+        '<tr><td><b>' + esc(d.day) + '</b></td><td class="mono">' + fmt0(d.было) + '</td>' +
+        '<td class="mono">' + fmt0(d.стало) + '</td>' +
+        '<td class="mono bad">' + fmt0(d.сверх) + '</td></tr>').join("")
+        : '<tr><td colspan="4" class="what" style="text-align:left">Все дни сходятся.</td></tr>') +
+      '<tr class="sum"><td><b>Итого</b></td><td class="mono">' +
+      fmt0(б.дни.reduce((s, d) => s + d.было, 0)) + '</td><td class="mono">' +
+      fmt0(б.дни.reduce((s, d) => s + d.стало, 0)) + '</td><td class="mono">' +
+      fmt0(б.дни.reduce((s, d) => s + d.сверх, 0)) + '</td></tr>' +
+      '</tbody></table></div>';
+
+    const плюс = б.дни.filter(d => d.сверх > 0.5).reduce((s, d) => s + d.сверх, 0);
+    const недобор = б.дни.filter(d => d.сверх < -0.5);
+    if (плюс > 0.5)
+      html += '<div class="note"><b>Выгрузка больше реестра на ' + fmt0(плюс) + ' ₽.</b> ' +
+        'Так и должно быть в двух случаях: продали товар (бельё, кремы — их в реестре ' +
+        '<i>услуг</i> нет по определению) или услугу оказали вечером, а чек пробили ' +
+        'следующим днём. Если за период эти плюсы и минусы гасят друг друга, всё в порядке.</div>';
+    if (недобор.length){
+      const сумма = недобор.reduce((s2, d) => s2 - d.сверх, 0);
+      html += '<div class="note"><b>Выгрузка меньше реестра на ' + fmt0(сумма) + ' ₽.</b> ' +
+        'Обычно это погашенные дубли: лишний документ пометили на удаление, и в выгрузку ' +
+        'он не пошёл, — а в реестре он так и стоит плюсом, потому что колонка «Сумма» ' +
+        'знака не имеет. Смотрите следующий раздел: если эти суммы там числятся ' +
+        'погашенными, деньги на месте и делать ничего не надо.' +
+        '<span class="d">' + недобор.map(d => дн(d.day) + " на " + fmt0(-d.сверх) + " ₽").join(", ") +
+        '</span></div>';
+    }
+
     if (б.список.length){
-      html += '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Врач</th>' +
+      html += '<h3 style="font-size:15px;margin:22px 0 6px">Крупнейшие услуги без чека</h3>' +
+        '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Врач</th>' +
         '<th>Сумма</th><th>Документ</th></tr></thead><tbody>' +
         б.список.slice(0, 30).map(r =>
           '<tr><td>' + esc(r.day) + '</td><td>' + esc(r.client) + '</td>' +
@@ -869,15 +1130,6 @@ function render(ex, fixres, ofd, pay, услуги){
         (б.список.length > 30
           ? '<div class="sb" style="margin-top:8px">показаны 30 крупнейших из ' +
             б.список.length + '</div>' : "");
-    }
-    const недобор = б.дни.filter(d => d.сверх < -0.5);
-    if (недобор.length){
-      const сумма = недобор.reduce((s2, d) => s2 - d.сверх, 0);
-      html += '<div class="note"><b>Обратный случай: ' + fmt0(сумма) + ' ₽.</b> ' +
-        'В эти дни реализация в выгрузке <b>меньше</b>, чем услуг с пробитым чеком — ' +
-        'значит часть оплаченных услуг в выгрузку не попала. Проверьте их отдельно. ' +
-        '<span class="d">' + недобор.map(d => дн(d.day) + " на " + fmt0(-d.сверх) + " ₽").join(", ") +
-        '</span></div>';
     }
     html += '<div class="whys">' +
       '<div class="why calm"><b>Услуга заведена, но не оплачена.</b> Выручки нет, ' +
@@ -894,61 +1146,115 @@ function render(ex, fixres, ofd, pay, услуги){
     html += '</section>';
   }
 
-  /* дубли */
+  /* задвоение: считаем по деньгам, а не по количеству документов */
   if (pay || услуги){
     const источник = услуги || pay;
-    const dups = duplicates(источник.recs);
-    const сЧеком = услуги ? duplicates(услуги.recs.filter(r => r.чек)) : null;
-    const extra = dups.reduce((s, g) => s + g.length - 1, 0);
-    const lost = dups.reduce((s, g) => s + g[0].sum * (g.length - 1), 0);
+    const свои = услуги ? услуги.recs.filter(r => r.чек) : pay.recs;
+    const р = разборДублей(duplicates(свои), pay);
+    const всего = р.все.length;
     html += '<section><div class="kick">§ ' + (услуги ? "5" : "4") +
       ' · Задвоение</div><h2>Повторно заведённые услуги</h2>' +
-      '<div class="sb">' + (услуги ? "Документов услуг: " : "Оплат через «Оказание услуг»: ") +
-      источник.recs.length +
-      '. Признак дубля — один день, один клиент' + (услуги ? ", один врач" : "") +
+      '<div class="sb">' + (услуги ? "Документов услуг с пробитым чеком: " : "Оплат через «Оказание услуг»: ") +
+      свои.length + '. Признак дубля — один день, один клиент' + (услуги ? ", один врач" : "") +
       ', одна сумма, разные документы.</div>';
-    const лишнихСЧеком = сЧеком ? Object.keys(сЧеком).reduce(
-      (s2, k) => s2 + сЧеком[k].length - 1, 0) : 0;
-    const суммаСЧеком = сЧеком ? Object.keys(сЧеком).reduce(
-      (s2, k) => s2 + сЧеком[k][0].sum * (сЧеком[k].length - 1), 0) : 0;
     html += '<div class="cards">' +
-      card("Групп", String(dups.length), "") +
-      card(услуги ? "Лишних документов" : "Лишних платежей", String(extra), "") +
-      card("Сумма лишних", fmt0(lost), "₽") +
-      (сЧеком ? card("Дойдёт до выручки", fmt0(суммаСЧеком),
-                     лишнихСЧеком + " докум. с пробитым чеком") : "") + '</div>';
-    if (сЧеком) html += '<div class="note' + (суммаСЧеком ? "" : " good") + '">' +
-      'Из ' + extra + ' лишних документов фильтр фискализации отсекает ' +
-      (extra - лишнихСЧеком) + '. До выручки доходят ' + лишнихСЧеком +
-      (суммаСЧеком ? ' — их и надо проверить в программе.' : '.') + '</div>';
-    if (dups.length){
-      html += '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Сумма</th>' +
-        '<th>Раз</th><th style="text-align:left">Документы и время</th></tr></thead><tbody>' +
-        dups.slice(0, 40).map(g =>
-          '<tr><td>' + esc(g[0].day) + '</td><td>' + esc(g[0].client) + '</td><td class="mono">' +
-          fmt0(g[0].sum) + '</td><td class="mono">×' + g.length + '</td>' +
-          '<td style="text-align:left" class="mono">' +
-          esc(g.map(x => x.num.slice(-6) + " " + x.time).join("  ·  ")) + '</td></tr>').join("") +
-        '</tbody></table></div>' +
-        '<div class="note">Проверьте эти документы в УМЦ до загрузки: если услуга действительно ' +
-        'оказана один раз, лишние документы надо пометить на удаление, иначе выручка задвоится.</div>';
-    } else html += '<div class="note good">Дублей не найдено.</div>';
-    if (сЧеком && Object.keys(сЧеком).length){
-      html += '<div class="sb" style="margin-top:18px">С пробитым чеком — ' +
-        'эти дойдут до выручки:</div><div class="tw"><table><thead><tr><th>День</th>' +
-        '<th>Клиент</th><th>Сумма</th><th>Раз</th><th style="text-align:left">Документы</th>' +
+      card("Групп-кандидатов", String(всего), "") +
+      card("Уже погашено", String(р.погашенные.length),
+           р.погашеноНа ? "на " + fmt0(р.погашеноНа) + " ₽" : "") +
+      (р.неясные.length ? card("Не проверено", String(р.неясные.length),
+        pay ? "оплат по этим документам нет" : "нет реестра оплат") : "") +
+      '<div class="card ' + (р.живые.length ? "warn" : "good") + '"><div class="l">Задвоено по деньгам</div>' +
+      '<div class="v">' + fmt0(р.ущерб) + '</div><div class="n">' +
+      (р.живые.length ? "групп " + р.живые.length + " — проверить в УМЦ"
+                      : "лишних денег нет") + '</div></div>' +
+      '</div>';
+
+    if (!pay)
+      html += '<div class="note alarm"><b>Реестр оплат не загружен — вывод неполный.</b> ' +
+        'По одному реестру услуг отличить настоящий дубль от уже погашенного нельзя: ' +
+        'обе половинки пары стоят там плюсом. Добавьте файл «Оплаты, детально по документам» ' +
+        '— в нём у лишнего документа стоит минус, и всё становится видно.</div>';
+
+    if (р.живые.length){
+      /* та же планка, что и для расхождений с кассой: полпроцента оборота.
+         Задвоенные три тысячи — ошибка, но не повод останавливать загрузку
+         месяца: их правят в УМЦ и перевыгружают период поверх. */
+      const строка = "Задвоено по деньгам " + fmt0(р.ущерб) + " ₽ — " +
+        скл(р.живые.length, "группа", "группы", "групп");
+      (р.ущерб > tot.rev * 0.005 ? ИТОГ.стоп : ИТОГ.позже).push(строка);
+    }
+    else if (pay) ИТОГ.хорошо.push("Задвоенных денег нет");
+    if (!pay) ИТОГ.позже.push("Реестр оплат не загружен — задвоение не проверено");
+    else if (р.неясные.length)
+      ИТОГ.позже.push("Не проверено " + скл(р.неясные.length, "группа", "группы", "групп") +
+        ": в реестре оплат по этим документам нет ни одной строки");
+    if (р.живые.length){
+      html += '<h3 style="font-size:15px;margin:22px 0 6px">Настоящие дубли — деньги посчитаны дважды</h3>' +
+        '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>За одну услугу</th>' +
+        '<th>Оплачено всего</th><th>Лишнее</th><th style="text-align:left">Документы</th>' +
         '</tr></thead><tbody>' +
-        Object.keys(сЧеком).sort().map(k => сЧеком[k]).map(g =>
-          '<tr><td>' + esc(g[0].day) + '</td><td>' + esc(g[0].client) + '</td>' +
-          '<td class="mono">' + fmt0(g[0].sum) + '</td><td class="mono">×' + g.length + '</td>' +
+        р.живые.map(x =>
+          '<tr><td>' + esc(x.g[0].day) + '</td><td>' + esc(x.g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(x.одна) + '</td><td class="mono">' + fmt0(x.оплачено) + '</td>' +
+          '<td class="mono bad">' + fmt0(x.лишниеДеньги) + '</td>' +
           '<td style="text-align:left" class="mono">' +
-          esc(g.map(x => x.num.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+          esc(x.номера.map(n => n.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div>' +
+        '<div class="note alarm">Откройте эти документы в УМЦ. ' +
+        'Если услуга оказана один раз — оплату надо перевесить на один документ, ' +
+        'а лишний пометить на удаление. Иначе выручка задвоится и в бухгалтерии. ' +
+        'Исправили — выгрузите период заново и загрузите поверх: документы обновятся, ' +
+        'а не создадутся второй раз.</div>';
+    } else if (pay){
+      html += '<div class="note good"><b>Задвоенных денег нет.</b> Все найденные пары ' +
+        'администраторы уже разобрали: оплата висит на одном документе, у близнеца минус. ' +
+        'В выгрузку такие документы не идут.</div>';
+    }
+
+    if (pay && р.неясные.length){
+      html += '<h3 style="font-size:15px;margin:22px 0 6px">Проверить вручную</h3>' +
+        '<div class="sb">Чек по этим услугам пробит, но в реестре оплат нет ни одной строки ' +
+        'по этим документам — значит по кассе они прошли иначе. Откройте их в УМЦ и посмотрите, ' +
+        'одна это услуга или две.</div>' +
+        '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Сумма</th>' +
+        '<th>Раз</th><th style="text-align:left">Документы</th></tr></thead><tbody>' +
+        р.неясные.slice(0, 40).map(x =>
+          '<tr><td>' + esc(x.g[0].day) + '</td><td>' + esc(x.g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(x.одна) + '</td><td class="mono">×' + x.g.length + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(x.номера.map(n => n.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
         '</tbody></table></div>';
     }
+
+    if (р.погашенные.length){
+      html += '<details class="set" style="margin-top:18px"><summary>Погашенные пары — ' +
+        р.погашенные.length + ' (смотреть не обязательно)</summary><div class="setbody">' +
+        '<p class="sb" style="margin:10px 0 0">Здесь деньги посчитаны один раз: ' +
+        'сумма оплат по группе не больше стоимости одной услуги.</p>' +
+        '<div class="tw" style="margin-top:12px"><table><thead><tr><th>День</th><th>Клиент</th>' +
+        '<th>За одну</th><th>Оплачено</th><th style="text-align:left">Документы</th>' +
+        '</tr></thead><tbody>' +
+        р.погашенные.slice(0, 60).map(x =>
+          '<tr><td>' + esc(x.g[0].day) + '</td><td>' + esc(x.g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(x.одна) + '</td>' +
+          '<td class="mono ok">' + fmt0(x.оплачено) + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(x.номера.map(n => n.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div></div></details>';
+    }
+    if (услуги)
+      html += '<div class="note">В реестре услуг нет колонки «Пометка удаления», поэтому ' +
+        'в кандидаты попадают и уже удалённые документы. На загрузку это не влияет — ' +
+        'помеченные на удаление в файл обмена не выгружаются вовсе. Но если хотите ' +
+        'чистый список, добавьте эту колонку в настройках отчёта в УМЦ.</div>';
     html += '</section>';
   }
 
-  $("#out").innerHTML = html;
+  if (fixres.warned.length)
+    ИТОГ.позже.push("Смотреть руками: " + скл(fixres.warned.length, "пункт", "пункта", "пунктов") +
+      " в разделе «Доводка»");
+  if (!ofd) ИТОГ.позже.push("Отчёт ОФД не загружен — с кассой ничего не сверено");
+  $("#out").innerHTML = вердикт(ИТОГ, fixres, !!ofd) + html + инструкция();
 }
 function составAdd(состав, t, o){
   const e = состав[t] || (состав[t] = {n:0, s:0});
@@ -972,6 +1278,70 @@ const HUMAN = {
   "СтатьиДвиженияДенежныхСредств":"Статьи движения денежных средств",
   "КлассификаторЕдиницИзмерения":"Классификатор единиц измерения"
 };
+/* Вердикт наверху страницы. Смысл простой: человек должен с первого экрана
+   понять, можно грузить файл в бухгалтерию или сначала надо чинить УМЦ.
+   Красное — то, из-за чего в учёт поедут неверные суммы, и это блокирует
+   загрузку. Жёлтое — кассовая дисциплина: файлу не мешает, но до закрытия
+   месяца закрыть надо. */
+function вердикт(И, fixres, естьОФД){
+  const стоп = И.стоп.length;
+  let h = '<section style="margin-top:34px"><div class="kick">Итог</div>' +
+    '<h2>' + (стоп ? "Загружать рано" : "Файл можно загружать") + '</h2>' +
+    '<div class="sb">' +
+    (стоп
+      ? "Ниже то, из-за чего в бухгалтерию поедут суммы, которых по кассе не было. " +
+        "Это чинится в УМЦ, а не в файле: исправьте и выгрузите период заново."
+      : естьОФД
+        ? "Выгрузка сходится с фискальными данными. Жёлтые пункты, если они есть, " +
+          "загрузке не мешают — это кассовая дисциплина, а не файл."
+        : "Проверено то, что можно проверить по самому файлу. " +
+          "С кассой ничего не сверено — добавьте отчёт ОФД.") +
+    '</div><div class="whys">';
+  if (стоп) h += '<div class="why bad"><b>Сначала исправить в УМЦ:</b><ol style="margin:8px 0 0 18px">' +
+    И.стоп.map(x => "<li>" + x + "</li>").join("") + '</ol></div>';
+  if (И.позже.length) h += '<div class="why calm"><b>Не мешает загрузке, но закрыть до конца месяца:' +
+    '</b><ul style="margin:8px 0 0 18px">' +
+    И.позже.map(x => "<li>" + x + "</li>").join("") + '</ul></div>';
+  if (И.хорошо.length) h += '<div class="why ok"><b>Проверено и сходится:</b>' +
+    '<ul style="margin:8px 0 0 18px">' +
+    И.хорошо.map(x => "<li>" + x + "</li>").join("") + '</ul></div>';
+  if (fixres.fixed.length) h += '<div class="why calm"><b>Реквизиты дозаполнены: ' +
+    fixres.fixed.length + '.</b> Нажмите «Скачать исправленный файл» — грузить надо ' +
+    'именно его, а не исходный.</div>';
+  return h + '</div></section>';
+}
+
+/* Порядок загрузки: он не очевидный, а ошибиться дорого — поэтому памятка
+   лежит прямо в приложении, а не в отдельном файле, который потеряется. */
+function инструкция(){
+  const шаг = (n, з, т) => '<li><b>' + з + '</b><br><span class="what">' + т + '</span></li>';
+  return '<section><div class="kick">Памятка</div><h2>Как загрузить файл в бухгалтерию</h2>' +
+    '<div class="sb">Первый раз — обязательно на копии базы.</div>' +
+    '<ol class="steps">' +
+    шаг(1, "Сделать копию базы", "Администрирование → Выгрузить информационную базу. " +
+      "Загрузка правит справочники, и откатить её иначе нечем.") +
+    шаг(2, "Скачать исправленный файл", "Кнопка выше. Грузить надо файл с пометкой " +
+      "«-исправленный» — в исходном пустые склад, статья ДДС и ставка НДС, документы не проведутся.") +
+    шаг(3, "Открыть обработку загрузки", "В бухгалтерии: Универсальный обмен данными в формате XML " +
+      "→ закладка «Загрузка данных» → выбрать файл.") +
+    шаг(4, "Снять галку «Проводить документы при загрузке»",
+      "Первый раз документы лучше загрузить непроведёнными и посмотреть их глазами. " +
+      "Проведёте потом пачкой.") +
+    шаг(5, "Загрузить и проверить три числа", "Отчёт о розничных продажах за период: " +
+      "выручка, наличные, эквайринг. Они должны совпасть с карточками в разделе «Что в файле».") +
+    шаг(6, "Проверить остатки", "Оборотно-сальдовая ведомость: счёт 50.01 должен закрыться " +
+      "инкассацией в ноль (или на разменный фонд), 57.03 — закрыться выпиской банка, " +
+      "62.Р — показывать остаток невыбранных авансов.") +
+    шаг(7, "Провести документы", "Если всё сошлось — выделить загруженные документы в журнале " +
+      "и провести. Если нет — откатиться на копию, а не править руками.") +
+    '</ol>' +
+    '<div class="note"><b>Повторная загрузка того же периода ничего не задваивает.</b> ' +
+    'Кассовые ордера ищутся по внутреннему идентификатору, отчёты о розничных продажах — ' +
+    'по дню и ключу в комментарии. Документы обновятся, а не создадутся заново. ' +
+    'Поэтому исправили в УМЦ — смело выгружайте период целиком и грузите поверх.</div>' +
+    '</section>';
+}
+
 const card = (l, v, n) =>
   '<div class="card"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' +
   (n ? '<div class="n">' + esc(n) + '</div>' : '') + '</div>';
@@ -995,8 +1365,24 @@ function skladInputs(objs){
     '</div>';
 }
 
+/* ---------- соответствие терминалов ---------- */
+function терминалInputs(св){
+  if (!св.кассы.length){ $("#terminaly").innerHTML = ""; return; }
+  $("#terminaly").innerHTML = '<p class="sb" style="margin:18px 0 0">Какой вид оплаты из УМЦ ' +
+    'соответствует какой кассе в отчёте ОФД. Приложение расставило по обороту — ' +
+    'проверьте и поправьте, если угадало неверно.</p><div class="grid2">' +
+    св.пары.filter(x => x.касса).map(x =>
+      '<div class="fld"><label>' + esc(x.касса) +
+      (x.точка ? ' <span style="color:var(--faint)">· ' + esc(x.точка.slice(0, 34)) + '</span>' : '') +
+      '</label><select data-kkt="' + esc(x.касса) + '">' +
+      '<option value="">— не сверять —</option>' +
+      св.виды.map(v => '<option value="' + esc(v) + '"' + (v === x.вид ? " selected" : "") +
+        '>' + esc(v) + '</option>').join("") +
+      '</select></div>').join("") + '</div>';
+}
+
 /* ---------- файлы ---------- */
-const FILES = {xml:null, ofd:null, pay:null};
+const FILES = {xml:null, x1:null, x2:null, x3:null};
 let FIXED_TEXT = "", FIXED_NAME = "";
 
 function slot(id, key, accept, label){
@@ -1022,8 +1408,8 @@ function take(key, file){
   $("#run").disabled = !FILES.xml;
   $("#err").innerHTML = "";
 }
-["s-xml","s-ofd","s-pay"].forEach((id, i) =>
-  slot(id, ["xml","ofd","pay"][i], [".xml",".xlsx,.xls",".xlsx,.xls"][i], id));
+["s-xml","s-ofd","s-srv","s-pay"].forEach((id, i) =>
+  slot(id, ["xml","x1","x2","x3"][i], i ? ".xlsx,.xls" : ".xml", id));
 
 const readText = f => new Promise((res, rej) => {
   const r = new FileReader();
@@ -1047,15 +1433,23 @@ $("#run").addEventListener("click", async () => {
     const ex = parseExchange(text);
     skladInputs(ex.objs);
     const fixres = fixAll(ex);
-    const ofd = FILES.ofd ? parseOfd(await readBook(FILES.ofd)) : null;
-    if (FILES.ofd && !ofd) throw new Error("В отчёте ОФД не нашлась таблица с колонками «Наличными» и «Сумма».");
-    /* третий файл — это либо реестр услуг, либо реестр оплат; узнаём по шапке */
-    const третий = FILES.pay ? await readBook(FILES.pay) : null;
-    const услуги = третий ? parseServices(третий) : null;
-    const pay = третий && !услуги ? parsePayments(третий) : null;
-    if (третий && !услуги && !pay)
-      throw new Error("Третий файл не распознан: нужен реестр услуг (колонки «Дата работ», " +
-                      "«Клиент», «Сумма», «Чек пробит») или реестр оплат со строками «Оказание услуг …».");
+    /* таблицы узнаём по содержимому — какую в какую ячейку положили, неважно */
+    let ofd = null, услуги = null, pay = null;
+    const чужие = [];
+    for (const k of ["x1", "x2", "x3"]){
+      if (!FILES[k]) continue;
+      const wb = await readBook(FILES[k]);
+      const о = parseOfd(wb), у = о ? null : parseServices(wb), о2 = (о || у) ? null : parsePayments(wb);
+      if (о && !ofd) ofd = о;
+      else if (у && !услуги) услуги = у;
+      else if (о2 && !pay) pay = о2;
+      else чужие.push(FILES[k].name);
+    }
+    if (чужие.length)
+      throw new Error("Не разобран файл: " + чужие.join(", ") +
+        ". Нужен отчёт ОФД (колонки «Наличными» и «Сумма»), реестр услуг (колонки «Дата работ», " +
+        "«Клиент», «Сумма», «Чек пробит») или реестр оплат со строками «Оказание услуг …». " +
+        "Файлы одного вида дважды класть не надо.");
     render(ex, fixres, ofd, pay, услуги);
     /* сериализатор сам ставит объявление кодировки — второе сломает файл */
     const body = new XMLSerializer().serializeToString(ex.xdoc);
