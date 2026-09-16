@@ -150,6 +150,10 @@ details.set[open]>summary::before{content:"▾ "}
   background:var(--bg);color:var(--ink);width:100%}
 @media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
 
+.chk{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:12.5px;
+  color:var(--mute);line-height:1.45;cursor:pointer}
+.chk input{margin-top:2px;flex:none}
+.chk b{color:var(--ink);font-weight:600}
 .err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;
   padding:12px 15px;font-size:13.5px;margin-top:14px}
 
@@ -218,6 +222,10 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
       <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
       <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds"></div>
     </div>
+    <label class="chk"><input type="checkbox" id="c-perenos" checked>
+      <span><b>Переставлять эквайринг на правильный терминал</b> — когда за день у одного
+      терминала ровно столько же лишних денег, сколько у другого не хватает. Сумма документа
+      не меняется, меняется только аналитика на счёте 57.03. Нужен отчёт ОФД.</span></label>
     <div id="sklady"></div>
     <div id="terminaly"></div>
   </div>
@@ -268,8 +276,9 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
     <div class="rule"><b>Номер чека ККМ</b><span>мусорное «-1» вычищается</span></div>
     <div class="rule w"><b>Задвоенные услуги</b><span>один день, один клиент, одна сумма,
       разные документы; по реестру оплат видно, погашена пара или деньги правда посчитаны дважды</span></div>
-    <div class="rule w"><b>Эквайринг по терминалам</b><span>каждый вид оплаты сверяется со своей
-      кассой в ОФД — так ловится оплата, заведённая не на тот терминал</span></div>
+    <div class="rule"><b>Эквайринг не на том терминале</b><span>если за день у одного терминала
+      ровно столько же лишних денег, сколько у другого не хватает, оплата переставляется
+      по данным ОФД — сумма документа не меняется</span></div>
   </div>
 </section>
 

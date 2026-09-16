@@ -116,6 +116,69 @@ if ((text.match(/<\?xml/g) || []).length !== 1) беда.push("в файле н�
 if (!text.includes("<ФайлОбмена")) беда.push("в скачанном файле нет корневого узла");
 if ((text.match(/<Правило>/g) || []).length !== 48) беда.push("правила обмена повреждены");
 
+/* Второй прогон: август. Там приложение не просто дозаполняет реквизиты,
+   а двигает деньги между терминалами — самая рискованная правка, поэтому
+   проверяем её на настоящих данных и следим, чтобы итог не поехал. */
+const АВГ = join(ROOT, "data", "source", "2026-08");
+const авг = (имя, как) => { const to = join(TMP, как); copyFileSync(join(АВГ, имя), to); return to; };
+const стр2 = await browser.newPage();
+стр2.on("pageerror", e => errors.push("август, ошибка страницы: " + e.message));
+await стр2.goto("file://" + APP);
+const in2 = await стр2.locator(".slot input[type=file]").all();
+await in2[0].setInputFiles(авг("Выгрузка-в-БП-11-31.08.2026.xml", "a.xml"));
+await in2[1].setInputFiles(авг("Такском-фискальные-документы-11-31.08.2026.xlsx", "a-ofd.xlsx"));
+await стр2.click("#run");
+await стр2.waitForSelector("#out section", { timeout: 60000 });
+
+const текст2 = ровно(await стр2.locator("#out").innerText());
+if (!текст2.includes("1 548 500 ₽ с «Онлайн-касса Карта» на «Корпус 1 / Терминал»"))
+  беда.push("август: перенос эквайринга 13.08 не выполнен");
+if (!текст2.includes("В самой УМЦ это не исправлено"))
+  беда.push("август: нет предупреждения, что в программе ошибка осталась");
+
+/* считаем деньги прямо в исправленном файле: итог не должен измениться ни на рубль */
+const свод = await стр2.evaluate(() => {
+  const x = new DOMParser().parseFromString(FIXED_TEXT, "application/xml");
+  const имена = {};
+  for (const o of x.getElementsByTagName("Объект"))
+    if (o.getAttribute("Тип") === "СправочникСсылка.ВидыОплатОрганизаций")
+      for (const s of o.children)
+        if (s.getAttribute && s.getAttribute("Имя") === "Наименование")
+          имена[o.getAttribute("Нпп")] = s.textContent.trim();
+  let итог = 0; const день13 = {};
+  for (const o of x.getElementsByTagName("Объект")){
+    if (o.getAttribute("Тип") !== "ДокументСсылка.ОтчетОРозничныхПродажах") continue;
+    const ссыл = o.querySelector("Ссылка");
+    let дата = "";
+    for (const s of (ссыл || o).children)
+      if (s.getAttribute("Имя") === "Дата") дата = s.textContent.trim().slice(0, 10);
+    for (const t of o.getElementsByTagName("ТабличнаяЧасть")){
+      const знак = t.getAttribute("Имя") === "Оплата" ? 1
+                 : t.getAttribute("Имя") === "ВозвратОплаты" ? -1 : 0;
+      if (!знак) continue;
+      for (const rec of t.children){
+        let npp = "", сум = 0;
+        for (const s of rec.children){
+          if (s.getAttribute("Имя") === "ВидОплаты"){
+            const r = s.querySelector("Ссылка"); npp = r ? r.getAttribute("Нпп") : "";
+          }
+          if (s.getAttribute("Имя") === "СуммаОплаты") сум = parseFloat(s.textContent) || 0;
+        }
+        итог += знак * сум;
+        if (дата === "2026-08-13" && знак > 0)
+          день13[имена[npp] || "?"] = (день13[имена[npp] || "?"] || 0) + сум;
+      }
+    }
+  }
+  return {итог, день13};
+});
+if (Math.round(свод.итог) !== 39495440)
+  беда.push("август: итог эквайринга поехал — стало " + свод.итог + ", было 39495440");
+if (Math.round(свод.день13["Онлайн-касса Карта"] || 0) !== 55000)
+  беда.push("август 13.08: облачная касса " + свод.день13["Онлайн-касса Карта"] + ", ждали 55000 (столько в ОФД)");
+if (Math.round(свод.день13["Корпус 1 / Терминал"] || 0) !== 5381300)
+  беда.push("август 13.08: Штрих " + свод.день13["Корпус 1 / Терминал"] + ", ждали 5381300");
+
 await browser.close();
 беда.push(...errors);
 
@@ -124,5 +187,6 @@ if (беда.length){
   беда.forEach(b => console.error("  · " + b));
   process.exit(1);
 }
-console.log("всё сошлось: карточки, " + ПРАВОК + " правок, наличные и терминалы против ОФД, " +
-            "итог наверху, памятка, скачивание файла");
+console.log("всё сошлось: сентябрь — карточки, " + ПРАВОК + " правок, наличные и терминалы " +
+            "против ОФД, итог, памятка, скачивание; август — перенос эквайринга 13.08 " +
+            "без изменения итога");

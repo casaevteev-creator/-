@@ -135,6 +135,10 @@ details.set[open]>summary::before{content:"▾ "}
   background:var(--bg);width:100%}
 @media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
 
+.chk{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:12.5px;
+  color:var(--mute);line-height:1.45;cursor:pointer}
+.chk input{margin-top:2px;flex:none}
+.chk b{color:var(--ink);font-weight:600}
 .err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;
   padding:12px 15px;font-size:13.5px;margin-top:14px}
 footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)}
@@ -197,6 +201,10 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-si
       <div class="fld"><label>Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
       <div class="fld"><label>Ставка НДС для медуслуг</label><input id="c-nds"></div>
     </div>
+    <label class="chk"><input type="checkbox" id="c-perenos" checked>
+      <span><b>Переставлять эквайринг на правильный терминал</b> — когда за день у одного
+      терминала ровно столько же лишних денег, сколько у другого не хватает. Сумма документа
+      не меняется, меняется только аналитика на счёте 57.03. Нужен отчёт ОФД.</span></label>
     <div id="sklady"></div>
     <div id="terminaly"></div>
   </div>
@@ -250,19 +258,23 @@ function loadCfg(){
   CFG = Object.assign({}, CFG_FIELDS, saved.fields || {});
   SKLADY = saved.sklady || {};
   ТЕРМИНАЛЫ = saved.терминалы || {};
+  $("#c-perenos").checked = saved.перенос !== false;
   for (const k in CFG_FIELDS) $("#" + k).value = CFG[k];
 }
 function saveCfg(){
   for (const k in CFG_FIELDS) CFG[k] = S($("#" + k).value) || CFG_FIELDS[k];
   document.querySelectorAll("[data-sklad]").forEach(i => { SKLADY[i.dataset.sklad] = S(i.value); });
   document.querySelectorAll("[data-kkt]").forEach(i => { ТЕРМИНАЛЫ[i.dataset.kkt] = S(i.value); });
-  try { localStorage.setItem(CFG_KEY,
-    JSON.stringify({fields:CFG, sklady:SKLADY, терминалы:ТЕРМИНАЛЫ})); } catch(e){}
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(
+    {fields:CFG, sklady:SKLADY, терминалы:ТЕРМИНАЛЫ, перенос:$("#c-perenos").checked}));
+  } catch(e){}
 }
 document.addEventListener("input", e => {
   if (e.target.matches("[id^=c-],[data-sklad]")) saveCfg();
 });
-document.addEventListener("change", e => { if (e.target.matches("[data-kkt]")) saveCfg(); });
+document.addEventListener("change", e => {
+  if (e.target.matches("[data-kkt],#c-perenos")) saveCfg();
+});
 
 /* ---------- чтение файла обмена (формат «Конвертации данных 2.0») ---------- */
 const kids = (el, tag) => [...el.children].filter(c => c.tagName === tag);
@@ -619,6 +631,110 @@ function безЧека(recs, поДням){
   return {сЧеком: итогСЧеком, без: итогБез, список: без, прошло: R2(прошло), дни};
 }
 
+/* ---------- перенос эквайринга на правильный терминал ----------
+
+   Единственная правка, которая двигает деньги, а не дозаполняет реквизиты,
+   поэтому основание для неё нужно железное — и оно есть: фискальный
+   накопитель. Если за один день у одного терминала ровно столько же лишних
+   денег, сколько у другого не хватает, значит оплату завели не на тот
+   терминал. Сумма документа при этом не меняется ни на рубль — меняется
+   только аналитика на счёте 57.03.
+
+   Переносим не больше, чем меньшая из двух величин: если совпадение
+   неполное, остаток честно остаётся расхождением и попадает в итог.
+
+   Важно: в самой УМЦ ошибка остаётся. При следующей выгрузке того же
+   периода она вернётся, и приложение перенесёт её снова. */
+function переносЭквайринга(ex, ofd, св){
+  const {xdoc} = ex, names = payTypeNames(ex.objs);
+  const nppOf = {};
+  for (const n in names) nppOf[names[n]] = n;
+
+  /* сколько ОФД видит по каждому виду оплаты в каждый день */
+  const офд = {};
+  for (const p of св.пары) if (p.вид && p.касса) офд[p.вид] = p.дниOfd;
+
+  /* наши строки оплаты и итог по дню и виду */
+  const нетто = {}, строки = {};
+  for (const d of ex.objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const знак = t.getAttribute("Имя") === "Оплата" ? 1
+                 : t.getAttribute("Имя") === "ВозвратОплаты" ? -1 : 0;
+      if (!знак) continue;
+      for (const rec of [...t.children]){
+        const pr = propEl(rec, "СуммаОплаты"); if (!pr) continue;
+        const вид = names[refNpp(rec, "ВидОплаты")] || БЕЗВИДА;
+        const v = num(propVal(pr));
+        const н = нетто[d.day] || (нетто[d.day] = {});
+        н[вид] = (н[вид] || 0) + знак * v;
+        if (знак > 0){
+          const с = строки[d.day] || (строки[d.day] = {});
+          (с[вид] || (с[вид] = [])).push({tab:t, rec, pr, v});
+        }
+      }
+    }
+  }
+
+  const сделано = [];
+  for (const day of Object.keys(нетто).sort()){
+    const виды = Object.keys(нетто[day]).filter(v => v !== БЕЗВИДА);
+    const разн = виды.map(v => ({вид:v, d:R2(нетто[day][v] - ((офд[v] || {})[day] || 0))}));
+    const лишние = разн.filter(x => x.d > 0.5).sort((a, b) => b.d - a.d);
+    const нехватка = разн.filter(x => x.d < -0.5).sort((a, b) => a.d - b.d);
+    for (const из of лишние) for (const куда of нехватка){
+      const сумма = R2(Math.min(из.d, -куда.d));
+      if (сумма <= 0.5) continue;
+      if (!двинуть(xdoc, строки[day], из.вид, куда.вид, сумма, nppOf)) continue;
+      из.d = R2(из.d - сумма); куда.d = R2(куда.d + сумма);
+      сделано.push({day, из:из.вид, куда:куда.вид, сумма});
+    }
+  }
+  return сделано;
+}
+
+/* Физика переноса: уменьшаем строки «лишнего» терминала и ровно на столько же
+   увеличиваем строку нужного. Если строки нужного терминала в документе нет,
+   копируем строку-донора и переставляем в ней указатель на вид оплаты —
+   в файле обмена терминал задан номером Нпп, а не наименованием. */
+function двинуть(xdoc, заДень, откуда, куда, сумма, nppOf){
+  const донор = (заДень || {})[откуда];
+  const цель = nppOf[куда];
+  if (!донор || !донор.length || !цель) return false;
+  let осталось = сумма;
+  for (const строка of донор.slice().sort((a, b) => b.v - a.v)){
+    if (осталось <= 0.5) break;
+    const берём = Math.min(строка.v, осталось);
+    if (берём <= 0.5) continue;
+    строка.v = R2(строка.v - берём);
+    осталось = R2(осталось - берём);
+    setValue(xdoc, строка.pr, String(строка.v));
+
+    /* куда положить: своя строка в этом же документе или копия донорской */
+    const свои = ((заДень[куда] || []).filter(x => x.tab === строка.tab));
+    if (свои.length){
+      свои[0].v = R2(свои[0].v + берём);
+      setValue(xdoc, свои[0].pr, String(свои[0].v));
+    } else {
+      const копия = строка.rec.cloneNode(true);
+      const vo = propEl(копия, "ВидОплаты");
+      const ссылка = vo ? kid(vo, "Ссылка") : null;
+      if (!ссылка){ /* откатываем: строку-донора возвращаем как была */
+        строка.v = R2(строка.v + берём); setValue(xdoc, строка.pr, String(строка.v));
+        return false;
+      }
+      ссылка.setAttribute("Нпп", цель);
+      const pr = propEl(копия, "СуммаОплаты");
+      setValue(xdoc, pr, String(берём));
+      строка.tab.appendChild(копия);
+      (заДень[куда] || (заДень[куда] = [])).push({tab:строка.tab, rec:копия, pr, v:берём});
+    }
+    /* строка донора обнулилась — из файла её убираем, пустые строки 1С не любит */
+    if (строка.v <= 0.005) строка.rec.parentNode.removeChild(строка.rec);
+  }
+  return осталось <= 0.5;
+}
+
 /* ---------- правка файла ---------- */
 const DIR_TYPE = {
   "Склад": ["СправочникСсылка.Склады", "Склады"],
@@ -761,12 +877,15 @@ function разборРасхождений(список){
 /* Соответствие «вид оплаты в УМЦ ↔ касса в ОФД» приложение угадывает по размеру:
    самый оборотистый терминал в программе — это самая оборотистая касса у ОФД.
    Угадывание можно поправить руками в настройках, оно там и запоминается. */
-function сводТерминалов(карты, ofd){
+function сводТерминалов(карты, ofd, привязка){
   const виды = Object.keys(карты.итог).sort((a, b) => карты.итог[b] - карты.итог[a]);
   const кассы = Object.keys(ofd.kkt).sort((a, b) => ofd.kkt[b].card - ofd.kkt[a].card);
   const пары = [];
   кассы.forEach((к, i) => {
-    const вид = ТЕРМИНАЛЫ[к] !== undefined ? ТЕРМИНАЛЫ[к] : (виды[i] || "");
+    /* привязка, если она уже определена, главнее угадывания: перенос эквайринга
+       меняет обороты, и на втором проходе угадывание переставило бы терминалы */
+    const вид = привязка && привязка[к] !== undefined ? привязка[к]
+              : ТЕРМИНАЛЫ[к] !== undefined ? ТЕРМИНАЛЫ[к] : (виды[i] || "");
     пары.push({касса:к, вид, точка:ofd.kkt[к].точка,
                ofd:ofd.kkt[к].card, наш: вид ? (карты.итог[вид] || 0) : 0,
                дниOfd:ofd.kkt[к].days, дниНаш: вид ? (карты.дни[вид] || {}) : {}});
@@ -882,7 +1001,8 @@ function logList(items, cls){
   return out.join("");
 }
 
-function render(ex, fixres, ofd, pay, услуги){
+function render(ex, fixres, ofd, pay, услуги, перенос, привязка){
+  перенос = перенос || [];
   /* сюда складываем всё, что решает судьбу загрузки, — вердикт собирается в конце */
   const ИТОГ = {стоп:[], позже:[], хорошо:[]};
   const days = moneyByDay(ex.objs);
@@ -970,9 +1090,15 @@ function render(ex, fixres, ofd, pay, услуги){
     /* эквайринг по терминалам: в сумме за день ошибка «не тот терминал» не видна */
     const карты = cardByType(ex.objs, payTypeNames(ex.objs));
     if (Object.keys(карты.итог).length && Object.keys(ofd.kkt).length){
-      const св = сводТерминалов(карты, ofd);
+      const св = сводТерминалов(карты, ofd, привязка);
       терминалInputs(св);
       const зерк = зеркала(св.пары);
+      if (перенос.length){
+        const сум = перенос.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.хорошо.push("Эквайринг на " + fmt0(сум) + " ₽ переставлен на правильный терминал");
+        ИТОГ.позже.push("Те же оплаты поправить в УМЦ — иначе при следующей выгрузке " +
+          "ошибка вернётся, и управленческий учёт по корпусам останется неверным");
+      }
       html += '<h2 style="margin-top:32px">Эквайринг по терминалам</h2>' +
         '<div class="sb">Слева — вид оплаты из УМЦ, справа — касса из отчёта ОФД. ' +
         'Сопоставление угадано по обороту; если угадано неверно, поправьте в настройках ' +
@@ -995,6 +1121,42 @@ function render(ex, fixres, ofd, pay, услуги){
           'При загрузке такая строка не найдёт счёт эквайринга — документ либо не проведётся, ' +
           'либо повесит деньги не туда. Найдите эти оплаты в УМЦ и укажите терминал.' +
           '<span class="d">Чаще всего так выглядит возврат по карте, оформленный вручную.</span></div>';
+      }
+      /* Итог за месяц гасит плюсовые дни минусовыми, поэтому под таблицей —
+         разбивка по дням: это и есть список того, что открывать в УМЦ. */
+      const расх = [];
+      for (const d of [...new Set(св.пары.flatMap(x =>
+             Object.keys(x.дниOfd).concat(Object.keys(x.дниНаш))))].sort()){
+        const строка = св.пары.filter(x => x.вид).map(x =>
+          ({вид:x.вид, d:R2((x.дниНаш[d] || 0) - (x.дниOfd[d] || 0))}));
+        if (строка.some(x => Math.abs(x.d) > 0.5)) расх.push({day:d, по:строка});
+      }
+      if (расх.length){
+        const виды = св.пары.filter(x => x.вид).map(x => x.вид);
+        html += '<details class="set"><summary>Дни, где терминал не сошёлся — ' +
+          расх.length + '</summary><div class="setbody">' +
+          '<p class="sb" style="margin:10px 0 12px">Итог за период гасит плюсовые дни ' +
+          'минусовыми, поэтому смотреть надо сюда. Плюс — деньги есть в программе, ' +
+          'чека нет. Минус — чек пробит, а в программе оплаты нет.</p>' +
+          '<div class="tw"><table><thead><tr><th>День</th>' +
+          виды.map(v => '<th>' + esc(v) + '</th>').join("") + '</tr></thead><tbody>' +
+          расх.map(r => '<tr><td><b>' + esc(r.day) + '</b></td>' +
+            r.по.map(x => '<td class="mono ' + (Math.abs(x.d) > 0.5 ? "bad" : "") + '">' +
+              (Math.abs(x.d) > 0.5 ? fmt0(x.d) : "·") + '</td>').join("") + '</tr>').join("") +
+          '</tbody></table></div></div></details>';
+      }
+      if (перенос.length){
+        const сум = перенос.reduce((s, x) => s + x.сумма, 0);
+        html += '<div class="note good"><b>Переставлено на правильный терминал: ' + fmt0(сум) +
+          ' ₽.</b> За эти дни у одного терминала было ровно столько же лишних денег, сколько ' +
+          'у другого не хватало, — значит оплату завели не туда. В файле это уже исправлено: ' +
+          'сумма документа не изменилась, деньги просто встали на нужный эквайринговый счёт, ' +
+          'и таблица выше показывает уже исправленные цифры.' +
+          '<span class="d">' + перенос.map(x => дн(x.day) + ": " + fmt0(x.сумма) +
+            " ₽ с «" + esc(x.из) + "» на «" + esc(x.куда) + "»").join("; ") + '</span></div>' +
+          '<div class="note alarm"><b>В самой УМЦ это не исправлено — туда я дотянуться не могу.</b> ' +
+          'Поправьте те же оплаты в программе: иначе при следующей выгрузке того же периода ' +
+          'ошибка вернётся, а управленческие отчёты по корпусам так и будут врать.</div>';
       }
       if (зерк.length){
         const сум = зерк.reduce((s, x) => s + x.сумма, 0);
@@ -1400,7 +1562,6 @@ $("#run").addEventListener("click", async () => {
     const text = await readText(FILES.xml);
     const ex = parseExchange(text);
     skladInputs(ex.objs);
-    const fixres = fixAll(ex);
     /* таблицы узнаём по содержимому — какую в какую ячейку положили, неважно */
     let ofd = null, услуги = null, pay = null;
     const чужие = [];
@@ -1418,7 +1579,19 @@ $("#run").addEventListener("click", async () => {
         ". Нужен отчёт ОФД (колонки «Наличными» и «Сумма»), реестр услуг (колонки «Дата работ», " +
         "«Клиент», «Сумма», «Чек пробит») или реестр оплат со строками «Оказание услуг …». " +
         "Файлы одного вида дважды класть не надо.");
-    render(ex, fixres, ofd, pay, услуги);
+    /* перенос эквайринга идёт до доводки: он меняет сами строки оплаты,
+       и всё остальное должно считаться уже по исправленному файлу */
+    let перенос = [], привязка = null;
+    if (ofd){
+      /* какой терминал какой кассе соответствует — определяем по файлу, каким он
+         пришёл, и дальше держимся этой привязки: перенос сдвинет обороты */
+      const св = сводТерминалов(cardByType(ex.objs, payTypeNames(ex.objs)), ofd);
+      привязка = {};
+      св.пары.forEach(x => { if (x.касса) привязка[x.касса] = x.вид; });
+      if ($("#c-perenos").checked) перенос = переносЭквайринга(ex, ofd, св);
+    }
+    const fixres = fixAll(ex);
+    render(ex, fixres, ofd, pay, услуги, перенос, привязка);
     /* сериализатор сам ставит объявление кодировки — второе сломает файл */
     const body = new XMLSerializer().serializeToString(ex.xdoc);
     FIXED_TEXT = body.startsWith("<?xml")
