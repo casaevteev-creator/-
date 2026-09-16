@@ -82,6 +82,15 @@ tr.gap td{padding-top:14px}
 .tw td:first-child::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;
   background:var(--line)}
 .what{color:var(--mute)}
+/* разбор расхождений: у каждой причины свой вес, а не один общий абзац */
+.whys{display:grid;gap:10px;margin-top:14px}
+.why{border:1px solid var(--line);border-left-width:3px;border-radius:0 10px 10px 0;
+  padding:13px 16px;font-size:13.5px;line-height:1.5;color:var(--ink2);background:var(--panel)}
+.why b{color:var(--ink)}
+.why .d{display:block;margin-top:6px;color:var(--faint);font-size:12.5px}
+.why.ok{border-left-color:var(--green2);background:var(--green-soft)}
+.why.calm{border-left-color:var(--ghost)}
+.why.bad{border-left-color:var(--red);background:var(--red-soft)}
 
 .cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
@@ -538,6 +547,96 @@ function fixAll(ex){
   return {fixed, warned};
 }
 
+/* Расхождения бывают трёх сортов, и вести себя с ними надо по-разному.
+   Перенос даты: возврат провели в программе одним днём, а чек пробили
+   другим — тогда соседние дни расходятся на одну сумму в разные стороны,
+   а денег не теряется. Остальное — либо платёж без чека, либо услуга,
+   закрытая авансом, по которой чек зачёта не пробили. */
+const вДнях = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+
+function разборРасхождений(список){
+  const по = {cash:[], card:[], adv:[]};
+  список.forEach(r => по[r.kind].push({day:r.day, diff:r.diff, rest:r.diff}));
+  const пары = [];
+  for (const вид of ["cash", "card"]){
+    for (const n of по[вид]) for (const p of по[вид]){
+      if (n.rest >= -0.5 || p.rest <= 0.5) continue;
+      if (Math.abs(вДнях(n.day, p.day)) > 3) continue;
+      const м = Math.min(-n.rest, p.rest);
+      if (м <= 0.5) continue;
+      n.rest += м; p.rest -= м;
+      пары.push({вид, было:n.day, стало:p.day, сумма:м});
+    }
+  }
+  const остаток = [];
+  for (const вид of ["cash", "card"])
+    по[вид].forEach(x => { if (Math.abs(x.rest) > 0.5) остаток.push({вид, day:x.day, сумма:x.rest}); });
+  return {
+    пары,
+    перенос: пары.reduce((s, x) => s + x.сумма, 0),
+    остаток,
+    безЧека: остаток.reduce((s, x) => s + Math.abs(x.сумма), 0),
+    аванс: по.adv.filter(x => Math.abs(x.diff) > 0.5),
+    авансСумма: по.adv.reduce((s, x) => s + x.diff, 0)
+  };
+}
+
+const ВИД = {cash:"наличными", card:"по картам", adv:"зачётом аванса"};
+const дн = d => d.slice(8) + "." + d.slice(5, 7);
+
+function объяснение(р, налСошлись){
+  const из = [];
+  из.push('<div class="why ' + (налСошлись ? "ok" : "bad") + '"><b>' +
+    (налСошлись ? "Наличные сошлись полностью." : "Наличные не сошлись.") + "</b> " +
+    (налСошлись
+      ? "Каждый рубль, пробитый по кассе, есть в выгрузке. С кассой всё в порядке."
+      : "Разбирают это первым: выгрузка видит не те деньги, что фискальный накопитель.") +
+    "</div>");
+
+  if (р.перенос > 0.5){
+    const примеры = р.пары.slice(0, 3).map(x =>
+      дн(x.было) + " → " + дн(x.стало) + " на " + fmt0(x.сумма) + " ₽").join(", ");
+    из.push('<div class="why calm"><b>Перенос даты: ' + fmt0(р.перенос) + " ₽.</b> " +
+      "Возврат провели в программе одним днём, а чек по нему пробили другим. " +
+      "Поэтому два соседних дня расходятся на одну и ту же сумму в разные стороны, " +
+      "а за период всё сходится. <b>Деньги на месте, в файле исправлять нечего.</b> " +
+      "Чтобы не повторялось — проводить возврат той датой, когда пробит чек. " +
+      '<span class="d">' + примеры + (р.пары.length > 3 ? " и ещё " + (р.пары.length - 3) : "") +
+      "</span></div>");
+  }
+
+  if (Math.abs(р.авансСумма) > 0.5){
+    из.push('<div class="why bad"><b>Зачёт аванса без чека: ' + fmt0(р.авансСумма) + " ₽, дней " +
+      р.аванс.length + ".</b> " +
+      "Услугу закрыли деньгами, внесёнными раньше. Само по себе это нормально, но в момент, " +
+      "когда услуга оказана, касса обязана пробить чек «зачёт предоплаты» — таких чеков нет. " +
+      "<b>Что делать:</b> посмотреть по реестру услуг, кто эти пациенты. " +
+      "Физлица и деньги были в кассе — пробить чеки коррекции. " +
+      "Юрлицо или страховая платили на счёт — чек не нужен, но такие услуги не должны идти " +
+      "через розницу, им место в реализации с контрагентом.</div>");
+  }
+
+  if (р.безЧека > 0.5){
+    const где = р.остаток.map(x =>
+      дн(x.day) + " " + ВИД[x.вид] + " " + fmt0(Math.abs(x.сумма)) + " ₽ — " +
+      (x.сумма > 0 ? "есть в программе, чека нет" : "пробито по кассе, в программе нет")).join("; ");
+    из.push('<div class="why bad"><b>Не сходится по существу: ' + fmt0(р.безЧека) + " ₽.</b> " +
+      "Это не перенос даты: пары нет ни в соседний день, ни через день. " +
+      "<b>Что делать:</b> открыть эти дни в реестре оплат и найти операцию. " +
+      '<span class="d">' + где + "</span></div>");
+  }
+
+  из.push('<div class="why ' + (налСошлись ? "ok" : "bad") + '"><b>' +
+    (налСошлись ? "Загружать можно." : "Загружать рано.") + "</b> " +
+    (налСошлись
+      ? ("В бухгалтерию поедут те же суммы, что пробиты по кассе" +
+         (Math.abs(р.авансСумма) > 0.5 || р.безЧека > 0.5
+           ? ". Пункты выше загрузке не мешают, но закрыть их надо до закрытия месяца: " +
+             "они про кассовую дисциплину, а не про файл." : "."))
+      : "Сначала наличные — всё остальное вторично.") + "</div>");
+  return '<div class="whys">' + из.join("") + "</div>";
+}
+
 /* ---------- отрисовка ---------- */
 function group(list, key){
   const g = {};
@@ -608,6 +707,7 @@ function render(ex, fixres, ofd, pay){
   if (ofd){
     const all = [...new Set(keys.concat(Object.keys(ofd.days)))].sort();
     let bad = 0, rows = "";
+    const расхождения = [];
     const sums = {cash:[0,0], card:[0,0], adv:[0,0]};
     for (const day of all){
       const o = days[day] || {cash:0, card:0, adv:0};
@@ -617,7 +717,7 @@ function render(ex, fixres, ofd, pay){
         const a = ours === "adv" ? o.adv : o[ours], b = x[theirs];
         sums[theirs][0] += a; sums[theirs][1] += b;
         const diff = R2(a - b), off = Math.abs(diff) >= 1;
-        if (off) bad++;
+        if (off){ bad++; расхождения.push({day, kind:theirs, diff}); }
         rows += '<tr class="' + (i === 0 ? "day-first gap" : "") + '"><td>' +
           (i === 0 ? '<b>' + esc(day) + '</b> ' : '') +
           '<span class="what">' + label + '</span></td>' +
@@ -640,15 +740,12 @@ function render(ex, fixres, ofd, pay){
     html += '<div class="tw"><table><thead><tr><th>День и что сверяем</th>' +
       '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' + rows +
       '</tbody></table></div>';
-    if (!bad) html += '<div class="note good">Сходится день в день по всем трём величинам.</div>';
-    else {
-      html += '<div class="note"><b>Расхождений: ' + bad + '.</b> Обычные причины: ' +
-        'возврат проведён в программе одной датой, а чек пробит другой — тогда соседние дни ' +
-        'расходятся на одну и ту же сумму с разными знаками; ' +
-        'зачёт аванса без чека предоплаты — по 54-ФЗ чек обязателен (тег 1215).</div>';
-      if (Math.abs(нал) < 1) html += '<div class="note good">Наличные при этом сошлись полностью — ' +
-        'касса в порядке, расхождения в эквайринге и авансах.</div>';
-    }
+    html += '<h2 style="margin-top:32px">Что это значит</h2>' +
+      '<div class="sb">Расхождения разобраны по причинам: что само себя объясняет, ' +
+      'а что надо смотреть руками.</div>';
+    html += bad ? объяснение(разборРасхождений(расхождения), Math.abs(нал) < 1)
+      : '<div class="whys"><div class="why ok"><b>Сходится день в день по всем трём величинам.</b> ' +
+        'Выгрузка совпадает с фискальными данными полностью — можно грузить.</div></div>';
     html += '</section>';
   }
 

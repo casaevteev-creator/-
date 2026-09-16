@@ -82,8 +82,8 @@ for (const [l, v] of Object.entries(ЖДЁМ)){
 const свод = (await page.locator("#out .sb").allInnerTexts()).join(" ");
 if (!свод.includes("Исправлено " + ПРАВОК)) беда.push("правок не " + ПРАВОК + ": " + свод);
 
-const заметки = (await page.locator("#out .note").allInnerTexts()).join(" ");
-if (!заметки.includes("Наличные при этом сошлись полностью"))
+const заметки = (await page.locator("#out .note, #out .why").allInnerTexts()).join(" ");
+if (!заметки.includes("Наличные сошлись полностью"))
   беда.push("наличные не сошлись с ОФД");
 
 /* исправленный файл должен скачиваться и оставаться валидным XML */

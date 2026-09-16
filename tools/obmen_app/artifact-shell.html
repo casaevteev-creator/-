@@ -103,6 +103,15 @@ td.acc{font-family:var(--mono);color:var(--mute);font-size:12.5px}
 .tw td:first-child::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;
   background:var(--line)}
 .what{color:var(--mute)}
+/* разбор расхождений: у каждой причины свой вес, а не один общий абзац */
+.whys{display:grid;gap:10px;margin-top:14px}
+.why{border:1px solid var(--line);border-left-width:3px;border-radius:0 10px 10px 0;
+  padding:13px 16px;font-size:13.5px;line-height:1.5;color:var(--ink2);background:var(--panel)}
+.why b{color:var(--ink)}
+.why .d{display:block;margin-top:6px;color:var(--faint);font-size:12.5px}
+.why.ok{border-left-color:var(--green-edge);background:var(--green-soft)}
+.why.calm{border-left-color:var(--ghost)}
+.why.bad{border-left-color:var(--red);background:var(--red-soft)}
 
 .cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
