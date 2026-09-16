@@ -433,13 +433,67 @@ function parsePayments(wb){
 function duplicates(recs){
   const g = {};
   for (const r of recs){
-    const k = r.day + "|" + r.client + "|" + r.sum;
+    const k = r.day + "|" + r.client + "|" + (r.врач || "") + "|" + r.sum;
     (g[k] || (g[k] = [])).push(r);
   }
   const out = [];
   for (const k in g) if (g[k].length > 1) out.push(g[k]);
   out.sort((a, b) => a[0].day < b[0].day ? -1 : 1);
   return out;
+}
+
+/* Реестр услуг: тут видно то, чего не видно нигде больше — какие услуги
+   заведены без пробитого чека. «Нет чека» означает три разные вещи:
+   услугу не оплатили вовсе (выручки нет), оплатили авансом и не пробили
+   чек зачёта (выручка есть, нарушение в кассе), либо оплатили не деньгами —
+   зачётом против гонорара врача (выручка есть, чек не нужен). Поэтому
+   отсекать всё без чека нельзя: занизим выручку. */
+function parseServices(wb){
+  for (const name of wb.SheetNames){
+    const rows = gridOf(wb.Sheets[name]);
+    const H = findHead(rows, ["Дата работ", "Клиент", "Сумма", "Чек пробит"]);
+    if (!H) continue;
+    const ci = {};
+    ["Дата работ","Номер","Клиент","Клиника","Врач","Вид операции","Ответственный",
+     "Сумма","Касса","Чек пробит"].forEach(k => ci[k] = H.h.indexOf(k));
+    const recs = [];
+    for (let r = H.r + 1; r < rows.length; r++){
+      const строка = rows[r];
+      if (!S(строка[ci["Номер"]])) continue;
+      if (S(строка[ci["Вид операции"]]) !== "Продажа клиенту") continue;
+      recs.push({
+        day: dayOf(строка[ci["Дата работ"]]),
+        время: (S(строка[ci["Дата работ"]]).match(/\d{1,2}:\d{2}:\d{2}/) || [""])[0],
+        num: S(строка[ci["Номер"]]), client: S(строка[ci["Клиент"]]),
+        врач: S(строка[ci["Врач"]]), клиника: S(строка[ci["Клиника"]]),
+        кто: S(строка[ci["Ответственный"]]),
+        sum: num(строка[ci["Сумма"]]),
+        чек: /не пробиты/i.test(S(строка[ci["Чек пробит"]])) ? false : true
+      });
+    }
+    if (recs.length) return {kind:"услуги", recs};
+  }
+  return null;
+}
+
+function безЧека(recs, поДням){
+  const сЧеком = {}, без = [];
+  let итогСЧеком = 0, итогБез = 0;
+  for (const r of recs){
+    if (r.чек){ сЧеком[r.day] = (сЧеком[r.day] || 0) + r.sum; итогСЧеком += r.sum; }
+    else if (r.sum > 0){ без.push(r); итогБез += r.sum; }
+  }
+  /* сколько непробитого реально доехало до выручки: столько, на сколько
+     реализация в выгрузке больше суммы услуг с чеком */
+  let прошло = 0;
+  const дни = [];
+  for (const day of Object.keys(поДням).sort()){
+    const было = сЧеком[day] || 0, стало = поДням[day].rev;
+    дни.push({day, было, стало, сверх: R2(стало - было)});
+    if (стало > было) прошло += стало - было;
+  }
+  без.sort((a, b) => b.sum - a.sum);
+  return {сЧеком: итогСЧеком, без: итогБез, список: без, прошло: R2(прошло), дни};
 }
 
 /* ---------- правка файла ---------- */
@@ -667,7 +721,7 @@ function logList(items, cls){
   return out.join("");
 }
 
-function render(ex, fixres, ofd, pay){
+function render(ex, fixres, ofd, pay, услуги){
   const days = moneyByDay(ex.objs);
   const keys = Object.keys(days).sort();
   const tot = {cash:0, card:0, adv:0, prepay:0, rev:0, refund:0, other:0, out:0};
@@ -759,18 +813,82 @@ function render(ex, fixres, ofd, pay){
     html += '</section>';
   }
 
+  /* услуги без чека — только реестр услуг это показывает */
+  if (услуги){
+    const б = безЧека(услуги.recs, days);
+    html += '<section><div class="kick">§ 4 · Чеки</div><h2>Услуги без пробитого чека</h2>' +
+      '<div class="sb">Услуг в реестре: ' + услуги.recs.length +
+      '. «Нет чека» значит разное — смотрите пояснение под таблицей.</div>';
+    html += '<div class="cards">' +
+      card("С пробитым чеком", fmt0(б.сЧеком), "это и должно быть в кассе") +
+      card("Без чека, с суммой", fmt0(б.без), "услуга оказана, чека нет") +
+      card("Из них доехало до выручки", fmt0(б.прошло),
+           б.без ? "фильтр отсёк " + fmt0(б.без - б.прошло) + " ₽" : "") +
+      '</div>';
+    if (б.список.length){
+      html += '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Врач</th>' +
+        '<th>Сумма</th><th>Документ</th></tr></thead><tbody>' +
+        б.список.slice(0, 30).map(r =>
+          '<tr><td>' + esc(r.day) + '</td><td>' + esc(r.client) + '</td>' +
+          '<td style="text-align:left;color:var(--mute)">' + esc(r.врач) + '</td>' +
+          '<td class="mono">' + fmt0(r.sum) + '</td>' +
+          '<td class="mono" style="color:var(--faint)">' + esc(r.num.slice(-6)) + '</td></tr>').join("") +
+        '</tbody></table></div>' +
+        (б.список.length > 30
+          ? '<div class="sb" style="margin-top:8px">показаны 30 крупнейших из ' +
+            б.список.length + '</div>' : "");
+    }
+    const недобор = б.дни.filter(d => d.сверх < -0.5);
+    if (недобор.length){
+      const сумма = недобор.reduce((s2, d) => s2 - d.сверх, 0);
+      html += '<div class="note"><b>Обратный случай: ' + fmt0(сумма) + ' ₽.</b> ' +
+        'В эти дни реализация в выгрузке <b>меньше</b>, чем услуг с пробитым чеком — ' +
+        'значит часть оплаченных услуг в выгрузку не попала. Проверьте их отдельно. ' +
+        '<span class="d">' + недобор.map(d => дн(d.day) + " на " + fmt0(-d.сверх) + " ₽").join(", ") +
+        '</span></div>';
+    }
+    html += '<div class="whys">' +
+      '<div class="why calm"><b>Услуга заведена, но не оплачена.</b> Выручки нет, ' +
+      'признавать нечего — фильтр «Только фискализированные документы» их отсекает, ' +
+      'и правильно делает.</div>' +
+      '<div class="why bad"><b>Оплачена авансом, чек зачёта не пробит.</b> ' +
+      'Выручка есть — услуга оказана. Отсечь её значит занизить выручку, так что ' +
+      'лечить надо кассу, а не выгрузку: при зачёте предоплаты чек обязателен.</div>' +
+      '<div class="why calm"><b>Оплачена не деньгами</b> — зачётом против гонорара врача, ' +
+      'когда хирург оплачивает своему пациенту реабилитацию. Выручка есть, чек не нужен, ' +
+      'но и в рознице таким услугам не место: их надо проводить реализацией на контрагента-ИП ' +
+      'и зачитывать против гонорара.</div>' +
+      '</div>';
+    html += '</section>';
+  }
+
   /* дубли */
-  if (pay){
-    const dups = duplicates(pay.recs);
+  if (pay || услуги){
+    const источник = услуги || pay;
+    const dups = duplicates(источник.recs);
+    const сЧеком = услуги ? duplicates(услуги.recs.filter(r => r.чек)) : null;
     const extra = dups.reduce((s, g) => s + g.length - 1, 0);
     const lost = dups.reduce((s, g) => s + g[0].sum * (g.length - 1), 0);
-    html += '<section><div class="kick">§ 4 · Задвоение</div><h2>Повторно заведённые услуги</h2>' +
-      '<div class="sb">Оплат через «Оказание услуг»: ' + pay.recs.length +
-      '. Признак дубля — один день, один клиент, одна сумма, разные документы.</div>';
+    html += '<section><div class="kick">§ ' + (услуги ? "5" : "4") +
+      ' · Задвоение</div><h2>Повторно заведённые услуги</h2>' +
+      '<div class="sb">' + (услуги ? "Документов услуг: " : "Оплат через «Оказание услуг»: ") +
+      источник.recs.length +
+      '. Признак дубля — один день, один клиент' + (услуги ? ", один врач" : "") +
+      ', одна сумма, разные документы.</div>';
+    const лишнихСЧеком = сЧеком ? Object.keys(сЧеком).reduce(
+      (s2, k) => s2 + сЧеком[k].length - 1, 0) : 0;
+    const суммаСЧеком = сЧеком ? Object.keys(сЧеком).reduce(
+      (s2, k) => s2 + сЧеком[k][0].sum * (сЧеком[k].length - 1), 0) : 0;
     html += '<div class="cards">' +
       card("Групп", String(dups.length), "") +
-      card("Лишних платежей", String(extra), "") +
-      card("Сумма лишних", fmt0(lost), "₽") + '</div>';
+      card(услуги ? "Лишних документов" : "Лишних платежей", String(extra), "") +
+      card("Сумма лишних", fmt0(lost), "₽") +
+      (сЧеком ? card("Дойдёт до выручки", fmt0(суммаСЧеком),
+                     лишнихСЧеком + " докум. с пробитым чеком") : "") + '</div>';
+    if (сЧеком) html += '<div class="note' + (суммаСЧеком ? "" : " good") + '">' +
+      'Из ' + extra + ' лишних документов фильтр фискализации отсекает ' +
+      (extra - лишнихСЧеком) + '. До выручки доходят ' + лишнихСЧеком +
+      (суммаСЧеком ? ' — их и надо проверить в программе.' : '.') + '</div>';
     if (dups.length){
       html += '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Сумма</th>' +
         '<th>Раз</th><th style="text-align:left">Документы и время</th></tr></thead><tbody>' +
@@ -783,6 +901,18 @@ function render(ex, fixres, ofd, pay){
         '<div class="note">Проверьте эти документы в УМЦ до загрузки: если услуга действительно ' +
         'оказана один раз, лишние документы надо пометить на удаление, иначе выручка задвоится.</div>';
     } else html += '<div class="note good">Дублей не найдено.</div>';
+    if (сЧеком && Object.keys(сЧеком).length){
+      html += '<div class="sb" style="margin-top:18px">С пробитым чеком — ' +
+        'эти дойдут до выручки:</div><div class="tw"><table><thead><tr><th>День</th>' +
+        '<th>Клиент</th><th>Сумма</th><th>Раз</th><th style="text-align:left">Документы</th>' +
+        '</tr></thead><tbody>' +
+        Object.keys(сЧеком).sort().map(k => сЧеком[k]).map(g =>
+          '<tr><td>' + esc(g[0].day) + '</td><td>' + esc(g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(g[0].sum) + '</td><td class="mono">×' + g.length + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(g.map(x => x.num.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div>';
+    }
     html += '</section>';
   }
 
@@ -887,9 +1017,14 @@ $("#run").addEventListener("click", async () => {
     const fixres = fixAll(ex);
     const ofd = FILES.ofd ? parseOfd(await readBook(FILES.ofd)) : null;
     if (FILES.ofd && !ofd) throw new Error("В отчёте ОФД не нашлась таблица с колонками «Наличными» и «Сумма».");
-    const pay = FILES.pay ? parsePayments(await readBook(FILES.pay)) : null;
-    if (FILES.pay && !pay) throw new Error("В реестре оплат не нашлось строк «Оказание услуг …».");
-    render(ex, fixres, ofd, pay);
+    /* третий файл — это либо реестр услуг, либо реестр оплат; узнаём по шапке */
+    const третий = FILES.pay ? await readBook(FILES.pay) : null;
+    const услуги = третий ? parseServices(третий) : null;
+    const pay = третий && !услуги ? parsePayments(третий) : null;
+    if (третий && !услуги && !pay)
+      throw new Error("Третий файл не распознан: нужен реестр услуг (колонки «Дата работ», " +
+                      "«Клиент», «Сумма», «Чек пробит») или реестр оплат со строками «Оказание услуг …».");
+    render(ex, fixres, ofd, pay, услуги);
     /* сериализатор сам ставит объявление кодировки — второе сломает файл */
     const body = new XMLSerializer().serializeToString(ex.xdoc);
     FIXED_TEXT = body.startsWith("<?xml")
