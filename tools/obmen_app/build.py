@@ -22,6 +22,9 @@ ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "index.html"
 SHELL = HERE / "artifact-shell.html"
+PARSERS = ROOT / "tools" / "lib" / "umc_parsers.js"
+UTILS = ROOT / "tools" / "lib" / "utils.js"
+CSS = ROOT / "tools" / "lib" / "app.css"
 LIB = ROOT / "node_modules" / "xlsx" / "dist" / "xlsx.full.min.js"
 
 HEAD = """<!doctype html>
@@ -102,8 +105,15 @@ $("#save").addEventListener("click", async () => {
 
 
 def логика():
-    """Код приложения из index.html — он общий для обеих сборок."""
+    """Код приложения из index.html — он общий для обеих сборок.
+
+    Разборщики выгрузок лежат отдельным модулем: их делят это приложение
+    и сверка «Такском ↔ УМЦ», и чинить их надо в одном месте.
+    """
     html = SRC.read_text(encoding="utf-8")
+    html = html.replace("__СТИЛЬ__", CSS.read_text(encoding="utf-8"))
+    html = html.replace("__ОСНОВА__", UTILS.read_text(encoding="utf-8"))
+    html = html.replace("__РАЗБОРЩИКИ__", PARSERS.read_text(encoding="utf-8"))
     js = html.rsplit("<script>", 1)[1].rsplit("</script>", 1)[0]
     return html, js
 
