@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 out/roundtrip-*.xlsx
 node_modules/
+out/*-исправленный.xml
