@@ -148,7 +148,7 @@ details.set[open]>summary::before{content:"▾ "}
 .setbody{padding:4px 16px 18px;border-top:1px solid var(--line)}
 .fld{display:grid;gap:4px;margin-top:13px}
 .fld label{font-size:12px;color:var(--mute)}
-.fld input{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;
+.fld input,.fld select{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;
   background:var(--bg);color:var(--ink);width:100%}
 @media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
 
@@ -224,12 +224,21 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
       <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
       <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds"></div>
     </div>
-    <label class="chk"><input type="checkbox" id="c-perem" checked>
-      <span><b>Выбросить перемещения между кассами</b> — пары «инкассация из одной кассы +
-      получение наличных в другой». Передать кассу через этот обмен нельзя, правила
-      конвертации для справочника «Кассы» в нём нет, поэтому обе кассы всё равно лягут
-      на один 50.01. Пара при этом даёт фантом на 57.01 и на расчётном счёте. Если
-      выбросить — итог по кассе не изменится, а фантомов не будет.</span></label>
+    <div class="fld" style="margin-top:16px">
+      <label>Перемещения между кассами — пары «инкассация из одной кассы + приход в другой»</label>
+      <select id="c-perem">
+        <option value="счет">Оформить через 57.01 — правильно, но нужна настройка в УМЦ</option>
+        <option value="выбросить">Выбросить из файла — безопасно, операция пропадёт</option>
+        <option value="как есть">Оставить как есть — оставит фантом на 57.01 и на счёте 51</option>
+      </select>
+      <span class="sb" style="margin:6px 0 0;font-size:12.5px">Передать саму кассу через этот
+      обмен нельзя: правила конвертации для справочника «Кассы» в нём нет, обе кассы лягут
+      на один 50.01. «Оформить через 57.01» меняет у приходного ордера вид операции на
+      «Прочий приход» — тогда обработчик правила подставит счёт из настройки УМЦ
+      <b>битСчетУчетаПрочегоПриходаПКО</b>. Поставьте в ней <b>57.01</b>, и пара закроется
+      в ноль: расходный ордер даёт Дт 57.01 Кт 50.01, приходный — Дт 50.01 Кт 57.01.
+      Оба документа останутся в кассовой книге.</span>
+    </div>
     <label class="chk"><input type="checkbox" id="c-ostatok">
       <span><b>Не грузить остаток кассы, заведённый первым днём</b> — приходный ордер
       «Получение наличных в банке» без парной инкассации на первый день периода.
