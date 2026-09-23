@@ -1,0 +1,378 @@
+<title>Сверка Такском ↔ УМЦ</title>
+<style>
+__СТИЛЬ__
+/* ---- только для сверки ---- */
+.verdict{border-radius:14px;padding:20px 22px;margin-top:6px;border:1px solid var(--line);
+  background:var(--panel)}
+.verdict.ok{border-color:var(--green2);background:var(--green-soft)}
+.verdict.bad{border-color:var(--red);background:var(--red-soft)}
+.verdict h2{margin-bottom:6px}
+.verdict .big{font-family:var(--mono);font-size:26px;font-weight:700}
+.find{border:1px solid var(--line);border-left-width:3px;border-radius:0 12px 12px 0;
+  background:var(--panel);margin-top:12px}
+.find>summary{padding:14px 17px;cursor:pointer;list-style:none;display:flex;gap:14px;
+  align-items:baseline;flex-wrap:wrap}
+.find>summary::-webkit-details-marker{display:none}
+.find>summary::before{content:"▸";color:var(--bronze);flex:none}
+.find[open]>summary::before{content:"▾"}
+.find .t{font-weight:600;font-size:14.5px}
+.find .m{margin-left:auto;font-family:var(--mono);font-weight:700;white-space:nowrap}
+.find .n{color:var(--faint);font-size:12.5px;white-space:nowrap}
+.find .body{padding:0 17px 17px;font-size:13.5px;color:var(--ink2)}
+.find .body p{margin-bottom:10px}
+.find .body b{color:var(--ink)}
+.find.chinit{border-left-color:var(--red)}
+.find.proverit{border-left-color:var(--bronze2)}
+.find.znat{border-left-color:var(--ghost)}
+.tag{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  padding:2px 7px;border-radius:5px;flex:none}
+.tag.chinit{background:var(--red);color:#fff}
+.tag.proverit{background:var(--bronze);color:#fff}
+.tag.znat{background:var(--tint);color:var(--mute)}
+.more{font-size:12.5px;color:var(--faint);padding:8px 13px}
+</style>
+
+<header class="top"><div class="top-in">
+  <span class="brand">ОМЕГА<em>сверка с кассой</em></span>
+  <span class="top-note">файлы остаются на этом компьютере</span>
+</div></header>
+
+<div class="wrap">
+
+<h1>Такском против УМЦ</h1>
+<p class="lede">Фискальный накопитель знает правду: чек либо пробит, либо нет. Приложение
+сравнивает чеки Такскома с тем, что администраторы завели в УМЦ, и выдаёт список мест,
+куда идти смотреть руками.</p>
+
+<div class="slots">
+  <div class="slot" id="s-ofd"><span class="req">обязательно</span>
+    <h3>Отчёт Такскома</h3>
+    <p>«Такском-Касса» → Фискальные документы, выгрузка в xlsx</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-pay">
+    <h3>Реестр оплат</h3>
+    <p>«Детально по документам (Оплаты)» из УМЦ. Добавьте в отчёт поле
+    «Эквайринговый терминал» — без него безнал не разложить по кассам</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-srv">
+    <h3>Реестр услуг</h3>
+    <p>Оказанные услуги с колонками «Сумма», «Касса» и «Чек пробит»</p>
+    <div class="got" hidden></div></div>
+</div>
+<p class="sb" style="margin-top:10px">Ячейки можно перепутать — приложение узнаёт файл
+по содержимому. Обязателен только отчёт Такскома; каждый следующий файл добавляет проверки.
+Выгрузки можно брать за месяц: период считается по ним самим.</p>
+
+<div class="btnrow">
+  <button class="btn" id="run" disabled>Сверить</button>
+  <button class="btn ghost" id="save" disabled>Скачать список расхождений</button>
+  <button class="btn ghost" id="clear">Очистить</button>
+</div>
+
+<div id="err"></div>
+<div id="out"></div>
+
+<footer>
+  Эталон — фискальный накопитель. Расхождение в деньгах ищется по дням и кассам;
+  чек, у которого в УМЦ нет пары, показывается отдельно — по нему и идут в программу.
+  Проверено на 11–31.08.2026 и 01–14.09.2026.
+</footer>
+</div>
+
+<script>__SHEETJS__</script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+__ОСНОВА__
+__РАЗБОРЩИКИ__
+__СВЕРКА__
+
+/* ---------- файлы ---------- */
+const ФАЙЛЫ = {ofd:null, pay:null, services:null};
+const ИМЕНА = {ofd:"s-ofd", pay:"s-pay", services:"s-srv"};
+const ПОДПИСЬ = {ofd:"отчёт Такскома", pay:"реестр оплат", services:"реестр услуг"};
+
+/* Что за файл положили, решает не ячейка, а содержимое: пробуем разобрать
+   каждым разборщиком и смотрим, кто узнал таблицу. Перепутать ячейки —
+   обычное дело, и ругаться на это было бы глупо. */
+function разобрать(wb){
+  const ofd = parseOfd(wb);
+  if (ofd && ofd.чеки.length) return {вид:"ofd", данные:ofd};
+  const srv = parseServices(wb);
+  if (srv && srv.recs.length) return {вид:"services", данные:srv};
+  const pay = parsePayments(wb);
+  if (pay && (pay.строки || []).length) return {вид:"pay", данные:pay};
+  return null;
+}
+
+async function принять(files){
+  $("#err").innerHTML = "";
+  for (const f of files){
+    try {
+      const wb = XLSX.read(await f.arrayBuffer(), {cellDates:true});
+      const что = разобрать(wb);
+      if (!что){ ошибка("Не понял файл «" + esc(f.name) + "» — это не отчёт Такскома и не выгрузка УМЦ."); continue; }
+      ФАЙЛЫ[что.вид] = {имя:f.name, данные:что.данные};
+    } catch (e){
+      ошибка("Файл «" + esc(f.name) + "» прочитать не удалось: " + esc(e.message));
+    }
+  }
+  показатьЯчейки();
+}
+function ошибка(текст){ $("#err").innerHTML += '<div class="err">' + текст + "</div>"; }
+
+function показатьЯчейки(){
+  for (const вид in ИМЕНА){
+    const ячейка = $("#" + ИМЕНА[вид]), got = ячейка.querySelector(".got");
+    const есть = !!ФАЙЛЫ[вид];
+    ячейка.classList.toggle("ok", есть);
+    got.hidden = !есть;
+    got.textContent = есть ? ФАЙЛЫ[вид].имя : "";
+  }
+  $("#run").disabled = !ФАЙЛЫ.ofd;
+}
+
+for (const вид in ИМЕНА){
+  const ячейка = $("#" + ИМЕНА[вид]);
+  const вход = document.createElement("input");
+  вход.type = "file"; вход.accept = ".xlsx,.xls"; вход.multiple = true; вход.hidden = true;
+  ячейка.appendChild(вход);
+  ячейка.addEventListener("click", () => вход.click());
+  вход.addEventListener("change", () => принять(вход.files));
+  ячейка.addEventListener("dragover", e => { e.preventDefault(); ячейка.classList.add("over"); });
+  ячейка.addEventListener("dragleave", () => ячейка.classList.remove("over"));
+  ячейка.addEventListener("drop", e => {
+    e.preventDefault(); ячейка.classList.remove("over");
+    принять(e.dataTransfer.files);
+  });
+}
+$("#clear").addEventListener("click", () => {
+  for (const в in ФАЙЛЫ) ФАЙЛЫ[в] = null;
+  $("#out").innerHTML = ""; $("#err").innerHTML = "";
+  $("#save").disabled = true;
+  показатьЯчейки();
+});
+
+/* ---------- отрисовка ---------- */
+let РЕЗУЛЬТАТ = null;
+
+$("#run").addEventListener("click", () => {
+  $("#err").innerHTML = "";
+  try {
+    РЕЗУЛЬТАТ = сверка({ofd: ФАЙЛЫ.ofd && ФАЙЛЫ.ofd.данные,
+                        pay: ФАЙЛЫ.pay && ФАЙЛЫ.pay.данные,
+                        services: ФАЙЛЫ.services && ФАЙЛЫ.services.данные});
+    $("#out").innerHTML = нарисовать(РЕЗУЛЬТАТ);
+    $("#save").disabled = !РЕЗУЛЬТАТ.находки.length;
+  } catch (e){
+    ошибка("Сверка сломалась: " + esc(e.message));
+    throw e;
+  }
+});
+
+const деньги0 = x => (x == null || !isFinite(x)) ? "—" : Math.round(x).toLocaleString("ru-RU");
+const знак = x => (x > 0 ? "+" : "") + деньги0(x);
+const класс = вес => вес === "чинить" ? "chinit" : вес === "проверить" ? "proverit" : "znat";
+
+function нарисовать(р){
+  return итог(р) + находкиHTML(р) + кассыHTML(р) + дниHTML(р) + памятка(р);
+}
+
+function итог(р){
+  const в = р.вердикт;
+  const чисто = в.чисто && !в.проверить;
+  const заголовок = чисто ? "Сходится — чинить нечего"
+    : в.чисто ? "Денежных расхождений нет, но есть что проверить глазами"
+    : "Есть расхождения: " + скл(в.чинить, "случай", "случая", "случаев");
+  const карточка = (l, v, n, cls) => '<div class="card' + (cls ? " " + cls : "") + '">' +
+    '<div class="l">' + l + '</div><div class="v">' + v + "</div>" +
+    (n ? '<div class="n">' + n + "</div>" : "") + "</div>";
+  const сошлось = x => мелочьДа(x) ? "сходится" : знак(x) + " ₽";
+  return '<section><div class="kick">Итог</div>' +
+    '<div class="verdict ' + (чисто ? "ok" : в.чисто ? "" : "bad") + '">' +
+    "<h2>" + заголовок + "</h2>" +
+    '<p class="sb" style="margin-bottom:12px">Период ' + esc(р.период[0]) + " — " + esc(р.период[1]) +
+    ", чеков в кассе: " + р.итог.чеков + "</p>" +
+    (в.чинить ? '<div class="big">' + деньги0(в.ценаВопроса) + " ₽</div>" +
+       '<div class="sb">столько денег стоит за случаями, которые надо разобрать</div>' : "") +
+    (в.пробелы.length ? '<div class="note" style="margin-top:14px"><b>Чего не хватает для полной сверки</b>' +
+       '<span class="d">' + в.пробелы.map(esc).join("<br>") + "</span></div>" : "") +
+    "</div>" +
+    '<div class="cards" style="margin-top:14px">' +
+    карточка("Наличные", сошлось(в.наличные), "касса " + деньги0(р.итог.офд.нал) + " ₽",
+             мелочьДа(в.наличные) ? "good" : "warn") +
+    карточка("Безналичные", сошлось(в.безнал), "касса " + деньги0(р.итог.офд.безнал) + " ₽",
+             мелочьДа(в.безнал) ? "good" : "warn") +
+    карточка("Разобрать", в.чинить || "нет", в.чинить ? "по этим идти в УМЦ" : "", в.чинить ? "warn" : "good") +
+    карточка("Проверить глазами", в.проверить || "нет", "", "") +
+    "</div></section>";
+}
+const мелочьДа = x => Math.abs(x) < 0.5;
+
+function находкиHTML(р){
+  if (!р.находки.length) return '<section><div class="kick">Находки</div>' +
+    '<h2>Ничего не найдено</h2><p class="sb">Касса и УМЦ говорят одно и то же.</p></section>';
+  let h = '<section><div class="kick">Находки</div><h2>Куда идти смотреть</h2>' +
+    '<p class="sb">Сверху то, что меняет деньги. Каждый пункт раскрывается в список документов.</p>';
+  for (const н of р.находки){
+    const к = класс(н.вес);
+    h += '<details class="find ' + к + '"><summary>' +
+      '<span class="tag ' + к + '">' + н.вес + "</span>" +
+      '<span class="t">' + esc(н.что) + "</span>" +
+      '<span class="n">' + (н.штук ? скл(н.штук, "штука", "штуки", "штук") : "") + "</span>" +
+      '<span class="m">' + деньги0(н.сумма) + " ₽</span></summary>" +
+      '<div class="body"><p>' + esc(н.детали) + "</p>" +
+      "<p><b>Что делать:</b> " + esc(н.делать) + "</p>" +
+      таблица(н.строки) + "</div></details>";
+  }
+  return h + "</section>";
+}
+
+/* Строки находок у каждой свои — рисуем по ключам первой строки, а деньги
+   узнаём по имени колонки, чтобы они шли моноширинно и вправо. */
+const ДЕНЕЖНЫЕ = ["сумма", "оплачено", "нал", "безнал"];
+function таблица(строки){
+  if (!строки || !строки.length) return "";
+  const колонки = Object.keys(строки[0]);
+  const видно = строки.slice(0, 50);
+  let h = '<div class="tw"><table><thead><tr>' +
+    колонки.map(k => "<th>" + esc(подпись(k)) + "</th>").join("") + "</tr></thead><tbody>";
+  for (const с of видно){
+    h += "<tr>" + колонки.map(k => {
+      const v = с[k];
+      const денежная = ДЕНЕЖНЫЕ.indexOf(k) >= 0 && typeof v === "number";
+      return "<td" + (денежная ? ' class="mono"' : "") + ">" +
+             (денежная ? деньги0(v) : esc(v == null ? "" : String(v))) + "</td>";
+    }).join("") + "</tr>";
+  }
+  h += "</tbody></table></div>";
+  if (строки.length > видно.length)
+    h += '<div class="more">Показаны первые ' + видно.length + " из " +
+         строки.length + " — весь список в файле по кнопке «Скачать».</div>";
+  return h;
+}
+const ПОДПИСИ = {day:"дата", время:"время", сумма:"сумма, ₽", касса:"касса", фд:"№ ФД",
+  кассир:"кассир", терминал:"терминал", клиент:"клиент", врач:"врач", номер:"документ",
+  оплачено:"оплачено, ₽", номера:"документы", нал:"наличные, ₽", безнал:"безнал, ₽",
+  откуда:"откуда", куда:"куда", чек:"день чека", умц:"день в УМЦ", док:"документ"};
+const подпись = k => ПОДПИСИ[k] || k;
+
+function кассыHTML(р){
+  const строки = р.кассы.filter(к => к.офд.строк || к.умц.строк);
+  if (!строки.length) return "";
+  let h = '<section><div class="kick">Кассы</div><h2>Каждый аппарат против своей выручки</h2>' +
+    '<p class="sb">Фискальный накопитель знает, какая касса пробила чек. Если общая сумма ' +
+    'сходится, а по кассам расходится — выручку записали не на тот аппарат.</p>' +
+    '<div class="tw"><table><thead><tr><th>Касса</th><th>По чекам, нал.</th><th>В УМЦ, нал.</th>' +
+    "<th>По чекам, безнал</th><th>В УМЦ, безнал</th><th>Разница</th></tr></thead><tbody>";
+  for (const к of строки){
+    const сошлось = мелочьДа(к.дельта.нал) && мелочьДа(к.дельта.безнал);
+    const разница = сошлось ? "в ноль"
+      : [мелочьДа(к.дельта.нал) ? "" : "нал " + знак(к.дельта.нал),
+         мелочьДа(к.дельта.безнал) ? "" : "безнал " + знак(к.дельта.безнал)]
+        .filter(Boolean).join(", ");
+    h += "<tr><td>" + esc(к.имя) + "</td>" +
+      '<td class="mono">' + деньги0(к.офд.нал) + "</td>" +
+      '<td class="mono">' + деньги0(к.умц.нал) + "</td>" +
+      '<td class="mono">' + деньги0(к.офд.безнал) + "</td>" +
+      '<td class="mono">' + деньги0(к.умц.безнал) + "</td>" +
+      '<td class="' + (сошлось ? "ok" : "bad") + '">' + esc(разница) + "</td></tr>";
+  }
+  h += "</tbody></table></div>";
+  if (р.неизвестнаяКасса){
+    const н = р.неизвестнаяКасса.умц;
+    if (Math.abs(н.нал) + Math.abs(н.безнал) > 0.5)
+      h += '<div class="note"><b>Не удалось отнести к кассе</b>: наличные ' + деньги0(н.нал) +
+        " ₽, безнал " + деньги0(н.безнал) + " ₽." +
+        '<span class="d">Обычно это оплаты удалённых документов: сам документ в реестр услуг ' +
+        "не попал, а минусовая строка оплаты осталась.</span></div>";
+  }
+  if (!р.надёжно.безнал)
+    h += '<div class="note alarm"><b>Безнал по кассам не разложен</b>' +
+      '<span class="d">В реестре оплат нет эквайрингового терминала — добавьте в отчёт УМЦ ' +
+      "поле «Эквайринговый терминал», и сверка по терминалам заработает.</span></div>";
+  return h + "</section>";
+}
+
+function дниHTML(р){
+  if (!р.дни.length) return '<section><div class="kick">Дни</div>' +
+    "<h2>Все дни сходятся</h2>" +
+    '<p class="sb">День в день, по наличным и по безналу.</p></section>';
+  let h = '<section><div class="kick">Дни</div><h2>Дни, где касса и УМЦ разошлись</h2>' +
+    '<p class="sb">Плюс — касса пробила больше, чем заведено в УМЦ. Минус — в УМЦ денег больше, ' +
+    'чем прошло через кассу. Уже названные возвраты из разницы вычтены.</p>' +
+    '<div class="tw"><table><thead><tr><th>День</th><th>По чекам, нал.</th><th>В УМЦ, нал.</th>' +
+    "<th>По чекам, безнал</th><th>В УМЦ, безнал</th><th>Разница</th></tr></thead><tbody>";
+  for (const д of р.дни){
+    const разница = [мелочьДа(д.нал) ? "" : "нал " + знак(д.нал),
+                     мелочьДа(д.безнал) ? "" : "безнал " + знак(д.безнал)].filter(Boolean).join(", ");
+    h += "<tr><td>" + esc(д.day) + "</td>" +
+      '<td class="mono">' + деньги0(д.офд.нал) + "</td>" +
+      '<td class="mono">' + деньги0(д.умц.нал) + "</td>" +
+      '<td class="mono">' + деньги0(д.офд.безнал) + "</td>" +
+      '<td class="mono">' + деньги0(д.умц.безнал) + "</td>" +
+      '<td class="bad">' + esc(разница) + "</td></tr>";
+  }
+  return h + "</tbody></table></div></section>";
+}
+
+function памятка(р){
+  const шаги = [
+    "Возвраты, пробитые кассой: оформить их в УМЦ. Пока их нет, выручка завышена.",
+    "Чеки без операции: найти пациента по времени чека и завести оплату.",
+    "Оплаты не на том терминале: поменять вид оплаты в документе — деньги не двигаются, меняется аналитика.",
+    "Задвоенные услуги: найти лишний документ и разобраться с оплатой.",
+    "Платежи, заведённые вручную: приучить администраторов проводить оплату из чека, а не руками."
+  ];
+  return '<section><div class="kick">Порядок</div><h2>Как чинить</h2>' +
+    '<p class="sb">Сверху вниз: сначала то, что меняет деньги.</p>' +
+    '<ol class="steps">' + шаги.map(ш => "<li>" + esc(ш) + "</li>").join("") + "</ol>" +
+    '<div class="note"><b>Галку «Только фискализированные документы» в выгрузке УМЦ не снимайте</b>' +
+    '<span class="d">Она отсекает платежи, заведённые вручную. Снять её — значит потащить ' +
+    "документы без пары в кассе. Лечить надо причину, а не фильтр.</span></div></section>";
+}
+
+/* ---------- выгрузка списка ---------- */
+/*СОХРАНЕНИЕ*/
+/* Сохраняем сами, а не через XLSX.writeFile: так у файла остаётся наше имя
+   с периодом — по нему потом видно, за какие дни этот список. */
+$("#save").addEventListener("click", () => {
+  const данные = XLSX.write(книга(), {bookType:"xlsx", type:"array"});
+  const url = URL.createObjectURL(new Blob([данные],
+    {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = имяФайла();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+});
+/*КОНЕЦ СОХРАНЕНИЯ*/
+
+function имяФайла(){
+  const р = РЕЗУЛЬТАТ;
+  return "Расхождения-Такском-УМЦ-" + (р ? р.период[0] + "-" + р.период[1] : "") + ".xlsx";
+}
+
+/* Один лист — весь список подряд: с ним идут в УМЦ и отмечают сделанное.
+   Разносить по листам смысла нет, работать удобнее одним перечнем. */
+function книга(){
+  const р = РЕЗУЛЬТАТ, строки = [["Что", "Важность", "Дата", "Сумма, ₽", "Подробности", "Что делать"]];
+  for (const н of р.находки){
+    if (!н.строки || !н.строки.length){
+      строки.push([н.что, н.вес, "", н.сумма, н.детали, н.делать]);
+      continue;
+    }
+    for (const с of н.строки){
+      const деньги = ДЕНЕЖНЫЕ.map(k => с[k]).find(v => typeof v === "number");
+      const подробно = Object.keys(с)
+        .filter(k => k !== "day" && ДЕНЕЖНЫЕ.indexOf(k) < 0)
+        .map(k => подпись(k) + ": " + с[k]).join("; ");
+      строки.push([н.что, н.вес, с.day || "", деньги == null ? "" : деньги, подробно, н.делать]);
+    }
+  }
+  const ws = XLSX.utils.aoa_to_sheet(строки);
+  ws["!cols"] = [{wch:38}, {wch:11}, {wch:12}, {wch:14}, {wch:60}, {wch:46}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Расхождения");
+  return wb;
+}
+</script>

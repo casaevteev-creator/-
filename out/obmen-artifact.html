@@ -1,0 +1,3091 @@
+<title>Обмен УМЦ с бухгалтерией</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FAF9F6; --panel:#FFFFFF; --sunk:#F4F1EB; --line:#E7E3D9; --ghost:#D9D4C9;
+  --ink:#1C1B18; --ink2:#423E37; --mute:#7C766C; --faint:#9C968A;
+  --green:#2E5E4E; --green-edge:#4A7A68; --green-soft:#E8EFEA;
+  --bronze:#8A7350; --bronze-edge:#B9895A; --bronze-soft:#F4EDE3;
+  --red:#A3423B; --red-soft:#F7E9E7;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:'Cormorant Garamond',Cambria,Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,'Liberation Mono',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15140F; --panel:#1E1C17; --sunk:#232019; --line:#332F26; --ghost:#433D32;
+    --ink:#EFEBE1; --ink2:#D0C9BB; --mute:#9B9284; --faint:#7B7365;
+    --green:#8DC4AB; --green-edge:#5E8E79; --green-soft:#1B2822;
+    --bronze:#CFA97C; --bronze-edge:#9A7C51; --bronze-soft:#2A2318;
+    --red:#E59289; --red-soft:#2F1E1B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15140F; --panel:#1E1C17; --sunk:#232019; --line:#332F26; --ghost:#433D32;
+  --ink:#EFEBE1; --ink2:#D0C9BB; --mute:#9B9284; --faint:#7B7365;
+  --green:#8DC4AB; --green-edge:#5E8E79; --green-soft:#1B2822;
+  --bronze:#CFA97C; --bronze-edge:#9A7C51; --bronze-soft:#2A2318;
+  --red:#E59289; --red-soft:#2F1E1B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--bronze-edge);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1040px;margin:0 auto;padding-inline:18px;padding-block:0 76px;
+  display:flex;flex-direction:column;gap:0}
+@media(min-width:760px){.wrap{padding-inline:28px}}
+
+header.top{border-bottom:1px solid var(--line);background:var(--panel);position:sticky;
+  top:env(safe-area-inset-top,0px);z-index:40}
+.top-in{max-width:1040px;margin:0 auto;padding-inline:18px;padding-block:13px;
+  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+@media(min-width:760px){.top-in{padding-inline:28px}}
+.brand{font-size:11px;font-weight:700;letter-spacing:.38em;text-transform:uppercase}
+.brand em{font-style:normal;font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:0;
+  color:var(--mute);margin-left:11px;text-transform:none}
+.top-note{margin-left:auto;font-size:12px;color:var(--faint)}
+
+h1{font-family:var(--serif);font-size:clamp(30px,4.6vw,42px);font-weight:600;line-height:1.12;
+  margin-block:34px 10px;text-wrap:balance}
+.lede{color:var(--ink2);max-width:64ch;margin-bottom:26px}
+h2{font-family:var(--serif);font-size:24px;font-weight:600;margin-bottom:4px;text-wrap:balance}
+h3{font-size:13.5px;font-weight:600}
+.kick{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--bronze);margin-bottom:7px}
+.sb{color:var(--mute);font-size:13.5px;margin-bottom:16px}
+section{margin-top:42px}
+
+.slots{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:620px){.slots{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:980px){.slots{grid-template-columns:repeat(4,1fr)}}
+.slot{background:var(--panel);border:1px dashed var(--ghost);border-radius:12px;
+  padding:16px 15px;cursor:pointer;position:relative;
+  transition:border-color .15s,background .15s}
+.slot:hover,.slot.over{border-color:var(--bronze-edge);background:var(--bronze-soft)}
+.slot.ok{border-style:solid;border-color:var(--green-edge);background:var(--green-soft)}
+.slot h3{margin-bottom:3px;padding-right:74px}
+.slot p{font-size:12.5px;color:var(--mute);line-height:1.45}
+.slot .got{font-size:12px;color:var(--green);margin-top:7px;word-break:break-all;font-weight:500}
+.slot .req{position:absolute;top:15px;right:14px;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint)}
+
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.btn{background:var(--ink);color:var(--bg);border:1px solid var(--ink);border-radius:8px;
+  padding:9px 17px;font-size:14px;font-weight:600;cursor:pointer}
+.btn[disabled]{opacity:.32;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ghost);font-weight:500}
+.btn.ghost:hover:not([disabled]){background:var(--sunk)}
+.hint{font-size:12.5px;color:var(--faint);flex-basis:100%}
+
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 13px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute);font-weight:600;
+  background:var(--sunk);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tr.sum td{font-weight:700;background:var(--sunk);border-top:1px solid var(--ghost)}
+td.ok{color:var(--green);font-weight:600}
+td.bad{color:var(--red);font-weight:600}
+tr.day-first td:first-child{font-weight:600}
+tr.gap td{padding-top:14px}
+td.acc{font-family:var(--mono);color:var(--mute);font-size:12.5px}
+/* на узком экране таблица уезжает вбок — первая колонка держится на месте,
+   иначе от строки остаются одни числа без подписи */
+.tw td:first-child{position:sticky;left:0;background:var(--panel);z-index:1}
+.tw th:first-child{position:sticky;left:0;background:var(--sunk);z-index:3}
+.tw tr.sum td:first-child{background:var(--sunk)}
+.tw td:first-child::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;
+  background:var(--line)}
+.what{color:var(--mute)}
+/* разбор расхождений: у каждой причины свой вес, а не один общий абзац */
+.whys{display:grid;gap:10px;margin-top:14px}
+.why{border:1px solid var(--line);border-left-width:3px;border-radius:0 10px 10px 0;
+  padding:13px 16px;font-size:13.5px;line-height:1.5;color:var(--ink2);background:var(--panel)}
+.why b{color:var(--ink)}
+.why .d{display:block;margin-top:6px;color:var(--faint);font-size:12.5px}
+.why.ok{border-left-color:var(--green-edge);background:var(--green-soft)}
+.why.calm{border-left-color:var(--ghost)}
+.why.bad{border-left-color:var(--red);background:var(--red-soft)}
+
+.cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.card .l{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+.card .v{font-size:20px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card .n{font-size:12px;color:var(--faint);margin-top:3px}
+.card.good{border-color:var(--green-edge);background:var(--green-soft)}
+.card.good .n{color:var(--green)}
+.card.warn{border-color:var(--bronze-edge);background:var(--bronze-soft)}
+.card.warn .n{color:var(--bronze)}
+.card .good-t{color:var(--green);font-weight:600;margin-top:5px}
+.card .warn-t{color:var(--bronze);font-weight:600;margin-top:5px}
+
+.note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bronze-edge);
+  border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
+.note b{color:var(--ink)}
+.note.good{border-left-color:var(--green-edge);background:var(--green-soft)}
+
+ul.log{list-style:none;font-size:13.5px}
+ul.log li{padding:7px 0 7px 16px;border-bottom:1px solid var(--line);position:relative;color:var(--ink2)}
+ul.log li:last-child{border-bottom:none}
+ul.log li::before{content:"";position:absolute;left:0;top:14px;width:5px;height:5px;border-radius:50%;
+  background:var(--green-edge)}
+ul.log li.w::before{background:var(--bronze-edge)}
+ul.log li b{color:var(--ink)}
+ul.log li .d{color:var(--faint);font-size:12.5px}
+
+details.set{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:14px}
+details.set>summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+details.set>summary::-webkit-details-marker{display:none}
+details.set>summary::before{content:"▸ ";color:var(--bronze)}
+details.set[open]>summary::before{content:"▾ "}
+.setbody{padding:4px 16px 18px;border-top:1px solid var(--line)}
+.fld{display:grid;gap:4px;margin-top:13px}
+.fld label{font-size:12px;color:var(--mute)}
+.fld input,.fld select{border:1px solid var(--ghost);border-radius:7px;padding:7px 10px;
+  background:var(--bg);color:var(--ink);width:100%}
+@media(min-width:660px){.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}}
+
+.chk{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:12.5px;
+  color:var(--mute);line-height:1.45;cursor:pointer}
+.chk input{margin-top:2px;flex:none}
+.chk b{color:var(--ink);font-weight:600}
+.err{background:var(--red-soft);border:1px solid var(--red);color:var(--red);border-radius:10px;
+  padding:12px 15px;font-size:13.5px;margin-top:14px}
+
+.rules{display:grid;gap:10px;grid-template-columns:1fr;margin-top:14px}
+@media(min-width:720px){.rules{grid-template-columns:1fr 1fr}}
+.rule{border-left:2px solid var(--green-edge);padding:2px 0 2px 13px}
+.rule.w{border-left-color:var(--bronze-edge)}
+.rule b{font-size:13.5px}
+.rule span{display:block;font-size:12.5px;color:var(--mute);line-height:1.45}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--faint);max-width:78ch}
+</style>
+
+<header class="top"><div class="top-in">
+  <span class="brand">ОМЕГА<em>обмен с бухгалтерией</em></span>
+  <span class="top-note">файлы читаются в браузере</span>
+</div></header>
+
+<div class="wrap">
+
+<h1>Выгрузка из УМЦ в 1С:Бухгалтерию</h1>
+<p class="lede">Положите сюда файл обмена — приложение проверит его по бухгалтерскому чек-листу,
+подставит недостающие реквизиты, сверит кассу с фискальными данными ОФД и отдаст файл,
+готовый к загрузке.</p>
+
+<div class="slots">
+  <div class="slot" id="s-xml"><span class="req">обязательно</span>
+    <h3>Файл обмена</h3>
+    <p>XML из «Выгрузка в 1С:Бухгалтерию предприятия»</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-ofd">
+    <h3>Отчёт ОФД</h3>
+    <p>«Такском-Касса» → Фискальные документы (xlsx)</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-srv">
+    <h3>Реестр услуг</h3>
+    <p>Оказанные услуги с колонками «Сумма» и «Чек пробит» (xlsx)</p>
+    <div class="got" hidden></div></div>
+  <div class="slot" id="s-pay">
+    <h3>Реестр оплат</h3>
+    <p>«Детально по документам (Оплаты)» из УМЦ (xlsx)</p>
+    <div class="got" hidden></div></div>
+</div>
+<p class="sb" style="margin-top:10px">Ячейки можно перепутать — приложение узнаёт файл по его
+содержимому, а не по тому, куда вы его положили. Обязателен только XML; каждый следующий файл
+добавляет проверку, без него она просто не показывается.</p>
+
+<div class="btnrow">
+  <button class="btn" id="run" disabled>Проверить и исправить</button>
+  <button class="btn ghost" id="save" disabled>Скачать исправленный файл</button>
+  <button class="btn ghost" id="clear">Очистить</button>
+  <span class="hint" id="zip-hint" hidden>Файл придёт архивом — распакуйте, внутри готовый XML.</span>
+</div>
+
+<details class="set"><summary>Настройки подстановки</summary>
+  <div class="setbody">
+    <p class="sb" style="margin:10px 0 0">Названия должны совпадать с элементами справочников
+    в вашей бухгалтерии символ в символ: поиск при загрузке идёт по наименованию,
+    и опечатка создаст новый элемент вместо существующего.</p>
+    <div class="grid2">
+      <div class="fld"><label for="c-sklad">Склад по умолчанию — обязательно типа «Розничный магазин»</label><input id="c-sklad"></div>
+      <div class="fld"><label for="c-kontr">Розничный покупатель (контрагент)</label><input id="c-kontr"></div>
+      <div class="fld"><label for="c-ddsr">Статья ДДС — розничная выручка</label><input id="c-ddsr"></div>
+      <div class="fld"><label for="c-ddsv">Статья ДДС — возврат покупателю</label><input id="c-ddsv"></div>
+      <div class="fld"><label for="c-ddsi">Статья ДДС — инкассация</label><input id="c-ddsi"></div>
+      <div class="fld"><label for="c-ddsb">Статья ДДС — получение наличных в банке</label><input id="c-ddsb"></div>
+      <div class="fld"><label for="c-nds">Ставка НДС для медуслуг</label><input id="c-nds"></div>
+      <div class="fld"><label for="c-ot">Грузить только с этой даты</label>
+        <input id="c-ot" type="date"></div>
+      <div class="fld"><label for="c-do">Грузить только по эту дату включительно</label>
+        <input id="c-do" type="date"></div>
+    </div>
+    <div class="fld" style="margin-top:16px">
+      <label>Перемещения между кассами — пары «инкассация из одной кассы + приход в другой»</label>
+      <select id="c-perem">
+        <option value="счет">Оформить через 57.01 — правильно, но нужна настройка в УМЦ</option>
+        <option value="выбросить">Выбросить из файла — безопасно, операция пропадёт</option>
+        <option value="как есть">Оставить как есть — оставит фантом на 57.01 и на счёте 51</option>
+      </select>
+      <span class="sb" style="margin:6px 0 0;font-size:12.5px">Деньги обеих касс всё равно
+      лягут на один счёт 50.01 — счёт обработчик правила ставит жёстко. Разделить их можно
+      только аналитикой, этим занимается настройка ниже.
+      «Оформить через 57.01» меняет у приходного ордера вид операции на
+      «Прочий приход» — тогда обработчик правила подставит счёт из настройки УМЦ
+      <b>битСчетУчетаПрочегоПриходаПКО</b>. Поставьте в ней <b>57.01</b>, и пара закроется
+      в ноль: расходный ордер даёт Дт 57.01 Кт 50.01, приходный — Дт 50.01 Кт 57.01.
+      Оба документа останутся в кассовой книге.</span>
+    </div>
+    <div class="fld" style="margin-top:16px">
+      <label>Деление по кассам — писать подразделение в кассовые документы</label>
+      <select id="c-podr">
+        <option value="нет">Не дописывать — правила обмена делят отчёты сами</option>
+        <option value="ордера">Дописать в кассовые ордера — их правила не делят</option>
+      </select>
+      <span class="sb" style="margin:6px 0 0;font-size:12.5px">Отчёты о розничных продажах
+      правила обмена уже делят сами: подразделение подставляется по комментарию документа,
+      трогать их не надо. А кассовые ордера правила не делят — их приложение может дописать.
+      Реквизит называется <b>ПодразделениеОрганизации</b>, и в файл добавляется правило
+      конвертации для справочника «ПодразделенияОрганизаций». Что именно сделают с
+      документами сами правила, приложение показывает отдельным разделом после проверки.
+      <b>Сначала проверьте на одном дне.</b></span>
+    </div>
+    <div id="kassy"></div>
+    <label class="chk"><input type="checkbox" id="c-ostatok">
+      <span><b>Не грузить остаток кассы, заведённый первым днём</b> — приходный ордер
+      «Получение наличных в банке» без парной инкассации на первый день периода.
+      При переходе на новую программу так заводят остаток, а в бухгалтерии он уже есть:
+      загрузите — наличные удвоятся.</span></label>
+    <label class="chk"><input type="checkbox" id="c-dopisat">
+      <span><b>Дописывать кассу, которой нет в выгрузке</b> — по данным ОФД, и только
+      если по ней все чеки авансовые: аванс номенклатуры не требует. Это добавляет
+      в файл деньги, поэтому по умолчанию выключено — включайте осознанно.</span></label>
+    <label class="chk"><input type="checkbox" id="c-perenos" checked>
+      <span><b>Переставлять эквайринг на правильный терминал</b> — когда за день у одного
+      терминала ровно столько же лишних денег, сколько у другого не хватает. Сумма документа
+      не меняется, меняется только аналитика на счёте 57.03. Нужен отчёт ОФД.</span></label>
+    <div id="sklady"></div>
+    <div id="terminaly"></div>
+  </div>
+</details>
+
+<div id="err"></div>
+<div id="out"></div>
+
+<section id="ref">
+  <div class="kick">Справка</div>
+  <h2>Что попадёт в проводки</h2>
+  <div class="sb">Отчёт о розничных продажах разносит день одним документом. Счета берутся
+  из обработчиков правил обмена — вот что получится в бухгалтерии.</div>
+  <div class="tw"><table>
+    <thead><tr><th>Что в выгрузке</th><th>Дебет</th><th>Кредит</th>
+      <th style="text-align:left">Смысл</th></tr></thead>
+    <tbody>
+      <tr><td>Товары — реализация услуг</td><td class="acc">50.01 / 57.03 / 62.Р</td>
+        <td class="acc">90.01.1</td><td style="text-align:left">выручка признана</td></tr>
+      <tr><td>Предоплаты</td><td class="acc">50.01 / 57.03</td><td class="acc">62.Р</td>
+        <td style="text-align:left">деньги есть, выручки ещё нет</td></tr>
+      <tr><td>Зачёт авансов</td><td class="acc">62.Р</td><td class="acc">90.01.1</td>
+        <td style="text-align:left">выручка есть, денег нет</td></tr>
+      <tr><td>Оплата — эквайринг по терминалам</td><td class="acc">57.03</td><td class="acc">—</td>
+        <td style="text-align:left">аналитика по эквайеру</td></tr>
+      <tr><td>Приходный кассовый ордер</td><td class="acc">50.01</td><td class="acc">62.Р / 51</td>
+        <td style="text-align:left">оплата пациента или приход из банка</td></tr>
+      <tr><td>Расходный кассовый ордер</td><td class="acc">57.01</td><td class="acc">50.01</td>
+        <td style="text-align:left">инкассация</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 style="margin-top:34px">Что приложение делает с файлом</h2>
+  <div class="sb">Слева — что подставляется молча, справа — что выносится на ваши глаза.</div>
+  <div class="rules">
+    <div class="rule"><b>Склад</b><span>без него отчёт о розничных продажах не проводится;
+      подставляется по подразделению из комментария документа</span></div>
+    <div class="rule w"><b>Строка с НДС</b><span>бельё, кремы, карандаши — товар, а не медуслуга;
+      ставка не трогается, позиция показывается списком</span></div>
+    <div class="rule"><b>Статья ДДС</b><span>в приходных и расходных ордерах — по виду операции;
+      у отчёта о рознице её ставит сама бухгалтерия</span></div>
+    <div class="rule w"><b>Товар без ставки НДС</b><span>«Без НДС» ему ставить нельзя — это занизит
+      налог; ставку надо завести в карточке номенклатуры</span></div>
+    <div class="rule"><b>Ставка НДС медуслуг</b><span>пустая ставка заполняется освобождением
+      по пп. 2 п. 2 ст. 149 НК РФ</span></div>
+    <div class="rule w"><b>Дата ровно в полдень</b><span>почти всегда проставлена руками
+      и разъезжается с датой чека ОФД</span></div>
+    <div class="rule"><b>Номер чека ККМ</b><span>мусорное «-1» вычищается</span></div>
+    <div class="rule w"><b>Задвоенные услуги</b><span>один день, один клиент, одна сумма,
+      разные документы; по реестру оплат видно, погашена пара или деньги правда посчитаны дважды</span></div>
+    <div class="rule"><b>Эквайринг не на том терминале</b><span>если за день у одного терминала
+      ровно столько же лишних денег, сколько у другого не хватает, оплата переставляется
+      по данным ОФД — сумма документа не меняется</span></div>
+  </div>
+</section>
+
+<footer>
+  Наличные в отчёте о розничных продажах считаются как остаток суммы документа:
+  товары − возвраты + предоплата − возврат предоплаты − (эквайринг − возврат по карте) − зачёт аванса.
+  Проверено на 01–14.09.2026: наличная выручка сходится с фискальными данными все четырнадцать дней.
+  Повторная загрузка того же периода документы не задваивает — ордера ищутся по идентификатору,
+  отчёт о рознице по дню и ключу синхронизации.
+</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+
+"use strict";
+const $ = s => document.querySelector(s);
+const S = v => v == null ? "" : String(v).replace(/\s+/g, " ").trim();
+const num = v => {
+  if (typeof v === "number") return v;
+  const t = S(v).replace(/\s/g, "").replace(",", ".");
+  const x = parseFloat(t);
+  return isFinite(x) ? x : 0;
+};
+const fmt = x => (x == null || !isFinite(x)) ? "—"
+  : x.toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt0 = x => (x == null || !isFinite(x)) ? "—" : Math.round(x).toLocaleString("ru-RU");
+const esc = s => S(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const R2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+/* «1 группа, 2 группы, 5 групп» — иначе итог читается как машинный */
+const skl0 = n => скл(n, "документ", "документа", "документов");
+const скл = (n, одна, две, много) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  return n + " " + (a > 10 && a < 20 ? много : b === 1 ? одна : b > 1 && b < 5 ? две : много);
+};
+
+/* ---------- настройки ---------- */
+const CFG_KEY = "obmen-nastroyki-v1";
+/* Значения по умолчанию — из реальной базы «Омеги». Отдельной статьи под
+   получение наличных из банка там нет: это перемещение между своими счетами,
+   поэтому статья та же, что у инкассации. */
+const CFG_FIELDS = {"c-sklad":"Основной", "c-kontr":"Розничный покупатель",
+  "c-ddsr":"Розничная выручка", "c-ddsv":"Возврат покупателям",
+  "c-ddsi":"Внутреннее перемещение денежных средств",
+  "c-ddsb":"Внутреннее перемещение денежных средств", "c-nds":"БезНДС",
+  "c-ot":"", "c-do":""};
+let CFG = {}, SKLADY = {}, ТЕРМИНАЛЫ = {}, ПОДР = {};
+/* что нашлось в правилах обмена этого файла — заполняется при проверке */
+let ПРАВИЛА = null;
+function loadCfg(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(CFG_KEY) || "{}"); } catch(e){}
+  CFG = Object.assign({}, CFG_FIELDS, saved.fields || {});
+  SKLADY = saved.sklady || {};
+  ТЕРМИНАЛЫ = saved.терминалы || {};
+  ПОДР = saved.подразделения || {};
+  $("#c-perenos").checked = saved.перенос !== false;
+  $("#c-dopisat").checked = saved.дописать === true;
+  $("#c-ostatok").checked = saved.остаток === true;
+  $("#c-perem").value = saved.перемещения || "счет";
+  /* «все» было в старой версии и роняло загрузку — сбрасываем молча */
+  $("#c-podr").value = saved.подр === "ордера" ? "ордера" : "нет";
+  for (const k in CFG_FIELDS) $("#" + k).value = CFG[k];
+}
+function saveCfg(){
+  for (const k in CFG_FIELDS) CFG[k] = S($("#" + k).value) || CFG_FIELDS[k];
+  document.querySelectorAll("[data-sklad]").forEach(i => { SKLADY[i.dataset.sklad] = S(i.value); });
+  document.querySelectorAll("[data-kkt]").forEach(i => { ТЕРМИНАЛЫ[i.dataset.kkt] = S(i.value); });
+  document.querySelectorAll("[data-podr]").forEach(i => { ПОДР[i.dataset.podr] = S(i.value); });
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(
+    {fields:CFG, sklady:SKLADY, терминалы:ТЕРМИНАЛЫ, подразделения:ПОДР,
+     перенос:$("#c-perenos").checked, дописать:$("#c-dopisat").checked,
+     остаток:$("#c-ostatok").checked, перемещения:$("#c-perem").value,
+     подр:$("#c-podr").value}));
+  } catch(e){}
+}
+document.addEventListener("input", e => {
+  if (e.target.matches("[id^=c-],[data-sklad],[data-podr]")) saveCfg();
+});
+document.addEventListener("change", e => {
+  if (e.target.matches("[data-kkt],#c-perenos,#c-dopisat,#c-ostatok,#c-perem,#c-podr"))
+    saveCfg();
+});
+
+/* ---------- чтение файла обмена (формат «Конвертации данных 2.0») ---------- */
+const kids = (el, tag) => [...el.children].filter(c => c.tagName === tag);
+const kid = (el, tag) => [...el.children].find(c => c.tagName === tag) || null;
+const propEl = (node, name) =>
+  [...node.children].find(c => c.tagName === "Свойство" && c.getAttribute("Имя") === name) || null;
+
+function propVal(p){
+  const v = kid(p, "Значение");
+  if (v) return S(v.textContent);
+  if (kid(p, "Пусто")) return "";
+  const r = kid(p, "Ссылка");
+  if (r){
+    const n = propEl(r, "Наименование");
+    if (n) return S(kid(n, "Значение") ? kid(n, "Значение").textContent : "");
+    return "<ссылка>";
+  }
+  return "";
+}
+function propsOf(node){
+  const out = {};
+  for (const p of kids(node, "Свойство")) out[p.getAttribute("Имя")] = propVal(p);
+  return out;
+}
+function refUid(rec, name){
+  const p = propEl(rec, name); if (!p) return "";
+  const r = kid(p, "Ссылка"); if (!r) return "";
+  const u = propEl(r, "{УникальныйИдентификатор}");
+  return u ? S(kid(u, "Значение") ? kid(u, "Значение").textContent : "") : "";
+}
+
+/* Обработка в УМЦ умеет отдавать только один день. Чтобы грузить месяц одним
+   заходом, дневные файлы склеиваем. Тонкость одна, но важная: объекты внутри
+   файла ссылаются друг на друга номером Нпп, и нумерация у каждого файла своя.
+   Если просто сложить файлы, ссылки второго попадут на объекты первого — и
+   в бухгалтерию уедет каша. Поэтому номера каждого следующего файла сдвигаем
+   так, чтобы они не пересекались с уже занятыми. */
+function читатьОбмен(text, номер){
+  const xdoc = new DOMParser().parseFromString(text, "application/xml");
+  const где = номер ? "Файл " + номер : "Файл";
+  if (xdoc.getElementsByTagName("parsererror").length)
+    throw new Error(где + " не читается как XML.");
+  if (xdoc.documentElement.tagName !== "ФайлОбмена")
+    throw new Error(где + " — не файл обмена 1С: корневой узел «" +
+                    xdoc.documentElement.tagName + "».");
+  return xdoc;
+}
+const максНпп = x => Math.max(0, ...[...x.getElementsByTagName("*")]
+  .map(e => parseInt(e.getAttribute("Нпп"), 10) || 0));
+
+function слитьОбмен(тексты){
+  const части = тексты.map((t, i) => читатьОбмен(t, тексты.length > 1 ? i + 1 : 0));
+  if (части.length === 1) return {xdoc:части[0], файлов:1, дни:[]};
+
+  const атр = (x, имя) => S(x.documentElement.getAttribute(имя));
+  const ид = [...new Set(части.map(x => атр(x, "ИдПравилКонвертации")))];
+  if (ид.length > 1)
+    throw new Error("Файлы выгружены по разным правилам обмена — склеивать их нельзя. " +
+                    "Выгрузите все дни одной и той же настройкой обмена.");
+
+  части.sort((a, b) => атр(a, "НачалоПериодаВыгрузки") < атр(b, "НачалоПериодаВыгрузки") ? -1 : 1);
+  const база = части[0], корень = база.documentElement;
+  let занято = максНпп(база);
+  for (const часть of части.slice(1)){
+    const свой = максНпп(часть);
+    for (const e of часть.getElementsByTagName("*")){
+      const n = parseInt(e.getAttribute("Нпп"), 10);
+      if (n) e.setAttribute("Нпп", String(n + занято));
+    }
+    занято += свой;
+    /* правила обмена и параметры у всех файлов одни и те же — берём из первого */
+    for (const o of [...часть.documentElement.children])
+      if (o.tagName === "Объект") корень.appendChild(база.importNode(o, true));
+  }
+  корень.setAttribute("НачалоПериодаВыгрузки", атр(части[0], "НачалоПериодаВыгрузки"));
+  корень.setAttribute("ОкончаниеПериодаВыгрузки",
+    части.map(x => атр(x, "ОкончаниеПериодаВыгрузки")).sort().pop());
+  return {xdoc:база, файлов:части.length,
+          дни:части.map(x => атр(x, "НачалоПериодаВыгрузки").slice(0, 10))};
+}
+
+function parseExchange(тексты){
+  const {xdoc, файлов, дни} = слитьОбмен([].concat(тексты));
+  const objs = [...xdoc.getElementsByTagName("Объект")].map(o => {
+    const ref = kid(o, "Ссылка");
+    const props = Object.assign({}, ref ? propsOf(ref) : {}, propsOf(o));
+    const tabs = {};
+    for (const t of kids(o, "ТабличнаяЧасть"))
+      tabs[t.getAttribute("Имя")] = [...t.children].map(r => propsOf(r));
+    const full = o.getAttribute("Тип") || "";
+    return {el:o, ref, full, type:full.split(".").pop(), rule:o.getAttribute("ИмяПравила") || "",
+            npp:o.getAttribute("Нпп") || "", props, tabs,
+            day:(props["Дата"] || "").slice(0,10)};
+  });
+  const head = xdoc.documentElement.attributes;
+  return {xdoc, objs, файлов, дни,
+    period:[S(head["НачалоПериодаВыгрузки"] && head["НачалоПериодаВыгрузки"].value).slice(0,10),
+            S(head["ОкончаниеПериодаВыгрузки"] && head["ОкончаниеПериодаВыгрузки"].value).slice(0,10)]};
+}
+
+/* ---------- справочник номенклатуры: товар или услуга ---------- */
+function nomenclature(objs){
+  const map = {};
+  for (const o of objs){
+    if (o.full.indexOf("СправочникСсылка.Номенклатура") !== 0) continue;
+    if (!o.ref) continue;
+    const uid = S(o.props["{УникальныйИдентификатор}"]);
+    if (uid) map[uid] = {name:o.props["Наименование"] || "", service:o.props["Услуга"] === "true"};
+  }
+  return map;
+}
+
+/* Табличные части при разборе снимаются копией — так быстрее считать. Но правки
+   меняют сам документ, и после них копию надо обновить, иначе сверка посчитает
+   деньги по устаревшему снимку и не увидит того, что дописано. */
+function перечитатьТабличные(ex){
+  for (const d of ex.objs){
+    const tabs = {};
+    for (const t of kids(d.el, "ТабличнаяЧасть"))
+      tabs[t.getAttribute("Имя")] = [...t.children].map(r => propsOf(r));
+    d.tabs = tabs;
+  }
+}
+
+/* ---------- виды оплат (эквайринговые терминалы) ----------
+   В строке оплаты внутри отчёта о розничных продажах вид оплаты лежит
+   не наименованием, а указателем: <Ссылка Нпп="1045">. Сам справочник
+   выгружен отдельными объектами — по Нпп и находим название терминала. */
+function payTypeNames(objs){
+  const map = {};
+  for (const o of objs)
+    if (o.full === "СправочникСсылка.ВидыОплатОрганизаций" && o.npp)
+      map[o.npp] = o.props["Наименование"] || ("вид оплаты " + o.npp);
+  return map;
+}
+const БЕЗВИДА = "вид оплаты не заполнен";
+const refNpp = (rec, name) => {
+  const p = propEl(rec, name); if (!p) return "";
+  const r = kid(p, "Ссылка");
+  return r ? S(r.getAttribute("Нпп")) : "";
+};
+/* эквайринг по терминалам и дням: именно здесь вылезает путаница,
+   когда оплату завели не на тот терминал — в сумме за день её не видно */
+function cardByType(objs, names){
+  const итог = {}, дни = {};
+  for (const d of objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const знак = t.getAttribute("Имя") === "Оплата" ? 1
+                 : t.getAttribute("Имя") === "ВозвратОплаты" ? -1 : 0;
+      if (!знак) continue;
+      for (const rec of [...t.children]){
+        const sp = propEl(rec, "СуммаОплаты");
+        const s = знак * (sp ? num(propVal(sp)) : 0);
+        if (!s) continue;
+        const имя = names[refNpp(rec, "ВидОплаты")] || БЕЗВИДА;
+        итог[имя] = (итог[имя] || 0) + s;
+        (дни[имя] || (дни[имя] = {}))[d.day] = (дни[имя][d.day] || 0) + s;
+      }
+    }
+  }
+  return {итог, дни};
+}
+
+/* ---------- деньги по дням ---------- */
+const NOT_REVENUE = ["ПолучениеНаличныхВБанке", "ВозвратОтПоставщика", "ПрочийПриход",
+                     "РасчетыПоКредитамИЗаймам", "ВозвратДенежныхСредствПодотчетником"];
+const tabSum = (d, tab, field) => (d.tabs[tab] || []).reduce((s, r) => s + num(r[field]), 0);
+
+function moneyByDay(objs){
+  const days = {};
+  const D = k => days[k] || (days[k] = {cash:0, card:0, adv:0, prepay:0, rev:0,
+                                        tovary:0, refund:0, other:0, out:0});
+  for (const d of objs){
+    if (!d.day || d.full.indexOf("Документ") !== 0) continue;
+    const v = D(d.day);
+    if (d.type === "ОтчетОРозничныхПродажах"){
+      const g  = tabSum(d, "Товары", "Сумма"),      gb = tabSum(d, "Возвраты", "Сумма"),
+            pp = tabSum(d, "Предоплаты", "Сумма"),  pb = tabSum(d, "Предоплаты", "СуммаВозврат"),
+            c  = tabSum(d, "Оплата", "СуммаОплаты"), cb = tabSum(d, "ВозвратОплаты", "СуммаОплаты"),
+            a  = tabSum(d, "ЗачетАвансов", "СуммаЗачета");
+      /* наличных в ОРП нет отдельной строкой — это остаток суммы документа
+         после всех прочих способов её закрыть */
+      v.cash += g - gb + pp - pb - (c - cb) - a;
+      v.card += c - cb;
+      v.adv += a; v.prepay += pp; v.rev += g - gb; v.tovary += g;
+      v.refund += Math.max(cb, pb);
+    } else if (d.type === "ПриходныйКассовыйОрдер"){
+      const s = num(d.props["СуммаДокумента"]) || tabSum(d, "РасшифровкаПлатежа", "СуммаПлатежа");
+      if (NOT_REVENUE.indexOf(d.props["ВидОперации"] || "") >= 0) v.other += s; else v.cash += s;
+    } else if (d.type === "РасходныйКассовыйОрдер"){
+      v.out += num(d.props["СуммаДокумента"]);
+    } else if (d.type === "ОперацияПоПлатежнойКарте" || d.type === "ОплатаПлатежнойКартой"){
+      v.card += num(d.props["СуммаДокумента"]);
+    } else if (d.type === "РеализацияТоваровУслуг" || d.type === "ОказаниеУслуг"){
+      v.rev += num(d.props["СуммаДокумента"]);
+    }
+  }
+  return days;
+}
+
+/* ---------- чтение xlsx ---------- */
+function realRange(ws){
+  const r0 = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  let sr = r0.s.r, sc = r0.s.c, er = r0.e.r, ec = r0.e.c;
+  for (const k in ws){
+    if (k.charCodeAt(0) === 33) continue;
+    const a = XLSX.utils.decode_cell(k);
+    if (a.r < sr) sr = a.r; if (a.c < sc) sc = a.c;
+    if (a.r > er) er = a.r; if (a.c > ec) ec = a.c;
+  }
+  return {s:{r:sr, c:sc}, e:{r:er, c:ec}};
+}
+function gridOf(ws){                    /* объявленный диапазон листа у 1С врёт */
+  const rng = realRange(ws), rows = [];
+  for (let r = rng.s.r; r <= rng.e.r; r++){
+    const row = [];
+    for (let c = rng.s.c; c <= rng.e.c; c++){
+      const cell = ws[XLSX.utils.encode_cell({r, c})];
+      row.push(cell ? cell.v : null);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+function findHead(rows, must){
+  for (let r = 0; r < Math.min(rows.length, 30); r++){
+    const h = rows[r].map(S);
+    if (must.every(n => h.indexOf(n) >= 0)) return {r, h};
+  }
+  return null;
+}
+const dayOf = v => {
+  if (v instanceof Date && !isNaN(v))            /* SheetJS отдаёт даты объектами */
+    return v.getFullYear() + "-" + String(v.getMonth() + 1).padStart(2, "0") +
+           "-" + String(v.getDate()).padStart(2, "0");
+  const s = S(v);
+  let m = /(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[1] + "-" + m[2] + "-" + m[3];
+  m = /(\d{2})\.(\d{2})\.(\d{4})/.exec(s);
+  return m ? m[3] + "-" + m[2] + "-" + m[1] : "";
+};
+
+/* отчёт ОФД: живые деньги и зачёт аванса по дням */
+function parseOfd(wb){
+  for (const name of wb.SheetNames){
+    const rows = gridOf(wb.Sheets[name]);
+    const H = findHead(rows, ["Наличными", "Сумма"]);
+    if (!H) continue;
+    const ci = {};
+    ["Дата и время","Документ","Тип операции","Наличными","Безналичными","Аванс","Сумма",
+     "Название ККТ","Зав. № ККТ","Торговая точка",
+     "Предоплата 100%","Частичная предоплата","Аванс расчет","Полный расчет"]
+      .forEach(k => ci[k] = H.h.indexOf(k));
+    if (ci["Документ"] < 0) continue;
+    const t = {checks:0, days:{}, cash:0, card:0, adv:0, refund:0, kkt:{}};
+    for (let r = H.r + 1; r < rows.length; r++){
+      if (S(rows[r][ci["Документ"]]) !== "Кассовый чек") continue;
+      const sum = num(rows[r][ci["Сумма"]]);
+      if (!sum) continue;
+      t.checks++;
+      const cash = num(rows[r][ci["Наличными"]]), card = num(rows[r][ci["Безналичными"]]),
+            adv = ci["Аванс"] >= 0 ? num(rows[r][ci["Аванс"]]) : 0;
+      t.cash += cash; t.card += card; t.adv += adv;
+      if (/озврат/i.test(S(rows[r][ci["Тип операции"]]))) t.refund += Math.abs(sum);
+      const day = dayOf(rows[r][ci["Дата и время"]]);
+      /* касса подписана то названием, то заводским номером — берём, что есть */
+      const имя = S(rows[r][ci["Название ККТ"]]) || S(rows[r][ci["Зав. № ККТ"]]) || "без названия";
+      const k = t.kkt[имя] || (t.kkt[имя] = {cash:0, card:0, adv:0, checks:0, days:{},
+                                             авансовые:0, полные:0, нал:{},
+                                             точка:S(rows[r][ci["Торговая точка"]])});
+      k.cash += cash; k.card += card; k.adv += adv; k.checks++;
+      if (day) k.нал[day] = R2((k.нал[day] || 0) + cash);
+      /* чек возврата — доказательство, что деньги вернули; если в выгрузке
+         такого возврата нет, её выручка завышена ровно на эту сумму */
+      if (/озврат/i.test(S(rows[r][ci["Тип операции"]])) && card < -0.5)
+        (k.возвраты || (k.возвраты = [])).push({day, сумма:R2(-card)});
+      /* признак расчёта (реквизит 1214) решает проводку: аванс — это Кт 62.Р,
+         полный расчёт — Кт 90.01. Для кассы, где всё авансы, выручки нет вовсе. */
+      ["Предоплата 100%", "Частичная предоплата", "Аванс расчет"].forEach(п => {
+        if (ci[п] >= 0) k.авансовые += num(rows[r][ci[п]]);
+      });
+      if (ci["Полный расчет"] >= 0) k.полные += num(rows[r][ci["Полный расчет"]]);
+      if (day) k.days[day] = (k.days[day] || 0) + card;
+      if (!day) continue;
+      const d = t.days[day] || (t.days[day] = {cash:0, card:0, adv:0});
+      d.cash += cash; d.card += card; d.adv += adv;
+    }
+    return t;
+  }
+  return null;
+}
+
+/* Отчёт ОФД обычно выгружают за месяц, а файл обмена может быть за один день —
+   так и работают, когда проверяют день за днём. Сравнивать месяц кассы с сутками
+   выгрузки бессмысленно, поэтому обрезаем фискальные данные по периоду файла. */
+function обрезатьОФД(ofd, период){
+  const [от, до] = период;
+  if (!от || !до) return ofd;
+  const вПериоде = d => d >= от && d <= до;
+  const свой = {checks:0, days:{}, cash:0, card:0, adv:0, refund:ofd.refund, kkt:{},
+                обрезан:false, период};
+  for (const d in ofd.days){
+    if (!вПериоде(d)) { свой.обрезан = true; continue; }
+    свой.days[d] = ofd.days[d];
+    свой.cash += ofd.days[d].cash; свой.card += ofd.days[d].card; свой.adv += ofd.days[d].adv;
+  }
+  for (const имя in ofd.kkt){
+    const k = ofd.kkt[имя], н = {cash:0, card:0, adv:0, checks:0, days:{}, нал:{},
+                                 авансовые:0, полные:0, точка:k.точка, возвраты:[]};
+    for (const d in k.days) if (вПериоде(d)){ н.days[d] = k.days[d]; н.card += k.days[d]; }
+    for (const d in (k.нал || {})) if (вПериоде(d)){ н.нал[d] = k.нал[d]; н.cash += k.нал[d]; }
+    (k.возвраты || []).forEach(в => { if (вПериоде(в.day)) н.возвраты.push(в); });
+    /* признак расчёта и чеки по кассе за период точно не пересчитать: в разрезе
+       по дням их нет. Берём долю — она нужна только чтобы понять, авансовая
+       касса или выручковая, а это свойство кассы, а не периода. */
+    const доля = k.card ? н.card / k.card : 0;
+    н.авансовые = k.авансовые * доля; н.полные = k.полные * доля;
+    н.checks = Math.round(k.checks * доля);
+    свой.kkt[имя] = н;
+  }
+  свой.checks = Object.values(свой.kkt).reduce((s, k) => s + k.checks, 0) || ofd.checks;
+  return свой;
+}
+
+/* Реестр услуг и реестр оплат выгружают за месяц, а файл обмена может быть
+   за один день. Сравнивать их напрямую нельзя: реестр покажет месяц работы
+   против суток выгрузки, и получится «выгрузка меньше реестра на миллионы».
+   Обрезаем так же, как фискальные данные, — по периоду файла обмена. */
+function обрезатьРеестр(recs, период){
+  const [от, до] = период;
+  if (!от || !до) return {recs, убрано:0};
+  const свои = recs.filter(r => !r.day || (r.day >= от && r.day <= до));
+  return {recs:свои, убрано:recs.length - свои.length};
+}
+
+/* реестр оплат: ищем задвоенные услуги */
+function parsePayments(wb){
+  for (const name of wb.SheetNames){
+    const rows = gridOf(wb.Sheets[name]);
+    let kind = "", recs = [], total = 0;
+    /* Платёж, заведённый администратором руками, приходит с временем 00:00:00 —
+       у него нет привязки к чеку, и фильтр «Только фискализированные документы»
+       выкидывает его из выгрузки. Деньги при этом настоящие: чек по ним в ОФД
+       есть. Отсюда систематический недобор облачной кассы. */
+    const карты = [];
+    const итоги = {"Наличными":0, "Безналичными":0, "Итого":0};
+    const числоСправа = row => {
+      for (let c = row.length - 1; c >= 1; c--) if (typeof row[c] === "number") return row[c];
+      return 0;
+    };
+    for (const row of rows){
+      const label = S(row[0]);
+      /* в этих строках лежит итог раздела — сколько всего денег видит УМЦ */
+      if (label === "Наличными" || label === "Безналичными"){
+        kind = label; итоги[label] = числоСправа(row); continue; }
+      if (label === "Итого") { итоги["Итого"] = числоСправа(row); kind = ""; continue; }
+      /* если в отчёт добавлен эквайринговый терминал, он приклеен к названию
+         документа после запятой — «… от 13.08.2026 9:22:45, Онлайн-касса Карта» */
+      const к = /^Оплата платежной картой\s+(\S+)\s+от\s+(\d{2}\.\d{2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})\s*(?:,\s*(.*))?$/.exec(label);
+      if (к){
+        const s = числоСправа(row);
+        if (s) карты.push({num:к[1], day:dayOf(к[2]), time:к[3], sum:s,
+                           терминал:S(к[4]), вручную:к[3] === "0:00:00"});
+        continue;
+      }
+      if (!label || label.indexOf("Оказание услуг") !== 0) continue;
+      let sum = 0;
+      for (let c = row.length - 1; c >= 1; c--) if (typeof row[c] === "number"){ sum = row[c]; break; }
+      if (!sum) continue;
+      const m = /Оказание услуг\s+(\S+)\s+от\s+(\d{2}\.\d{2}\.\d{4})\s+(\d{1,2}:\d{2}:\d{2})/.exec(label);
+      if (!m) continue;
+      let client = "";
+      for (let c = 1; c < row.length; c++){
+        const v = S(row[c]);
+        if (v && typeof row[c] === "string" && v !== label){ client = v; break; }
+      }
+      recs.push({kind, num:m[1], day:dayOf(m[2]), time:m[3], client, sum});
+      total += sum;
+    }
+    if (recs.length || карты.length) return {recs, total, итоги, карты};
+  }
+  return null;
+}
+function duplicates(recs){
+  const g = {};
+  for (const r of recs){
+    const k = r.day + "|" + r.client + "|" + (r.врач || "") + "|" + r.sum;
+    (g[k] || (g[k] = [])).push(r);
+  }
+  const out = [];
+  for (const k in g) if (g[k].length > 1) out.push(g[k]);
+  out.sort((a, b) => a[0].day < b[0].day ? -1 : 1);
+  return out;
+}
+
+/* Задвоение задвоению рознь, и это главное, что нельзя путать.
+   Администратор, заметив лишний документ, перевешивает оплату на правильный
+   и помечает лишний на удаление. В реестре услуг обе половинки такой пары
+   так и стоят плюсом — колонка «Сумма» знака не имеет, — и со стороны кажется,
+   будто деньги посчитаны дважды. В реестре оплат видно правду: у одного
+   документа плюс, у его близнеца ровно такой же минус, денег пришло один раз.
+   Поэтому вывод делаем по деньгам, а не по количеству документов:
+   сколько нетто оплачено по документам группы — одна сумма или две. */
+function нетоПоДокументам(pay){
+  const н = {};
+  if (pay) for (const r of pay.recs) н[r.num] = R2((н[r.num] || 0) + r.sum);
+  return н;
+}
+function разборДублей(группы, pay){
+  const нетто = нетоПоДокументам(pay);
+  const из = группы.map(g => {
+    const номера = g.map(x => x.num);
+    const известно = pay && номера.some(n => нетто[n] !== undefined);
+    const оплачено = R2(номера.reduce((s, n) => s + (нетто[n] || 0), 0));
+    const одна = g[0].sum;
+    /* «погашен» — денег по группе не больше, чем за одну услугу */
+    const статус = !известно ? "неясно" : оплачено <= одна * 1.005 + 1 ? "погашен" : "живой";
+    return {g, номера, оплачено, одна, лишних: g.length - 1,
+            лишниеДеньги: статус === "живой" ? R2(оплачено - одна) : 0, статус};
+  });
+  const по = s => из.filter(x => x.статус === s);
+  return {
+    все: из, живые: по("живой"), погашенные: по("погашен"), неясные: по("неясно"),
+    ущерб: по("живой").reduce((s, x) => s + x.лишниеДеньги, 0),
+    погашеноНа: по("погашен").reduce((s, x) => s + x.одна * x.лишних, 0)
+  };
+}
+
+/* Реестр услуг: тут видно то, чего не видно нигде больше — какие услуги
+   заведены без пробитого чека. «Нет чека» означает три разные вещи:
+   услугу не оплатили вовсе (выручки нет), оплатили авансом и не пробили
+   чек зачёта (выручка есть, нарушение в кассе), либо оплатили не деньгами —
+   зачётом против гонорара врача (выручка есть, чек не нужен). Поэтому
+   отсекать всё без чека нельзя: занизим выручку. */
+function parseServices(wb){
+  for (const name of wb.SheetNames){
+    const rows = gridOf(wb.Sheets[name]);
+    const H = findHead(rows, ["Дата работ", "Клиент", "Сумма", "Чек пробит"]);
+    if (!H) continue;
+    const ci = {};
+    ["Дата работ","Номер","Клиент","Клиника","Врач","Вид операции","Ответственный",
+     "Сумма","Касса","Чек пробит"].forEach(k => ci[k] = H.h.indexOf(k));
+    const recs = [];
+    for (let r = H.r + 1; r < rows.length; r++){
+      const строка = rows[r];
+      if (!S(строка[ci["Номер"]])) continue;
+      if (S(строка[ci["Вид операции"]]) !== "Продажа клиенту") continue;
+      recs.push({
+        day: dayOf(строка[ci["Дата работ"]]),
+        время: (S(строка[ci["Дата работ"]]).match(/\d{1,2}:\d{2}:\d{2}/) || [""])[0],
+        num: S(строка[ci["Номер"]]), client: S(строка[ci["Клиент"]]),
+        врач: S(строка[ci["Врач"]]), клиника: S(строка[ci["Клиника"]]),
+        кто: S(строка[ci["Ответственный"]]),
+        sum: num(строка[ci["Сумма"]]),
+        чек: /не пробиты/i.test(S(строка[ci["Чек пробит"]])) ? false : true
+      });
+    }
+    if (recs.length) return {kind:"услуги", recs};
+  }
+  return null;
+}
+
+function безЧека(recs, поДням){
+  const сЧеком = {}, без = [];
+  let итогСЧеком = 0, итогБез = 0;
+  for (const r of recs){
+    if (r.чек){ сЧеком[r.day] = (сЧеком[r.day] || 0) + r.sum; итогСЧеком += r.sum; }
+    else if (r.sum > 0){ без.push(r); итогБез += r.sum; }
+  }
+  /* сколько непробитого реально доехало до выручки: столько, на сколько
+     реализация в выгрузке больше суммы услуг с чеком */
+  let прошло = 0;
+  const дни = [];
+  const все = [...new Set(Object.keys(поДням).concat(Object.keys(сЧеком)))].sort();
+  for (const day of все){
+    const было = сЧеком[day] || 0;
+    const стало = (поДням[day] || {}).tovary || (поДням[day] || {}).rev || 0;
+    дни.push({day, было, стало, сверх: R2(стало - было)});
+    if (стало > было) прошло += стало - было;
+  }
+  без.sort((a, b) => b.sum - a.sum);
+  return {сЧеком: итогСЧеком, без: итогБез, список: без, прошло: R2(прошло), дни};
+}
+
+/* ---------- перенос эквайринга на правильный терминал ----------
+
+   Единственная правка, которая двигает деньги, а не дозаполняет реквизиты,
+   поэтому основание для неё нужно железное — и оно есть: фискальный
+   накопитель. Если за один день у одного терминала ровно столько же лишних
+   денег, сколько у другого не хватает, значит оплату завели не на тот
+   терминал. Сумма документа при этом не меняется ни на рубль — меняется
+   только аналитика на счёте 57.03.
+
+   Переносим не больше, чем меньшая из двух величин: если совпадение
+   неполное, остаток честно остаётся расхождением и попадает в итог.
+
+   Важно: в самой УМЦ ошибка остаётся. При следующей выгрузке того же
+   периода она вернётся, и приложение перенесёт её снова. */
+function переносЭквайринга(ex, ofd, св){
+  const {xdoc} = ex, names = payTypeNames(ex.objs);
+  const nppOf = {};
+  for (const n in names) nppOf[names[n]] = n;
+
+  /* сколько ОФД видит по каждому виду оплаты в каждый день */
+  const офд = {};
+  for (const p of св.пары) if (p.вид && p.касса) офд[p.вид] = p.дниOfd;
+
+  /* наши строки оплаты и итог по дню и виду */
+  const нетто = {}, строки = {};
+  for (const d of ex.objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const знак = t.getAttribute("Имя") === "Оплата" ? 1
+                 : t.getAttribute("Имя") === "ВозвратОплаты" ? -1 : 0;
+      if (!знак) continue;
+      for (const rec of [...t.children]){
+        const pr = propEl(rec, "СуммаОплаты"); if (!pr) continue;
+        const вид = names[refNpp(rec, "ВидОплаты")] || БЕЗВИДА;
+        const v = num(propVal(pr));
+        const н = нетто[d.day] || (нетто[d.day] = {});
+        н[вид] = (н[вид] || 0) + знак * v;
+        if (знак > 0){
+          const с = строки[d.day] || (строки[d.day] = {});
+          (с[вид] || (с[вид] = [])).push({tab:t, rec, pr, v});
+        }
+      }
+    }
+  }
+
+  /* Излишек по терминалу бывает не только от путаницы терминалов: если касса
+     пробила возврат, а в программе его не оформили, выгрузка тоже покажет
+     лишние деньги — ровно на сумму этого возврата. Переставлять их нельзя,
+     это не тот диагноз. Поэтому из излишка сначала вычитаем непроведённые
+     возвраты, и только остаток считаем путаницей терминалов. */
+  const возвратыДня = (вид, day) => {
+    const пара = св.пары.find(x => x.вид === вид);
+    if (!пара || !пара.касса) return 0;
+    const k = ofd.kkt[пара.касса];
+    return ((k && k.возвраты) || []).filter(x => x.day === day)
+      .reduce((s, x) => s + x.сумма, 0);
+  };
+  const сделано = [];
+  for (const day of Object.keys(нетто).sort()){
+    const виды = Object.keys(нетто[day]).filter(v => v !== БЕЗВИДА);
+    const разн = виды.map(v => {
+      const сырое = R2(нетто[day][v] - ((офд[v] || {})[day] || 0));
+      /* вычитаем возвраты только из излишка: нехватку они не объясняют */
+      return {вид:v, d: сырое > 0 ? R2(Math.max(0, сырое - возвратыДня(v, day))) : сырое};
+    });
+    const лишние = разн.filter(x => x.d > 0.5).sort((a, b) => b.d - a.d);
+    const нехватка = разн.filter(x => x.d < -0.5).sort((a, b) => a.d - b.d);
+    for (const из of лишние) for (const куда of нехватка){
+      const сумма = R2(Math.min(из.d, -куда.d));
+      if (сумма <= 0.5) continue;
+      if (!двинуть(xdoc, строки[day], из.вид, куда.вид, сумма, nppOf)) continue;
+      из.d = R2(из.d - сумма); куда.d = R2(куда.d + сумма);
+      сделано.push({day, из:из.вид, куда:куда.вид, сумма});
+    }
+  }
+  return сделано;
+}
+
+/* Физика переноса: уменьшаем строки «лишнего» терминала и ровно на столько же
+   увеличиваем строку нужного. Если строки нужного терминала в документе нет,
+   копируем строку-донора и переставляем в ней указатель на вид оплаты —
+   в файле обмена терминал задан номером Нпп, а не наименованием. */
+function двинуть(xdoc, заДень, откуда, куда, сумма, nppOf){
+  const донор = (заДень || {})[откуда];
+  const цель = nppOf[куда];
+  if (!донор || !донор.length || !цель) return false;
+  let осталось = сумма;
+  for (const строка of донор.slice().sort((a, b) => b.v - a.v)){
+    if (осталось <= 0.5) break;
+    const берём = Math.min(строка.v, осталось);
+    if (берём <= 0.5) continue;
+    строка.v = R2(строка.v - берём);
+    осталось = R2(осталось - берём);
+    setValue(xdoc, строка.pr, String(строка.v));
+
+    /* куда положить: своя строка в этом же документе или копия донорской */
+    const свои = ((заДень[куда] || []).filter(x => x.tab === строка.tab));
+    if (свои.length){
+      свои[0].v = R2(свои[0].v + берём);
+      setValue(xdoc, свои[0].pr, String(свои[0].v));
+    } else {
+      const копия = строка.rec.cloneNode(true);
+      const vo = propEl(копия, "ВидОплаты");
+      const ссылка = vo ? kid(vo, "Ссылка") : null;
+      if (!ссылка){ /* откатываем: строку-донора возвращаем как была */
+        строка.v = R2(строка.v + берём); setValue(xdoc, строка.pr, String(строка.v));
+        return false;
+      }
+      ссылка.setAttribute("Нпп", цель);
+      const pr = propEl(копия, "СуммаОплаты");
+      setValue(xdoc, pr, String(берём));
+      строка.tab.appendChild(копия);
+      (заДень[куда] || (заДень[куда] = [])).push({tab:строка.tab, rec:копия, pr, v:берём});
+    }
+    /* строка донора обнулилась — из файла её убираем, пустые строки 1С не любит */
+    if (строка.v <= 0.005) строка.rec.parentNode.removeChild(строка.rec);
+  }
+  return осталось <= 0.5;
+}
+
+/* Отсечка по датам решает две задачи сразу.
+
+   Первая: первые дни периода часто уже загружены — другим режимом выгрузки
+   или руками. Тогда те же деньги приедут второй раз.
+
+   Вторая: месяц можно выгрузить одним файлом, а грузить из него по дню.
+   Обработка в УМЦ умеет отдавать день за днём, но выгружать двадцать раз
+   утомительно; проще один раз взять месяц и резать его здесь.
+
+   Справочники не трогаем — они нужны оставшимся документам. Период в шапке
+   переписываем: по нему подрезаются и фискальные данные, и реестры. */
+function оставитьПериод(ex, от, до){
+  if (!от && !до) return null;
+  const раньше = {}, позже = {};
+  for (const d of ex.objs){
+    if (d.full.indexOf("Документ") !== 0 || !d.day) continue;
+    const куда = (от && d.day < от) ? раньше : (до && d.day > до) ? позже : null;
+    if (!куда) continue;
+    d.el.parentNode.removeChild(d.el);
+    куда[d.day] = (куда[d.day] || 0) + 1;
+  }
+  const дн1 = Object.keys(раньше).sort(), дн2 = Object.keys(позже).sort();
+  if (!дн1.length && !дн2.length) return null;
+  ex.objs = ex.objs.filter(o => o.el.parentNode);
+  if (!ex.objs.some(o => o.full.indexOf("Документ") === 0))
+    throw new Error("После отсечки по датам в файле не осталось ни одного документа. " +
+                    "Проверьте даты: в файле период " + ex.period[0] + " — " + ex.period[1] + ".");
+  const корень = ex.xdoc.documentElement;
+  if (дн1.length){ корень.setAttribute("НачалоПериодаВыгрузки", от + "T00:00:00");
+                   ex.period[0] = от; }
+  if (дн2.length){ корень.setAttribute("ОкончаниеПериодаВыгрузки", до + "T23:59:59");
+                   ex.period[1] = до; }
+  const сумма = o => Object.keys(o).reduce((s, d) => s + o[d], 0);
+  return {от, до, раньше:дн1, позже:дн2,
+          доРаньше:сумма(раньше), доПозже:сумма(позже),
+          всего:сумма(раньше) + сумма(позже),
+          дни:дн1.concat(дн2)};
+}
+
+/* Остаток кассы, заведённый при переходе на новую программу, приезжает
+   приходным ордером «Получение наличных в банке» первым днём периода. В
+   бухгалтерии этот остаток уже стоит входящим сальдо — загрузишь, и наличные
+   удвоятся. Выкидываем такой ордер из файла, но только по явной галке:
+   отличить остаток от настоящего снятия со счёта можно лишь глазами. */
+function выкинутьОстатокКассы(ex, пм){
+  if (!пм.первыйДень || пм.первыйДень !== ex.period[0]) return null;
+  const убрано = [];
+  for (const d of ex.objs){
+    if (d.type !== "ПриходныйКассовыйОрдер" || d.day !== пм.первыйДень) continue;
+    if (d.props["ВидОперации"] !== "ПолучениеНаличныхВБанке") continue;
+    const сумма = num(d.props["СуммаДокумента"]);
+    if (Math.abs(сумма - пм.крупнейший) > 0.5) continue;   // только он, остальные не трогаем
+    d.el.parentNode.removeChild(d.el);
+    убрано.push({day:d.day, сумма});
+  }
+  return убрано.length ? убрано : null;
+}
+
+/* Обе половинки перемещения между кассами выбрасываем из файла. Звучит грубо,
+   но это единственное, что тут можно сделать честно.
+
+   Передать кассу через этот обмен нельзя: среди сорока восьми правил конвертации
+   нет правила для справочника «Кассы», а обработчик правила жёстко ставит
+   Объект.СчетКасса = КассаОрганизации. То есть обе кассы клиники в бухгалтерии
+   всё равно сольются в одну, и перемещение между ними станет невидимым —
+   но при этом оставит след: «Инкассация» даст Дт 57.01 Кт 50.01, а «Получение
+   наличных в банке» — Дт 50.01 Кт 51. Деньги на кассе сойдутся (минус и плюс
+   гасят друг друга), а на 57.01 и на расчётном счёте останутся суммы из ниоткуда.
+
+   Выбросив пару, мы не теряем ничего: итог по кассе тот же, фантомов нет.
+   Если перемещения нужны в учёте по-настоящему — их вносят руками двумя
+   документами с правильными кассами и счётом 57.01, либо правят правила обмена. */
+function разобратьПеремещения(ex, пм, как){
+  const {xdoc} = ex, сделано = [];
+  for (const п of пм.пары){
+    if (как === "выбросить"){
+      for (const d of [п.пко, п.рко])
+        if (d.el.parentNode) d.el.parentNode.removeChild(d.el);
+    } else if (как === "счет"){
+      /* «Прочий приход» — единственный вид операции, у которого обработчик правила
+         подставляет счёт из настройки УМЦ. Ставим его, и пара закрывается через 57.01
+         вместо того, чтобы висеть на нём вечно. */
+      for (const св of [propEl(п.пко.el, "ВидОперации"), propEl(п.пко.ref || п.пко.el, "ВидОперации")]){
+        if (св) setValue(xdoc, св, "ПрочийПриход");
+      }
+      п.пко.props["ВидОперации"] = "ПрочийПриход";
+    } else continue;
+    сделано.push(п);
+  }
+  return {как, список:сделано};
+}
+
+/* Наличные по кассам. ОФД — эталон: он знает, какой аппарат пробил каждый чек.
+   В выгрузке наличные тоже делятся, только по подразделениям: у каждого свой
+   отчёт о розничных продажах. Сопоставляем то и другое по обороту — самая
+   денежная касса у ОФД отвечает самому денежному подразделению. */
+function наличныеПоПодразделениям(objs){
+  const по = {};
+  for (const d of objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    const подр = S((d.props["Комментарий"] || "").split(".")[0]) || "без подразделения";
+    const g  = tabSum(d, "Товары", "Сумма"),      gb = tabSum(d, "Возвраты", "Сумма"),
+          pp = tabSum(d, "Предоплаты", "Сумма"),  pb = tabSum(d, "Предоплаты", "СуммаВозврат"),
+          c  = tabSum(d, "Оплата", "СуммаОплаты"), cb = tabSum(d, "ВозвратОплаты", "СуммаОплаты"),
+          a  = tabSum(d, "ЗачетАвансов", "СуммаЗачета");
+    const нал = R2(g - gb + pp - pb - (c - cb) - a);
+    const у = по[подр] || (по[подр] = {итог:0, дни:{}});
+    у.итог = R2(у.итог + нал);
+    у.дни[d.day] = R2((у.дни[d.day] || 0) + нал);
+  }
+  return по;
+}
+function сводКасс(objs, ofd){
+  const наши = наличныеПоПодразделениям(objs);
+  const подр = Object.keys(наши).sort((a, b) => наши[b].итог - наши[a].итог);
+  const кассы = Object.keys(ofd.kkt).filter(k => ofd.kkt[k].cash > 0.5)
+    .sort((a, b) => ofd.kkt[b].cash - ofd.kkt[a].cash);
+  return подр.map((п, i) => ({
+    подразделение: п, касса: кассы[i] || "",
+    наш: наши[п].итог, дниНаш: наши[п].дни,
+    ofd: кассы[i] ? ofd.kkt[кассы[i]].cash : 0,
+    дниOfd: кассы[i] ? ofd.kkt[кассы[i]].нал : {}
+  }));
+}
+
+/* ---------- какая это касса ----------
+
+   В файле нет поля «Касса»: правило обмена ставит всем один счёт 50.01, и обе
+   кассы клиники слипаются в одну. Но номер документа УМЦ нумерует по кассам —
+   «ПКО №К1000000013», «РКО №К2000000003», — и префикс К1/К2 как раз и говорит,
+   чья это касса. К1 основная, из неё инкассируют в банк; К2 вторая, из неё
+   деньги переносят в основную.
+
+   Отчёт о розничных продажах кассы в номере не несёт, зато несёт подразделение
+   в комментарии — по нему и раскладываем. */
+const КАССА_ПО_НОМЕРУ = /№(К\d)/;
+function кассаДокумента(d){
+  const m = КАССА_ПО_НОМЕРУ.exec(d.props["Комментарий"] || "");
+  if (m) return m[1];
+  if (d.type === "ОтчетОРозничныхПродажах"){
+    const подр = S((d.props["Комментарий"] || "").split(".")[0]);
+    return КАССЫ_ПОДРАЗДЕЛЕНИЙ[подр] || "";
+  }
+  return "";
+}
+/* какое подразделение к какой кассе: узнаём по размеру — в основной кассе
+   оборот кратно больше. Заведомо жёстко задавать нельзя: названия у всех свои */
+let КАССЫ_ПОДРАЗДЕЛЕНИЙ = {};
+function разложитьПодразделения(objs){
+  const оборот = {};
+  for (const d of objs){
+    if (d.type !== "ОтчетОРозничныхПродажах") continue;
+    const подр = S((d.props["Комментарий"] || "").split(".")[0]);
+    if (подр) оборот[подр] = (оборот[подр] || 0) + tabSum(d, "Товары", "Сумма");
+  }
+  const по = Object.keys(оборот).sort((a, b) => оборот[b] - оборот[a]);
+  КАССЫ_ПОДРАЗДЕЛЕНИЙ = {};
+  по.forEach((п, i) => { КАССЫ_ПОДРАЗДЕЛЕНИЙ[п] = i === 0 ? "К1" : "К2"; });
+  return КАССЫ_ПОДРАЗДЕЛЕНИЙ;
+}
+const имяКассы = к => к === "К1" ? "основная" : к === "К2" ? "вторая" : "";
+
+/* ---------- что правила обмена делают сами ----------
+
+   Правила едут внутри файла, и в них бывает дописанный вручную код. У «Омеги»
+   там три такие вставки, и знать о них обязательно: они переписывают документы
+   уже после того, как те загрузились, и молча отменяют часть наших правок.
+   Читаем алгоритмы и показываем, что именно они сделают. */
+function алгоритмыПравил(xdoc){
+  const out = {};
+  for (const a of xdoc.getElementsByTagName("Алгоритм")){
+    const т = kid(a, "Текст");
+    out[S(a.getAttribute("Имя"))] = т ? т.textContent : "";
+  }
+  return out;
+}
+function разобратьПравила(xdoc){
+  const алг = алгоритмыПравил(xdoc);
+  const весь = Object.keys(алг).map(k => алг[k]).join("\n");
+  const подр = [];
+  const re1 = /СтрНачинаетсяС\(\s*Объект\.Комментарий\s*,\s*"([^"]+)"\s*\)[\s\S]{0,400}?ПодразделенияОрганизаций\.НайтиПоНаименованию\(\s*"([^"]+)"/g;
+  let m;
+  while ((m = re1.exec(весь))) подр.push({по:m[1], станет:m[2]});
+  const карта = /ВидыОплатОрганизаций\.НайтиПоНаименованию\(\s*"([^"]+)"/.exec(весь);
+  const пко = /Объект\.ВидОперации\s*=\s*Перечисления\.ВидыОперацийПКО\.([А-Яа-яЁё]+)/.exec(весь);
+  const итог = {подр, терминал: карта ? карта[1] : "", пкоВид: пко ? пко[1] : ""};
+  итог.есть = подр.length || итог.терминал || итог.пкоВид;
+  return итог;
+}
+
+/* ---------- деление по кассам ----------
+
+   Справочника «Кассы» в бухгалтерии 3.0 нет — несколько касс она различает
+   подразделением: реквизит «Подразделение» есть и у приходного ордера, и у
+   расходного. В выгрузке УМЦ его нет, и правила конвертации для справочника
+   подразделений в файле тоже нет. Дописываем и то, и другое.
+
+   Справочник подразделений подчинён организации, поэтому в ссылке, кроме
+   наименования, передаём владельца — ту же организацию, что стоит в документе.
+   Без владельца поиск не сработает и загрузка заведёт пустой элемент. */
+function правилоПодразделений(xdoc){
+  const прав = xdoc.getElementsByTagName("ПравилаКонвертацииОбъектов")[0];
+  if (!прав) return false;
+  const есть = kids(прав, "Правило").some(п => {
+    const k = kid(п, "Код");
+    return k && S(k.textContent) === "ПодразделенияОрганизаций";
+  });
+  if (есть) return true;
+  const п = xdoc.createElement("Правило");
+  for (const [тег, знач] of [["Код", "ПодразделенияОрганизаций"], ["НеЗамещать", "true"],
+                             ["Источник", "СправочникСсылка.ПодразделенияОрганизаций"],
+                             ["Приемник", "СправочникСсылка.ПодразделенияОрганизаций"]]){
+    const e = xdoc.createElement(тег);
+    e.textContent = знач;
+    п.appendChild(e);
+  }
+  прав.appendChild(п);
+  return true;
+}
+function поставитьПодразделение(xdoc, d, имя, нпп){
+  let p = propEl(d.el, "ПодразделениеОрганизации");
+  if (!p){
+    p = xdoc.createElement("Свойство");
+    p.setAttribute("Имя", "ПодразделениеОрганизации");
+    /* свойства идут до табличных частей — держимся того же порядка, что в файле */
+    const т = kids(d.el, "ТабличнаяЧасть")[0];
+    if (т) d.el.insertBefore(p, т); else d.el.appendChild(p);
+  }
+  p.setAttribute("Тип", "СправочникСсылка.ПодразделенияОрганизаций");
+  p.setAttribute("ИмяПКО", "ПодразделенияОрганизаций");
+  while (p.firstChild) p.removeChild(p.firstChild);
+  const ссылка = xdoc.createElement("Ссылка");
+  ссылка.setAttribute("Нпп", String(нпп));
+  const н = xdoc.createElement("Свойство");
+  н.setAttribute("Имя", "Наименование");
+  н.setAttribute("Тип", "Строка");
+  const v = xdoc.createElement("Значение");
+  v.textContent = имя;
+  н.appendChild(v);
+  ссылка.appendChild(н);
+  const орг = propEl(d.el, "Организация") || propEl(d.ref || d.el, "Организация");
+  const оргСсылка = орг && kid(орг, "Ссылка");
+  if (оргСсылка){
+    const вл = xdoc.createElement("Свойство");
+    вл.setAttribute("Имя", "Владелец");
+    вл.setAttribute("Тип", "СправочникСсылка.Организации");
+    вл.setAttribute("ИмяПКО", "Организации");
+    вл.appendChild(оргСсылка.cloneNode(true));
+    ссылка.appendChild(вл);
+  }
+  p.appendChild(ссылка);
+}
+/* Отчёты о розничных продажах правила обмена делят сами — свой реквизит им
+   дописывать нельзя, загрузка на этом падает. Остаются кассовые ордера. */
+const ДОКИ_ПОДРАЗДЕЛЕНИЙ = {
+  "ордера": ["ПриходныйКассовыйОрдер", "РасходныйКассовыйОрдер"]
+};
+function проставитьПодразделения(ex, как, имена){
+  const типы = ДОКИ_ПОДРАЗДЕЛЕНИЙ[как];
+  if (!типы) return null;
+  const {xdoc, objs} = ex;
+  if (!правилоПодразделений(xdoc)) return null;
+  const нпп = {}, итог = {};
+  let следующий = максНпп(xdoc.documentElement), без = 0;
+  for (const d of objs){
+    if (типы.indexOf(d.type) < 0) continue;
+    const имя = S(имена[кассаДокумента(d)]);
+    if (!имя){ без++; continue; }
+    if (!нпп[имя]) нпп[имя] = ++следующий;
+    поставитьПодразделение(xdoc, d, имя, нпп[имя]);
+    итог[имя] = (итог[имя] || 0) + 1;
+  }
+  const всего = Object.keys(итог).reduce((s, k) => s + итог[k], 0);
+  return всего ? {как, итог, без, всего} : null;
+}
+
+/* ---------- перемещение денег между кассами ----------
+
+   В клинике две кассы. Деньги пришли в одну, часть перенесли во вторую —
+   и УМЦ выгружает это парой: расходный ордер «Инкассация» из первой кассы
+   и приходный «Получение наличных в банке» во второй. Вторая половина
+   неверна: из банка ничего не приходило.
+
+   Чем это плохо в бухгалтерии. «Инкассация» даёт Дт 57.01 Кт 50.01 — деньги
+   в пути. «Получение наличных в банке» даёт Дт 50.01 Кт 51 — списание с
+   расчётного счёта, которого не было. В итоге на 57.01 навсегда зависает
+   сумма, а на 51 появляется несуществующий расход. Правильно обе половинки
+   проводить через 57.01: тогда они друг друга закрывают.
+
+   Находим такие пары по совпадению суммы в пределах трёх дней. */
+function перемещенияМеждуКассами(objs){
+  const приход = [], расход = [];
+  for (const d of objs){
+    if (!d.day) continue;
+    const сумма = num(d.props["СуммаДокумента"]);
+    if (сумма <= 0.5) continue;
+    if (d.type === "ПриходныйКассовыйОрдер" && d.props["ВидОперации"] === "ПолучениеНаличныхВБанке")
+      приход.push({d, сумма, взят:false});
+    if (d.type === "РасходныйКассовыйОрдер" && d.props["ВидОперации"] === "Инкассация")
+      расход.push({d, сумма, взят:false});
+  }
+  const пары = [];
+  for (const п of приход){
+    /* перемещение — это всегда из одной кассы в другую; совпадение сумм
+       внутри одной кассы перемещением не является */
+    const р = расход.find(x => !x.взят && Math.abs(x.сумма - п.сумма) < 0.5 &&
+      Math.abs(вДнях(п.d.day, x.d.day)) <= 3 &&
+      кассаДокумента(x.d) && кассаДокумента(п.d) &&
+      кассаДокумента(x.d) !== кассаДокумента(п.d));
+    if (!р) continue;
+    п.взят = р.взят = true;
+    пары.push({сумма:п.сумма, вКассу:п.d.day, изКассы:р.d.day, пко:п.d, рко:р.d,
+               откуда:кассаДокумента(р.d), куда:кассаДокумента(п.d)});
+  }
+  const одиночки = приход.filter(x => !x.взят).sort((a, b) => b.сумма - a.сумма);
+  return {пары,
+          сумма: пары.reduce((s, x) => s + x.сумма, 0),
+          изБанка: одиночки.reduce((s, x) => s + x.сумма, 0),
+          /* самый крупный одиночный приход — кандидат в остаток кассы */
+          первыйДень: одиночки.length ? одиночки[0].d.day : "",
+          крупнейший: одиночки.length ? одиночки[0].сумма : 0,
+          вБанк: расход.filter(x => !x.взят).reduce((s, x) => s + x.сумма, 0)};
+}
+
+/* ---------- строки оплаты без терминала ----------
+
+   Бывают двух пород, и лечатся по-разному.
+
+   1. Возврат зачтённого аванса. Клиенту отменили услугу, закрытую авансом,
+      и зачёт сторнировали. Денег не двигалось — ни карты, ни наличных, —
+      поэтому эквайрингового терминала у такой строки нет и быть не может.
+      УМЦ кладёт её в «Возврат оплаты», где ей не место: правильнее просто
+      уменьшить зачёт авансов на ту же сумму. Проверяем по фискальным данным:
+      зачёт в выгрузке должен быть больше зачёта по ОФД ровно на эту сумму.
+      Баланс держится — наличные считаются остатком и не меняются.
+
+   2. Обычная оплата, у которой терминал забыли указать. Если в этот день
+      ровно одному терминалу не хватает ровно этой суммы, ОФД и говорит, чей
+      это платёж. Тогда проставляем терминал. */
+/* Вид оплаты в строке уже может быть — пустым. Второе такое же свойство рядом
+   класть нельзя: 1С возьмёт первое и снова не найдёт терминал. Заполняем то,
+   что есть, и только если его нет — создаём. */
+function поставитьВидОплаты(xdoc, rec, npp){
+  let prop = propEl(rec, "ВидОплаты");
+  if (!prop){
+    prop = xdoc.createElement("Свойство");
+    prop.setAttribute("Имя", "ВидОплаты");
+    rec.appendChild(prop);
+  }
+  prop.setAttribute("Тип", "СправочникСсылка.ВидыОплатОрганизаций");
+  while (prop.firstChild) prop.removeChild(prop.firstChild);
+  const ссылка = xdoc.createElement("Ссылка");
+  ссылка.setAttribute("Нпп", npp);
+  prop.appendChild(ссылка);
+}
+
+function сироткиБезТерминала(ex, ofd, св){
+  const {xdoc} = ex, names = payTypeNames(ex.objs), nppOf = {};
+  for (const n in names) nppOf[names[n]] = n;
+  const зачтено = [], назначено = [], остались = [];
+
+  /* Считаем по дню целиком: в одном дне бывает несколько отчётов о розничных
+     продажах — по одному на подразделение, — а ОФД даёт зачёт за весь день. */
+  const дни = {};
+  for (const d of ex.objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    const день = дни[d.day] || (дни[d.day] = {зачёт:0, зачСтроки:[], сиротки:[]});
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const имя = t.getAttribute("Имя");
+      if (имя === "ЗачетАвансов")
+        for (const rec of [...t.children]){
+          const pr = propEl(rec, "СуммаЗачета"); if (!pr) continue;
+          день.зачёт += num(propVal(pr));
+          день.зачСтроки.push({rec, pr});
+        }
+      if (имя !== "Оплата" && имя !== "ВозвратОплаты") continue;
+      for (const rec of [...t.children]){
+        if (refNpp(rec, "ВидОплаты")) continue;
+        const pr = propEl(rec, "СуммаОплаты"); if (!pr) continue;
+        const сумма = num(propVal(pr));
+        if (сумма > 0.5) день.сиротки.push({rec, сумма, что:имя});
+      }
+    }
+  }
+
+  for (const day of Object.keys(дни).sort()){
+    const д = дни[day];
+    if (!д.сиротки.length) continue;
+    const возвраты = д.сиротки.filter(x => x.что === "ВозвратОплаты");
+    const лишку = R2(д.зачёт - ((ofd.days[day] || {}).adv || 0));
+    const сумВозвратов = возвраты.reduce((s, x) => s + x.сумма, 0);
+
+    /* возврат зачтённого аванса: зачёт в выгрузке больше фискального ровно
+       на сумму этих строк — значит это он и есть */
+    if (возвраты.length && Math.abs(лишку - сумВозвратов) < 0.5 && д.зачёт >= сумВозвратов - 0.5){
+      let осталось = сумВозвратов;
+      for (const з of д.зачСтроки){
+        if (осталось <= 0.5) break;
+        const v = num(propVal(з.pr)), берём = Math.min(v, осталось);
+        setValue(xdoc, з.pr, String(R2(v - берём)));
+        осталось = R2(осталось - берём);
+        if (v - берём <= 0.005) з.rec.parentNode.removeChild(з.rec);
+      }
+      возвраты.forEach(x => {
+        x.rec.parentNode.removeChild(x.rec);
+        зачтено.push({day, сумма:x.сумма});
+      });
+    }
+
+    /* обычная оплата без терминала: у кого в этот день не хватает ровно столько */
+    for (const с of д.сиротки){
+      if (!с.rec.parentNode) continue;              // уже убрана выше
+      const кандидаты = св.пары.filter(x => x.вид && x.вид !== БЕЗВИДА &&
+        Math.abs(R2((x.дниOfd[day] || 0) - (x.дниНаш[day] || 0)) - с.сумма) < 0.5);
+      if (кандидаты.length === 1 && nppOf[кандидаты[0].вид]){
+        поставитьВидОплаты(xdoc, с.rec, nppOf[кандидаты[0].вид]);
+        назначено.push({day, сумма:с.сумма, вид:кандидаты[0].вид});
+      } else остались.push({day, сумма:с.сумма, что:с.что});
+    }
+  }
+  return {зачтено, назначено, остались};
+}
+
+/* ---------- дописать кассу, которой нет в выгрузке ----------
+
+   Бывает, что касса не связана с УМЦ: чеки она пробивает сама, а программа
+   про них не знает, и отбор по фискализированным документам выкидывает их
+   целиком. Деньги при этом настоящие, и в бухгалтерии их не хватает.
+
+   Взять их можно только из одного места — из фискальных данных. Но дописать
+   в файл можно не всякие: если чек с признаком «полный расчёт», за ним стоит
+   выручка, а значит нужна номенклатура, которой в ОФД нет. Придумывать её
+   нельзя. А вот касса, где ВСЕ чеки — авансы, дописывается честно: аванс
+   номенклатуры не требует, это просто полученные деньги, Дт 57.03 Кт 62.Р.
+
+   Документ при этом остаётся сбалансированным: предоплата и оплата растут
+   на одну сумму, а наличные считаются остатком и не меняются. */
+function созатьЗапись(xdoc, поля){
+  const rec = xdoc.createElement("Запись");
+  for (const [имя, тип, знач] of поля){
+    const p = xdoc.createElement("Свойство");
+    p.setAttribute("Имя", имя); p.setAttribute("Тип", тип);
+    const v = xdoc.createElement("Значение");
+    v.textContent = знач;
+    p.appendChild(v); rec.appendChild(p);
+  }
+  return rec;
+}
+function дописатьАвансы(ex, ofd, св){
+  const {xdoc} = ex, names = payTypeNames(ex.objs), nppOf = {};
+  for (const n in names) nppOf[names[n]] = n;
+
+  /* отчёты о розничных продажах по дням — дописываем в самый крупный за день */
+  const поДням = {};
+  for (const d of ex.objs){
+    if (d.type !== "ОтчетОРозничныхПродажах" || !d.day) continue;
+    (поДням[d.day] || (поДням[d.day] = [])).push(d);
+  }
+  for (const day in поДням)
+    поДням[day].sort((a, b) => tabSum(b, "Товары", "Сумма") - tabSum(a, "Товары", "Сумма"));
+
+  const добавлено = [], возвращено = [], отказ = [];
+
+  /* Непроведённый возврат: касса пробила возврат по карте, а в программе его
+     нет — тогда в выгрузке на эту сумму больше и выручки, и эквайринга.
+     Доказательство — чек возврата в ОФД ровно на эту сумму в тот же день.
+     Строку возврата товаров копируем с уже имеющейся в файле: там нужна
+     номенклатура, а выдумывать её нельзя — берём ту, которой пользуется
+     сам файл. Нет ни одной такой строки — отказываемся и говорим почему. */
+  const образец = (() => {
+    for (const d of ex.objs){
+      if (d.type !== "ОтчетОРозничныхПродажах") continue;
+      for (const t of kids(d.el, "ТабличнаяЧасть")){
+        if (t.getAttribute("Имя") !== "Возвраты") continue;
+        if (t.children.length) return t.children[0];
+      }
+    }
+    return null;
+  })();
+  for (const пара of св.пары){
+    if (!пара.вид || !пара.касса || !nppOf[пара.вид]) continue;
+    const чеки = (ofd.kkt[пара.касса] || {}).возвраты || [];
+    for (const d of Object.keys(пара.дниНаш)){
+      const лишнее = R2((пара.дниНаш[d] || 0) - (пара.дниOfd[d] || 0));
+      if (лишнее <= 0.5) continue;
+      const чек = чеки.find(x => x.day === d && Math.abs(x.сумма - лишнее) < 0.5);
+      if (!чек) continue;
+      const док = (поДням[d] || [])[0];
+      if (!док) continue;
+      if (!образец){
+        отказ.push({вид:пара.вид, сумма:лишнее,
+          почему:"за " + дн(d) + " касса пробила возврат, а в выгрузке его нет; " +
+                 "дописать не могу — в файле нет ни одной строки возврата, чтобы взять из неё номенклатуру"});
+        continue;
+      }
+      const таб = имя => {
+        let tt = kids(док.el, "ТабличнаяЧасть").find(x => x.getAttribute("Имя") === имя);
+        if (!tt){ tt = xdoc.createElement("ТабличнаяЧасть"); tt.setAttribute("Имя", имя);
+                  док.el.appendChild(tt); }
+        return tt;
+      };
+      const копия = образец.cloneNode(true);
+      for (const св2 of [...копия.children]){
+        const имя = св2.getAttribute("Имя");
+        if (имя === "Сумма") setValue(xdoc, св2, String(лишнее));
+        if (имя === "Количество") setValue(xdoc, св2, "1");
+      }
+      таб("Возвраты").appendChild(копия);
+      const возв = созатьЗапись(xdoc, [["СуммаОплаты", "Число", String(лишнее)]]);
+      поставитьВидОплаты(xdoc, возв, nppOf[пара.вид]);
+      таб("ВозвратОплаты").appendChild(возв);
+      возвращено.push({day:d, вид:пара.вид, сумма:лишнее});
+      пара.дниНаш[d] = R2((пара.дниНаш[d] || 0) - лишнее);
+    }
+  }
+
+  for (const пара of св.пары){
+    if (!пара.вид || !пара.касса || !nppOf[пара.вид]) continue;
+    const k = ofd.kkt[пара.касса];
+    if (!k || k.card <= 0) continue;
+    const дни = Object.keys(пара.дниOfd)
+      .filter(d => R2((пара.дниOfd[d] || 0) - (пара.дниНаш[d] || 0)) > 0.5);
+    if (!дни.length) continue;
+    const нехватка = дни.reduce((s, d) => s + R2(пара.дниOfd[d] - (пара.дниНаш[d] || 0)), 0);
+    /* дописываем только кассу, где выручки нет вовсе — одни авансы */
+    if (k.полные > 0.5 || k.авансовые < k.card - 0.5){
+      отказ.push({вид:пара.вид, сумма:нехватка,
+                  почему:"по этой кассе есть чеки с полным расчётом — за ними выручка, " +
+                         "а номенклатуры для неё в фискальных данных нет"});
+      continue;
+    }
+    for (const d of дни){
+      const сумма = R2(пара.дниOfd[d] - (пара.дниНаш[d] || 0));
+      const док = (поДням[d] || [])[0];
+      if (!док){ отказ.push({вид:пара.вид, сумма,
+        почему:"за " + дн(d) + " в файле нет отчёта о розничных продажах, дописывать не во что"});
+        continue; }
+      const таб = имя => {
+        let t = kids(док.el, "ТабличнаяЧасть").find(x => x.getAttribute("Имя") === имя);
+        if (!t){ t = xdoc.createElement("ТабличнаяЧасть"); t.setAttribute("Имя", имя);
+                 док.el.appendChild(t); }
+        return t;
+      };
+      таб("Предоплаты").appendChild(созатьЗапись(xdoc, [
+        ["СтавкаНДС", "ПеречислениеСсылка.СтавкиНДС", CFG["c-nds"]],
+        ["Сумма", "Число", String(сумма)],
+        ["СуммаВозврат", "Число", "0"]]));
+      const оплата = созатьЗапись(xdoc, [["СуммаОплаты", "Число", String(сумма)]]);
+      поставитьВидОплаты(xdoc, оплата, nppOf[пара.вид]);
+      таб("Оплата").appendChild(оплата);
+      добавлено.push({day:d, вид:пара.вид, сумма});
+    }
+  }
+  return {добавлено, возвращено, отказ};
+}
+
+/* ---------- правка файла ---------- */
+const DIR_TYPE = {
+  "Склад": ["СправочникСсылка.Склады", "Склады"],
+  "СтатьяДвиженияДенежныхСредств":
+    ["СправочникСсылка.СтатьиДвиженияДенежныхСредств", "СтатьиДвиженияДенежныхСредств"],
+  "Контрагент": ["СправочникСсылка.Контрагенты", "Контрагенты"]
+};
+function setDirectory(xdoc, prop, name, value){
+  const [type, rule] = DIR_TYPE[name];
+  prop.setAttribute("Тип", type);
+  prop.setAttribute("ИмяПКО", rule);
+  while (prop.firstChild) prop.removeChild(prop.firstChild);
+  const ref = xdoc.createElement("Ссылка");
+  const sub = xdoc.createElement("Свойство");
+  sub.setAttribute("Имя", "Наименование"); sub.setAttribute("Тип", "Строка");
+  const val = xdoc.createElement("Значение");
+  val.textContent = value;
+  sub.appendChild(val); ref.appendChild(sub); prop.appendChild(ref);
+}
+function setValue(xdoc, prop, value){
+  while (prop.firstChild) prop.removeChild(prop.firstChild);
+  if (value === "") prop.appendChild(xdoc.createElement("Пусто"));
+  else { const v = xdoc.createElement("Значение"); v.textContent = value; prop.appendChild(v); }
+}
+
+const DDS_BY_OP = () => ({
+  "ОплатаПокупателя": CFG["c-ddsr"],
+  /* перемещение между кассами — то же внутреннее перемещение, что и инкассация */
+  "ПрочийПриход": CFG["c-ddsi"],
+  "ВозвратПокупателю": CFG["c-ddsv"],
+  "ПолучениеНаличныхВБанке": CFG["c-ddsb"],
+  "Инкассация": CFG["c-ddsi"]
+});
+
+function fixAll(ex){
+  const {xdoc, objs} = ex, nom = nomenclature(objs), dds = DDS_BY_OP();
+  const fixed = [], warned = [];
+  разложитьПодразделения(objs);
+  const F = (doc, what, was, now) => fixed.push({doc, what, was, now});
+  const W = (doc, what, detail) => warned.push({doc, what, detail});
+
+  for (const d of objs){
+    if (d.full.indexOf("Документ") !== 0) continue;
+    /* «ПриходныйКассовыйОрдер от 2026-08-21» человеку ничего не говорит.
+       Пишем как в журнале: что за документ, когда и на сколько. */
+    const сумма = num(d.props["СуммаДокумента"]) ||
+      tabSum(d, "Товары", "Сумма") + tabSum(d, "Предоплаты", "Сумма");
+    const name = (HUMAN[d.type] || d.type) +
+      (d.day ? " от " + дн(d.day) : "") +
+      (сумма ? " на " + fmt0(сумма) + " ₽" : "");
+    const где = d.ref || d.el;
+    const op = d.props["ВидОперации"] || "";
+
+    if (d.type === "ОтчетОРозничныхПродажах"){
+      const p = propEl(где, "Склад") || propEl(d.el, "Склад");
+      if (p && !propVal(p)){
+        const подр = S((d.props["Комментарий"] || "").split(".")[0]);
+        const склад = S(SKLADY[подр]) || CFG["c-sklad"];
+        if (склад){ setDirectory(xdoc, p, "Склад", склад); F(name, "склад", "пусто", склад); }
+        else W(name, "склад не заполнен", "подразделение «" + подр + "»");
+      }
+    }
+    if (d.type === "ПриходныйКассовыйОрдер" || d.type === "РасходныйКассовыйОрдер"){
+      let p = propEl(d.el, "СтатьяДвиженияДенежныхСредств") ||
+              propEl(где, "СтатьяДвиженияДенежныхСредств");
+      if (p && !propVal(p)){
+        const ст = dds[op];
+        if (ст){ setDirectory(xdoc, p, "СтатьяДвиженияДенежныхСредств", ст);
+                 F(name, "статья ДДС", "пусто", ст); }
+        else W(name, "статья ДДС не заполнена", "вид операции «" + op + "»");
+      }
+      if (op === "ОплатаПокупателя"){
+        let k = propEl(d.el, "Контрагент") || propEl(где, "Контрагент");
+        if (k && !propVal(k)){
+          if (CFG["c-kontr"]){ setDirectory(xdoc, k, "Контрагент", CFG["c-kontr"]);
+                               F(name, "контрагент", "пусто", CFG["c-kontr"]); }
+          else W(name, "контрагент не заполнен", "ПКО без контрагента не проведётся");
+        }
+      }
+      const ч = propEl(d.el, "НомерЧекаККМ");
+      if (ч && propVal(ч) === "-1"){ setValue(xdoc, ч, ""); F(name, "номер чека ККМ", "-1", "пусто"); }
+    }
+
+    if ((d.props["Дата"] || "").endsWith("T12:00:00"))
+      W(name, "дата проставлена вручную", "ровно полдень — сверьте с датой чека ОФД");
+
+    /* ставка НДС по строкам */
+    for (const t of kids(d.el, "ТабличнаяЧасть")){
+      const имя = t.getAttribute("Имя");
+      if (["Товары", "Возвраты", "Предоплаты", "АгентскиеУслуги"].indexOf(имя) < 0) continue;
+      for (const rec of [...t.children]){
+        const p = propEl(rec, "СтавкаНДС"); if (!p) continue;
+        const было = propVal(p);
+        if (было === CFG["c-nds"]) continue;
+        const поз = nom[refUid(rec, "Номенклатура")] || {name:"", service:true};
+        const sp = propEl(rec, "Сумма");
+        const сумма = sp ? fmt0(num(propVal(sp))) : "";
+        if (было){
+          W(name, "строка с НДС", (поз.name || "?").slice(0, 38) +
+            " — ставка " + было + ", сумма " + сумма);
+        } else if (!поз.service){
+          /* товару «Без НДС» ставить нельзя: освобождение по пп. 2 п. 2 ст. 149 НК —
+             про медуслуги, бельё и косметика продаются с налогом */
+          W(name, "товар без ставки НДС", (поз.name || "?").slice(0, 38) +
+            " — сумма " + сумма + ", заполните ставку в карточке");
+        } else {
+          setValue(xdoc, p, CFG["c-nds"]);
+          F(name, "ставка НДС", "пусто", CFG["c-nds"]);
+        }
+      }
+    }
+  }
+  return {fixed, warned};
+}
+
+/* Расхождения бывают трёх сортов, и вести себя с ними надо по-разному.
+   Перенос даты: возврат провели в программе одним днём, а чек пробили
+   другим — тогда соседние дни расходятся на одну сумму в разные стороны,
+   а денег не теряется. Остальное — либо платёж без чека, либо услуга,
+   закрытая авансом, по которой чек зачёта не пробили. */
+const вДнях = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+
+function разборРасхождений(список){
+  const по = {cash:[], card:[], adv:[]};
+  список.forEach(r => по[r.kind].push({day:r.day, diff:r.diff, rest:r.diff}));
+  const пары = [];
+  for (const вид of ["cash", "card"]){
+    for (const n of по[вид]) for (const p of по[вид]){
+      if (n.rest >= -0.5 || p.rest <= 0.5) continue;
+      if (Math.abs(вДнях(n.day, p.day)) > 3) continue;
+      const м = Math.min(-n.rest, p.rest);
+      if (м <= 0.5) continue;
+      n.rest += м; p.rest -= м;
+      пары.push({вид, было:n.day, стало:p.day, сумма:м});
+    }
+  }
+  const остаток = [];
+  for (const вид of ["cash", "card"])
+    по[вид].forEach(x => { if (Math.abs(x.rest) > 0.5) остаток.push({вид, day:x.day, сумма:x.rest}); });
+  return {
+    пары,
+    перенос: пары.reduce((s, x) => s + x.сумма, 0),
+    остаток,
+    безЧека: остаток.reduce((s, x) => s + Math.abs(x.сумма), 0),
+    аванс: по.adv.filter(x => Math.abs(x.diff) > 0.5),
+    авансСумма: по.adv.reduce((s, x) => s + x.diff, 0)
+  };
+}
+
+/* Соответствие «вид оплаты в УМЦ ↔ касса в ОФД» приложение угадывает по размеру:
+   самый оборотистый терминал в программе — это самая оборотистая касса у ОФД.
+   Угадывание можно поправить руками в настройках, оно там и запоминается. */
+function сводТерминалов(карты, ofd, привязка){
+  const виды = Object.keys(карты.итог).sort((a, b) => карты.итог[b] - карты.итог[a]);
+  const кассы = Object.keys(ofd.kkt).sort((a, b) => ofd.kkt[b].card - ofd.kkt[a].card);
+  const пары = [];
+  кассы.forEach((к, i) => {
+    /* привязка, если она уже определена, главнее угадывания: перенос эквайринга
+       меняет обороты, и на втором проходе угадывание переставило бы терминалы */
+    const вид = привязка && привязка[к] !== undefined ? привязка[к]
+              : ТЕРМИНАЛЫ[к] !== undefined ? ТЕРМИНАЛЫ[к] : (виды[i] || "");
+    пары.push({касса:к, вид, точка:ofd.kkt[к].точка,
+               ofd:ofd.kkt[к].card, наш: вид ? (карты.итог[вид] || 0) : 0,
+               дниOfd:ofd.kkt[к].days, дниНаш: вид ? (карты.дни[вид] || {}) : {}});
+  });
+  /* виды оплат, которым не нашлось кассы, — тоже показать, иначе потеряются */
+  const занятые = пары.map(x => x.вид);
+  виды.filter(v => занятые.indexOf(v) < 0).forEach(v =>
+    пары.push({касса:"", вид:v, точка:"", ofd:0, наш:карты.итог[v], дниOfd:{}, дниНаш:карты.дни[v]}));
+  return {пары, виды, кассы};
+}
+/* Если в один день у одного терминала минус, а у другого ровно такой же плюс —
+   оплату завели не на тот терминал. Денег не потеряно, но разнесены они неверно. */
+function зеркала(пары){
+  const дни = [...new Set(пары.flatMap(x =>
+    Object.keys(x.дниOfd).concat(Object.keys(x.дниНаш))))].sort();
+  const out = [];
+  for (const d of дни){
+    const раз = пары.filter(x => x.вид !== БЕЗВИДА).map(x => ({имя:x.вид || x.касса,
+      d:R2((x.дниНаш[d] || 0) - (x.дниOfd[d] || 0))})).filter(x => Math.abs(x.d) > 0.5);
+    for (const a of раз) for (const b of раз){
+      if (a === b || a.d >= 0 || b.d <= 0) continue;
+      if (Math.abs(a.d + b.d) > 0.5) continue;
+      if (out.some(x => x.day === d && x.сумма === b.d)) continue;
+      out.push({day:d, откуда:b.имя, куда:a.имя, сумма:b.d});
+    }
+  }
+  return out;
+}
+
+const ВИД = {cash:"наличными", card:"по картам", adv:"зачётом аванса"};
+const дн = d => d.slice(8) + "." + d.slice(5, 7);
+
+function объяснение(р, налСошлись, живые){
+  const из = [];
+  из.push('<div class="why ' + (налСошлись ? "ok" : "bad") + '"><b>' +
+    (налСошлись ? "Наличные сошлись полностью." : "Наличные не сошлись.") + "</b> " +
+    (налСошлись
+      ? "Каждый рубль, пробитый по кассе, есть в выгрузке. С кассой всё в порядке."
+      : "Разбирают это первым: выгрузка видит не те деньги, что фискальный накопитель.") +
+    "</div>");
+
+  if (р.перенос > 0.5){
+    const примеры = р.пары.slice(0, 3).map(x =>
+      дн(x.было) + " → " + дн(x.стало) + " на " + fmt0(x.сумма) + " ₽").join(", ");
+    из.push('<div class="why calm"><b>Перенос даты: ' + fmt0(р.перенос) + " ₽.</b> " +
+      "Возврат провели в программе одним днём, а чек по нему пробили другим. " +
+      "Поэтому два соседних дня расходятся на одну и ту же сумму в разные стороны, " +
+      "а за период всё сходится. <b>Деньги на месте, в файле исправлять нечего.</b> " +
+      "Чтобы не повторялось — проводить возврат той датой, когда пробит чек. " +
+      '<span class="d">' + примеры + (р.пары.length > 3 ? " и ещё " + (р.пары.length - 3) : "") +
+      "</span></div>");
+  }
+
+  if (Math.abs(р.авансСумма) > 0.5){
+    из.push('<div class="why bad"><b>Зачёт аванса без чека: ' + fmt0(р.авансСумма) + " ₽, дней " +
+      р.аванс.length + ".</b> " +
+      "Услугу закрыли деньгами, внесёнными раньше. Само по себе это нормально, но в момент, " +
+      "когда услуга оказана, касса обязана пробить чек «зачёт предоплаты» — таких чеков нет. " +
+      "<b>Что делать:</b> посмотреть по реестру услуг, кто эти пациенты. " +
+      "Физлица и деньги были в кассе — пробить чеки коррекции. " +
+      "Юрлицо или страховая платили на счёт — чек не нужен, но такие услуги не должны идти " +
+      "через розницу, им место в реализации с контрагентом.</div>");
+  }
+
+  if (р.безЧека > 0.5){
+    const где = р.остаток.map(x =>
+      дн(x.day) + " " + ВИД[x.вид] + " " + fmt0(Math.abs(x.сумма)) + " ₽ — " +
+      (x.сумма > 0 ? "есть в программе, чека нет" : "пробито по кассе, в программе нет")).join("; ");
+    из.push('<div class="why bad"><b>Не сходится по существу: ' + fmt0(р.безЧека) + " ₽.</b> " +
+      "Это не перенос даты: пары нет ни в соседний день, ни через день. " +
+      "<b>Что делать:</b> открыть эти дни в реестре оплат и найти операцию. " +
+      '<span class="d">' + где + "</span></div>");
+  }
+
+  /* вердикт «грузить или нет» стоит наверху страницы — здесь он был бы вторым
+     таким же блоком, а человек читает сверху вниз и путается */
+  return '<div class="whys">' + из.join("") + "</div>";
+}
+
+/* ---------- отрисовка ---------- */
+function group(list, key){
+  const g = {};
+  for (const x of list) (g[x[key]] || (g[x[key]] = [])).push(x);
+  return g;
+}
+function logList(items, cls){
+  const ПОЯСНЕНИЕ = {
+    "склад": "Отчёт о розничных продажах без склада не проводится. Склад берётся " +
+             "из настроек, по подразделению. Проверьте в бухгалтерии карточку этого " +
+             "склада: у него должен быть тип «Розничный магазин». На оптовом складе " +
+             "документ не проведётся. И помните, что склад становится аналитикой " +
+             "на счёте 62.Р — расчётах с розничными покупателями.",
+    "статья ДДС": "Статья движения денежных средств — это разрез в отчёте о движении " +
+             "денег: выручка, инкассация, перемещение. Без неё ордер не проведётся.",
+    "ставка НДС": "Медуслуги освобождены от НДС по пп. 2 п. 2 ст. 149 НК РФ. " +
+             "Пустую ставку заполняем освобождением.",
+    "контрагент": "Приходный ордер без контрагента не проведётся. " +
+             "Ставим розничного покупателя из настроек.",
+    "номер чека ККМ": "В поле стоит мусорное «-1» — вычищаем, иначе бухгалтерия " +
+             "примет его за номер настоящего чека.",
+    "строка с НДС": "У позиции указана ставка НДС — значит это товар, а не медуслуга. " +
+             "Не трогаю: поставить «Без НДС» значило бы занизить налог.",
+    "товар без ставки НДС": "Ставка пустая, но позиция — товар. «Без НДС» ему ставить " +
+             "нельзя: освобождение по ст. 149 НК про медуслуги. Заведите ставку в карточке.",
+    "дата проставлена вручную": "Время ровно 12:00 почти всегда значит, что дату " +
+             "поставили руками. Сверьте с датой чека."
+  };
+  const g = group(items, "what"), out = [];
+  for (const what in g){
+    const rows = g[what].slice(0, 6).map(x =>
+      '<li class="' + cls + '"><b>' + esc(x.doc) + '</b> · ' +
+      esc(x.was != null ? (x.was + " → " + x.now) : x.detail) + '</li>').join("");
+    out.push('<h3 style="font-size:14px;margin:18px 0 2px">' + esc(what) +
+      ' <span class="d" style="color:var(--faint);font-weight:400">— ' +
+      skl0(g[what].length) + '</span></h3>' +
+      (ПОЯСНЕНИЕ[what] ? '<div class="sb" style="margin:2px 0 6px;font-size:12.5px">' +
+        ПОЯСНЕНИЕ[what] + '</div>' : '') +
+      '<ul class="log">' + rows +
+      (g[what].length > 6 ? '<li class="' + cls + '"><span class="d">… ещё ' +
+        (g[what].length - 6) + '</span></li>' : '') + '</ul>');
+  }
+  return out.join("");
+}
+
+function render(ex, fixres, ofd, pay, услуги, перенос, привязка, дописано, сиротки, остаток,
+                перемещения, отсечено, подразделения){
+  перенос = перенос || [];
+  /* сюда складываем всё, что решает судьбу загрузки, — вердикт собирается в конце */
+  const ИТОГ = {стоп:[], позже:[], хорошо:[]};
+  const days = moneyByDay(ex.objs);
+  const keys = Object.keys(days).sort();
+  const tot = {cash:0, card:0, adv:0, prepay:0, rev:0, refund:0, other:0, out:0};
+  keys.forEach(k => { for (const f in tot) tot[f] += days[k][f]; });
+
+  const состав = {};
+  ex.objs.forEach(o => { const t = o.type; составAdd(состав, t, o); });
+  let html = "";
+
+  /* карточки */
+  html += '<section><div class="kick">Шаг 1</div><h2>Что в файле и куда это ляжет</h2>' +
+    '<div class="sb">Период ' + esc(ex.period[0]) + ' — ' + esc(ex.period[1]) +
+    ', документов ' + ex.objs.filter(o => o.full.indexOf("Документ") === 0).length +
+    ', объектов всего ' + ex.objs.length +
+    (ex.файлов > 1 ? '. Склеено из ' + скл(ex.файлов, "файла", "файлов", "файлов") : '') +
+    (ex.обрезано && (ex.обрезано.услуги + ex.обрезано.оплаты)
+      ? '. Реестры обрезаны по этому периоду: ' +
+        скл(ex.обрезано.услуги + ex.обрезано.оплаты, "строка", "строки", "строк") +
+        ' за другие дни не в счёт'
+      : '') +
+    '</div>' +
+    (ex.файлов > 1 ? '<div class="note good"><b>Склеено ' +
+      скл(ex.файлов, "дневной файл", "дневных файла", "дневных файлов") + '.</b> ' +
+      'Внутренняя нумерация каждого файла сдвинута, чтобы ссылки между объектами ' +
+      'не перепутались. Правила обмена взяты из первого файла — они у всех одни. ' +
+      'Дальше всё считается как по одной выгрузке за период.' +
+      (пропуски(ex.дни).length
+        ? '<span class="d">Дни без файла: ' + пропуски(ex.дни).map(дн).join(", ") +
+          ' — если в эти дни была выручка, файлы за них потерялись.</span>'
+        : '') + '</div>' : '');
+  const касса = ofd ? {нал:ofd.cash, карт:ofd.card, зач:ofd.adv} : {};
+  html += '<div class="cards">' +
+    card("Выручка", fmt0(tot.rev), "Кт 90.01.1 — продали услуг и товаров") +
+    card("Наличные", fmt0(tot.cash), "Дт 50.01 — легли в кассу",
+         противОФД(tot.cash, касса.нал)) +
+    card("Эквайринг", fmt0(tot.card), "Дт 57.03 — банк перечислит на счёт",
+         противОФД(tot.card, касса.карт)) +
+    card("Предоплата", fmt0(tot.prepay), "Кт 62.Р — деньги взяли, услугу ещё не оказали") +
+    card("Зачёт аванса", fmt0(tot.adv), "Дт 62.Р Кт 90.01.1 — услугу оказали, денег не было",
+         противОФД(tot.adv, касса.зач)) +
+    (tot.out ? card("Инкассация", fmt0(tot.out), "Дт 57.01 Кт 50.01 — увезли из кассы") : "") +
+    '</div>';
+  /* документы — это то, что появится в бухгалтерии. Справочники (номенклатура,
+     склады, пользователи) нужны обмену, но человеку про них знать незачем —
+     прячем, чтобы таблица не выглядела списком непонятных слов */
+  const доки = Object.keys(состав).filter(k => состав[k].док);
+  const справ = Object.keys(состав).filter(k => !состав[k].док);
+  html += '<h3 style="font-size:15px;margin:22px 0 6px">Документы, которые появятся в бухгалтерии</h3>' +
+    '<div class="tw"><table><thead><tr><th>Документ</th><th>Штук</th><th>Сумма, ₽</th></tr></thead><tbody>' +
+    доки.sort((a, b) => состав[b].n - состав[a].n).map(t =>
+      '<tr><td>' + esc(HUMAN[t] || t) + '</td><td class="mono">' + состав[t].n +
+      '</td><td class="mono">' + (состав[t].s ? fmt(состав[t].s) : "—") + '</td></tr>').join("") +
+    '</tbody></table></div>' +
+    (справ.length
+      ? '<div class="sb" style="margin-top:8px">Плюс ' + скл(справ.length, "справочник", "справочника", "справочников") +
+        ' — номенклатура, склады, виды оплат и прочее. Они не документы: обмен ' +
+        'передаёт их, чтобы бухгалтерия нашла у себя те же элементы, а не завела новые. ' +
+        'Проводок не делают.</div>'
+      : '');
+  /* Главное недоразумение при переходе с ручного ввода: человек ищет в файле
+     приходные ордера на дневную выручку и не находит — там только мелочь.
+     Объясняем сразу, пока он не решил, что файл неполный. */
+  html += '<div class="note"><b>Где наличная выручка и почему тут нет приходных ордеров ' +
+    'на миллионы.</b><br>' +
+    'Наличные попадают в кассу <b>самим отчётом о розничных продажах</b>: он даёт проводку ' +
+    'Дт 50.01 Кт 90.01.1 на всю дневную выручку. Отдельный приходный ордер на неё не нужен ' +
+    'и не выгружается — если завести его поверх, касса задвоится.<br><br>' +
+    'Приходные ордера в файле — <b>не выручка</b>. Это снятие наличных в банке и ' +
+    'перекладывание денег между двумя кассами, отсюда и маленькие суммы.<br><br>' +
+    '<b>Что это меняет для вас.</b> С даты, с которой грузите файл, ручные приходные ордера ' +
+    '«Розничная выручка» заводить больше не надо — их заменяет отчёт о розничных продажах. ' +
+    'Если ввести и то и другое, наличные удвоятся. Печатная форма КО-1 у отчёта своя: ' +
+    'она есть в самом документе, распечатывается оттуда же.</div>';
+
+  if (отсечено){
+    const рамка = отсечено.раньше.length && отсечено.позже.length
+      ? "оставлен кусок " + дн(отсечено.от) + " — " + дн(отсечено.до)
+      : отсечено.раньше.length ? "отброшено всё до " + дн(отсечено.от)
+                               : "отброшено всё после " + дн(отсечено.до);
+    ИТОГ.хорошо.push("Отсечено " + скл(отсечено.всего, "документ", "документа", "документов") +
+      " — " + рамка);
+    html += '<div class="note good"><b>Файл обрезан по датам: ' + рамка + ', ' +
+      скл(отсечено.всего, "документ", "документа", "документов") + ' убрано.</b> ' +
+      (отсечено.позже.length
+        ? 'Из файла уедут только документы этого периода, остальные убраны. Период в ' +
+          'шапке пересчитан, поэтому фискальные данные и реестры подрезались под него же — ' +
+          'сверка ниже считается по оставшимся дням, а не по всему месяцу.'
+        : 'Эти дни в бухгалтерию уже загружены раньше, и повторная загрузка удвоила бы ' +
+          'по ним и выручку, и кассу. Из файла они убраны, период пересчитан.') +
+      '<span class="d">убраны дни: ' + отсечено.дни.map(дн).join(", ") + '</span></div>';
+  }
+  if (остаток){
+    const с = остаток.reduce((s, x) => s + x.сумма, 0);
+    ИТОГ.хорошо.push("Остаток кассы " + fmt0(с) + " ₽ из файла выброшен — он уже есть в учёте");
+    html += '<div class="note good"><b>Остаток кассы выброшен: ' + fmt0(с) + ' ₽.</b> ' +
+      'Приходный ордер «Получение наличных в банке» от ' + дн(остаток[0].day) +
+      ' — это не снятие со счёта, а остаток кассы, заведённый при переходе на новую ' +
+      'программу. В бухгалтерии он уже стоит входящим сальдо, и загрузка удвоила бы ' +
+      'наличные. Из файла он убран, в бухгалтерию не поедет.</div>';
+  }
+
+  /* приход налички не от пациентов путает: он не выручка и в кассу ОФД не попадает */
+  const пм = перемещенияМеждуКассами(ex.objs);
+  if (перемещения && перемещения.список && перемещения.список.length){
+    const с = перемещения.список.reduce((s, x) => s + x.сумма, 0);
+    const чз = перемещения.как === "счет";
+    /* правила обмена безусловно переписывают вид операции у всех приходных ордеров —
+       тогда «Прочий приход» до обработчика счёта просто не доживает */
+    const перебьют = чз && ПРАВИЛА && ПРАВИЛА.пкоВид;
+    ИТОГ[перебьют ? "стоп" : чз ? "позже" : "хорошо"].push(перебьют
+      ? "Перемещения между кассами на " + fmt0(с) + " ₽ через 57.01 не пройдут — " +
+        "правила обмена перебьют вид операции на «" + ПРАВИЛА.пкоВид + "»"
+      : чз
+      ? "Перемещения между кассами на " + fmt0(с) + " ₽ оформлены через 57.01 — " +
+        "проверьте настройку битСчетУчетаПрочегоПриходаПКО в УМЦ"
+      : "Перемещения между кассами на " + fmt0(с) + " ₽ убраны из файла");
+    html += '<div class="note ' + (перебьют ? "alarm" : чз ? "" : "good") +
+      '"><b>Перемещения между кассами: ' +
+      скл(перемещения.список.length, "пара", "пары", "пар") + ' на ' + fmt0(с) + ' ₽ — ' +
+      (чз ? "оформлены через 57.01" : "убраны из файла") + '.</b><br>' +
+      'Вечером деньги переносят из второй кассы в основную. УМЦ выгружает это парой: ' +
+      'расходный ордер «Инкассация» из одной кассы и приходный «Получение наличных ' +
+      'в банке» в другой.<br><br>' +
+      (перебьют
+        ? '<b>Но так это не сработает.</b> Вид операции у приходного ордера заменён на ' +
+          '«Прочий приход», однако правила обмена этого файла переписывают вид операции ' +
+          'у <i>всех</i> приходных ордеров на «' + esc(ПРАВИЛА.пкоВид) + '» — уже после ' +
+          'загрузки, поверх файла. До обработчика, который подставляет счёт из настройки ' +
+          '<b>битСчетУчетаПрочегоПриходаПКО</b>, «Прочий приход» просто не доживёт.<br><br>' +
+          '<b>Что делать.</b> Либо попросить того, кто правил правила обмена, убрать эту ' +
+          'вставку, либо выбрать выше «Выбросить из файла» и внести перемещение между ' +
+          'кассами руками двумя документами. Второе безопаснее прямо сейчас: иначе ' +
+          'перемещение между своими кассами станет розничной выручкой.'
+        : чз
+        ? '<b>Что сделано.</b> У приходного ордера вид операции заменён на «Прочий приход». ' +
+          'Обработчик правила подставит ему счёт из настройки УМЦ ' +
+          '<b>битСчетУчетаПрочегоПриходаПКО</b> — поставьте в ней <b>57.01</b>. Тогда пара ' +
+          'закроется в ноль: расходный ордер даёт Дт 57.01 Кт 50.01, приходный — ' +
+          'Дт 50.01 Кт 57.01. Оба документа остаются в кассовой книге, деньги на 50.01 ' +
+          'не меняются.<br><br>' +
+          '<b>Обязательно проверьте настройку.</b> Если в ней пусто или другой счёт — ' +
+          'приходный ордер не проведётся или уйдёт не туда. Настройка лежит в УМЦ, ' +
+          'в параметрах обмена с бухгалтерией.<br><br>' +
+          '<b>Чего это не делает.</b> Деньги обеих касс всё равно лягут на один счёт ' +
+          '50.01: счёт обработчик правила ставит жёстко. В проводках перемещение из ' +
+          'второй кассы в первую будет неразличимо — если нужна аналитика, включите ' +
+          'выше «деление по кассам», оно проставит документам подразделение.'
+        : '<b>Почему убрал.</b> Передать кассу через этот обмен нельзя: среди 48 правил ' +
+          'конвертации нет правила для справочника «Кассы», а обработчик жёстко ставит ' +
+          'счёт 50.01. Обе кассы сольются в одну, перемещение станет невидимым — но след ' +
+          'оставит: «Инкассация» даст Дт 57.01 Кт 50.01, а «Получение наличных в банке» — ' +
+          'Дт 50.01 Кт 51. На кассе плюс и минус погасятся, а на 57.01 и на расчётном ' +
+          'счёте повиснут суммы из ниоткуда.<br><br>' +
+          '<b>Что не потеряно.</b> Итог по кассе тот же до рубля.') +
+      '<span class="d">' + перемещения.список.slice(0, 8).map(x =>
+        fmt0(x.сумма) + " ₽: из " + имяКассы(x.откуда) + " (" + дн(x.изКассы) + ") в " +
+        имяКассы(x.куда) + " (" + дн(x.вКассу) + ")").join("; ") + '</span></div>';
+  }
+  /* Правила обмена едут внутри файла, и в них дописан код, который переписывает
+     документы уже после загрузки. Это отменяет часть наших правок, поэтому
+     показываем всё, что нашли, до того как человек нажмёт «скачать». */
+  if (ПРАВИЛА && ПРАВИЛА.есть){
+    const строки = [];
+    if (ПРАВИЛА.подр.length)
+      строки.push('<div class="why ok"><b>Подразделение подставляется само.</b> Правила ' +
+        'смотрят на комментарий документа и ставят подразделение из справочника ' +
+        'бухгалтерии — деление по кассам в отчётах о розничных продажах уже есть, ' +
+        'дописывать его не надо.<span class="d">' +
+        ПРАВИЛА.подр.map(x => esc(x.по) + " → " + esc(x.станет)).join("; ") + '</span></div>');
+    const пкоВФайле = ex.objs.filter(o => o.type === "ПриходныйКассовыйОрдер");
+    const пкоСумма = пкоВФайле.reduce((s, o) => s + num(o.props["СуммаДокумента"]), 0);
+    if (ПРАВИЛА.пкоВид && пкоВФайле.length){
+      ИТОГ.стоп.push("Правила обмена сделают " +
+        скл(пкоВФайле.length, "приходный ордер", "приходных ордера", "приходных ордеров") +
+        " на " + fmt0(пкоСумма) + " ₽ операцией «" + ПРАВИЛА.пкоВид + "»");
+      строки.push('<div class="why bad"><b>Всем приходным ордерам меняется вид операции ' +
+        'на «' + esc(ПРАВИЛА.пкоВид) + '».</b> Безусловно, какой бы ни стоял в файле. ' +
+        'Сейчас под это попадают ' +
+        скл(пкоВФайле.length, "ордер", "ордера", "ордеров") + ' на ' + fmt0(пкоСумма) +
+        ' ₽ — это снятие наличных в банке и перекладывание денег между кассами, ' +
+        'а не выручка. Станут розничной выручкой: Кт 90.01.1 на сумму, которой ' +
+        'по кассе не было, плюс 57.01 не закроется.<br><br>' +
+        '<b>Что делать.</b> Попросить того, кто правил правила обмена, убрать эту ' +
+        'вставку. Пока не убрали — снимите в настройках выгрузки УМЦ галку ' +
+        '«ПриходныйКассовыйОрдер» и внесите эти ' + пкоВФайле.length +
+        ' документа руками: их мало, а ошибка в проводках дорогая.</div>');
+    }
+    if (ПРАВИЛА.терминал){
+      ИТОГ.позже.push("Правила обмена ставят всем картам терминал «" +
+        ПРАВИЛА.терминал + "» — аналитика по эквайерам не доедет");
+      строки.push('<div class="why bad"><b>Всем строкам оплаты картой ставится ' +
+        '«' + esc(ПРАВИЛА.терминал) + '».</b> Тоже безусловно: какой терминал ни стоял бы ' +
+        'в файле, в бухгалтерии он станет этим. Значит разбивка эквайринга по терминалам ' +
+        'и перенос на правильный терминал до бухгалтерии не доедут, а счёт 57.03 по ' +
+        'облачной кассе не закроется — у неё другой эквайер. Правится там же, в правилах.</div>');
+    }
+    html += '<h2 style="margin-top:32px">Что сделают с документами сами правила обмена</h2>' +
+      '<div class="sb">Правила лежат внутри файла, и в них дописан код, который ' +
+      'срабатывает уже после загрузки — поверх всего, что в файле написано. ' +
+      'Вот что он сделает.</div><div class="whys">' + строки.join("") + '</div>';
+  }
+
+  if (подразделения){
+    ИТОГ.позже.push("Кассы разделены подразделениями — проверьте загрузку на одном дне");
+    html += '<div class="note"><b>Деление по кассам: подразделение проставлено в ' +
+      skl0(подразделения.всего) + '.</b><br>' +
+      'Отчёты о розничных продажах правила обмена делят сами, а кассовые ордера — нет: ' +
+      'приложение дописало им реквизит <b>ПодразделениеОрганизации</b>, а в правила ' +
+      'добавило правило конвертации для справочника «ПодразделенияОрганизаций». ' +
+      'Владельцем подставлена организация из самого документа — справочник ' +
+      'подразделений ей подчинён.<br><br>' +
+      '<b>Что проверить до загрузки всего периода.</b> Загрузите один день и откройте ' +
+      'любой приходный ордер: подразделение должно стоять и быть тем самым элементом ' +
+      'справочника, а не новым. Если поля «Подразделение» в документе не видно — ' +
+      'включите учёт по подразделениям в разделе «Главное → Функциональность».<br><br>' +
+      '<b>Чего это не даёт.</b> Деньги всё равно лягут на один счёт 50.01 — разделится ' +
+      'только аналитика. Типовая кассовая книга КО-4 в версии ПРОФ по подразделениям ' +
+      'не делится: для двух отдельных книг нужен либо отдельный отчёт, либо КОРП.' +
+      '<span class="d">' +
+      Object.keys(подразделения.итог)
+        .map(k => esc(k) + " — " + skl0(подразделения.итог[k])).join("; ") +
+      (подразделения.без ? '; без подразделения — ' + skl0(подразделения.без) : '') +
+      '</span></div>';
+  }
+
+  if (пм.пары.length){
+    ИТОГ.позже.push("Перемещение между кассами на " + fmt0(пм.сумма) +
+      " ₽ оформлено как инкассация в банк — 57.01 не закроется");
+    html += '<div class="note alarm"><b>Деньги перекладывали между кассами: ' +
+      скл(пм.пары.length, "раз", "раза", "раз") + ' на ' + fmt0(пм.сумма) + ' ₽.</b><br>' +
+      'У вас две кассы. Деньги пришли в одну, часть перенесли во вторую — и УМЦ выгрузил ' +
+      'это парой: расходный ордер «Инкассация» из первой и приходный ' +
+      '«Получение наличных в банке» во второй. Вторая половина неверна: из банка ничего ' +
+      'не приходило.<br><br>' +
+      '<b>Чем это плохо.</b> «Инкассация» даёт проводку Дт 57.01 Кт 50.01 — деньги в пути. ' +
+      '«Получение наличных в банке» даёт Дт 50.01 Кт 51 — списание с расчётного счёта, ' +
+      'которого не было. Половинки не закрывают друг друга: на 57.01 навсегда зависает ' +
+      'сумма, а на расчётном счёте появляется несуществующий расход.<br><br>' +
+      '<b>Как правильно.</b> Обе половинки проводить через 57.01: расходный ордер «Прочий ' +
+      'расход» со счётом 57.01 и приходный «Прочий приход» с тем же счётом. Тогда они ' +
+      'схлопываются в ноль. Настраивается это в правилах обмена в УМЦ.' +
+      '<span class="d">' + пм.пары.slice(0, 8).map(x =>
+        fmt0(x.сумма) + " ₽: ушли " + дн(x.изКассы) + ", пришли " + дн(x.вКассу)).join("; ") +
+      (пм.пары.length > 8 ? " и ещё " + (пм.пары.length - 8) : "") + '</span></div>';
+  }
+  if (пм.изБанка > 0.5){
+    /* Приходный ордер «получение наличных в банке» на первый день периода часто
+       оказывается не снятием со счёта, а остатком кассы, который завели при
+       переходе на новую программу. Загрузишь — и касса удвоится, потому что
+       в бухгалтерии этот остаток уже есть. Отличить можно только глазами,
+       поэтому спрашиваем, а не решаем за человека. */
+    const первый = пм.первыйДень === ex.period[0];
+    html += '<div class="note' + (первый ? " alarm" : "") + '"><b>Снято в банке: ' +
+      fmt0(пм.изБанка) + ' ₽.</b> Это приходные ордера «Получение наличных в банке», ' +
+      'которым не нашлось пары среди инкассаций. Проводка Дт 50.01 Кт 51: деньги сняли ' +
+      'с расчётного счёта и принесли в кассу. Выручкой это не является и в сверку с ' +
+      'кассой не идёт — фискальный накопитель таких денег не видит.' +
+      (первый ? '<br><br><b>Но проверьте вот что.</b> Самый крупный такой ордер стоит ' +
+        'первым днём периода. При переходе на новую программу так часто заводят ' +
+        '<b>остаток кассы</b>, а не настоящее снятие со счёта. Если это он — в бухгалтерии ' +
+        'этот остаток уже есть, и загрузка удвоит наличные. Откройте документ в УМЦ ' +
+        'и сверьте с выпиской: было в этот день списание со счёта на эту сумму или нет.' : '') +
+      '</div>';
+  }
+  html += '</section>';
+
+  /* протокол */
+  html += '<section><div class="kick">Шаг 2</div><h2>Что я дозаполнил и поправил</h2>' +
+    '<div class="sb">Из УМЦ файл приходит с пустыми реквизитами — без них ' +
+    'документы в бухгалтерии не проведутся. Приложение подставляет их само, ' +
+    'по вашим настройкам. Ниже — что именно подставлено: ' +
+    (fixres.fixed.length ? 'исправлено ' + fixres.fixed.length : 'исправлять нечего') +
+    (fixres.warned.length ? ', и ' + fixres.warned.length + ' нужно посмотреть глазами' : '') +
+    '.</div>';
+  html += fixres.fixed.length ? logList(fixres.fixed, "") :
+    '<div class="note good">Править нечего — файл можно грузить как есть.</div>';
+  if (fixres.warned.length){
+    html += '<div style="margin-top:22px"><div class="kick">на ваши глаза</div></div>' +
+      logList(fixres.warned, "w");
+  }
+  html += '</section>';
+
+  /* сверка */
+  if (ofd){
+    const all = [...new Set(keys.concat(Object.keys(ofd.days)))].sort();
+    let bad = 0, rows = "";
+    const расхождения = [];
+    const sums = {cash:[0,0], card:[0,0], adv:[0,0]};
+    for (const day of all){
+      const o = days[day] || {cash:0, card:0, adv:0};
+      const x = ofd.days[day] || {cash:0, card:0, adv:0};
+      const line = [["наличные","cash","cash"],["карты","card","card"],["зачёт аванса","adv","adv"]];
+      line.forEach(([label, ours, theirs], i) => {
+        const a = ours === "adv" ? o.adv : o[ours], b = x[theirs];
+        sums[theirs][0] += a; sums[theirs][1] += b;
+        const diff = R2(a - b), off = Math.abs(diff) >= 1;
+        if (off){ bad++; расхождения.push({day, kind:theirs, diff}); }
+        rows += '<tr class="' + (i === 0 ? "day-first gap" : "") + '"><td>' +
+          (i === 0 ? '<b>' + esc(day) + '</b> ' : '') +
+          '<span class="what">' + label + '</span></td>' +
+          '<td class="mono">' + fmt(a) + '</td><td class="mono">' + fmt(b) +
+          '</td><td class="mono ' + (off ? "bad" : "ok") + '">' + (off ? fmt(diff) : "0,00") + '</td></tr>';
+      });
+    }
+    rows += '<tr class="sum"><td><b>Итого</b> <span class="what">живые деньги</span></td>' +
+      '<td class="mono">' + fmt(sums.cash[0] + sums.card[0]) + '</td><td class="mono">' +
+      fmt(sums.cash[1] + sums.card[1]) + '</td><td class="mono ' +
+      (Math.abs(sums.cash[0]+sums.card[0]-sums.cash[1]-sums.card[1]) < 1 ? "ok" : "bad") + '">' +
+      fmt(R2(sums.cash[0] + sums.card[0] - sums.cash[1] - sums.card[1])) + '</td></tr>';
+    html += '<section><div class="kick">Шаг 3</div><h2>Сверка с кассой, день за днём</h2>' +
+      '<div class="sb">Чеков в отчёте ОФД: ' + ofd.checks + '</div>';
+    const нал = R2(sums.cash[0] - sums.cash[1]);
+    html += '<div class="tw"><table><thead><tr><th>День и что сверяем</th>' +
+      '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' + rows +
+      '</tbody></table></div>';
+
+    /* Наличные по кассам. Общая сумма может сходиться, а по кассам разъезжаться —
+       тогда деньги записаны не на тот аппарат, и кассовые книги врут обе. */
+    const кассы = сводКасс(ex.objs, ofd);
+    if (кассы.length > 1){
+      const дни = [...new Set(кассы.flatMap(k =>
+        Object.keys(k.дниНаш).concat(Object.keys(k.дниOfd))))].sort();
+      const плохие = дни.filter(d =>
+        кассы.some(k => Math.abs(R2((k.дниНаш[d] || 0) - (k.дниOfd[d] || 0))) > 0.5));
+      html += '<h2 style="margin-top:32px">Наличные по кассам</h2>' +
+        '<div class="sb">Фискальный накопитель знает, какой аппарат пробил каждый чек, — ' +
+        'это и есть эталон. В выгрузке наличные делятся по подразделениям: у каждого свой ' +
+        'отчёт о розничных продажах. Сопоставлено по обороту.</div>' +
+        '<div class="tw"><table><thead><tr><th>Подразделение</th><th>Касса ОФД</th>' +
+        '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' +
+        кассы.map(k => {
+          const d = R2(k.наш - k.ofd), ок = Math.abs(d) < 1;
+          return '<tr><td>' + esc(k.подразделение) + '</td>' +
+            '<td style="text-align:left" class="what">' + esc(k.касса || "—") + '</td>' +
+            '<td class="mono">' + fmt0(k.наш) + '</td><td class="mono">' + fmt0(k.ofd) + '</td>' +
+            '<td class="mono ' + (ок ? "ok" : "bad") + '">' + (ок ? "0" : fmt0(d)) + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+      if (плохие.length){
+        ИТОГ.позже.push("Наличные по кассам расходятся в " +
+          скл(плохие.length, "день", "дня", "дней") + " — деньги записаны не на тот аппарат");
+        html += '<details class="set"><summary>Дни, где касса не сошлась — ' +
+          плохие.length + '</summary><div class="setbody">' +
+          '<p class="sb" style="margin:10px 0 12px">Общая сумма за день может сходиться, ' +
+          'а по кассам расходиться: тогда выручку записали не на тот аппарат. ' +
+          'Плюс — в выгрузке больше, чем пробила эта касса.</p>' +
+          '<div class="tw"><table><thead><tr><th>День</th>' +
+          кассы.map(k => '<th>' + esc(k.подразделение) + '</th>').join("") +
+          '</tr></thead><tbody>' +
+          плохие.map(d => '<tr><td><b>' + esc(d) + '</b></td>' +
+            кассы.map(k => {
+              const r = R2((k.дниНаш[d] || 0) - (k.дниOfd[d] || 0));
+              return '<td class="mono ' + (Math.abs(r) > 0.5 ? "bad" : "") + '">' +
+                (Math.abs(r) > 0.5 ? fmt0(r) : "·") + '</td>';
+            }).join("") + '</tr>').join("") +
+          '</tbody></table></div></div></details>';
+      } else {
+        html += '<div class="note good">Каждая касса сходится со своим аппаратом ' +
+          'день в день. Наличные записаны туда, куда надо.</div>';
+      }
+    }
+
+    /* эквайринг по терминалам: в сумме за день ошибка «не тот терминал» не видна */
+    const карты = cardByType(ex.objs, payTypeNames(ex.objs));
+    if (Object.keys(карты.итог).length && Object.keys(ofd.kkt).length){
+      const св = сводТерминалов(карты, ofd, привязка);
+      терминалInputs(св);
+      const зерк = зеркала(св.пары);
+      if (перенос.length){
+        const сум = перенос.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.хорошо.push("Эквайринг на " + fmt0(сум) + " ₽ переставлен на правильный терминал");
+        ИТОГ.позже.push("Те же оплаты поправить в УМЦ — иначе при следующей выгрузке " +
+          "ошибка вернётся, и управленческий учёт по корпусам останется неверным");
+      }
+      html += '<h2 style="margin-top:32px">Эквайринг по терминалам</h2>' +
+        '<div class="sb">Слева — вид оплаты из УМЦ, справа — касса из отчёта ОФД. ' +
+        'Сопоставление угадано по обороту; если угадано неверно, поправьте в настройках ' +
+        'и нажмите «Проверить» ещё раз.</div>' +
+        '<div class="tw"><table><thead><tr><th>Вид оплаты в УМЦ</th><th>Касса ОФД</th>' +
+        '<th>Выгрузка</th><th>ОФД</th><th>Разница</th></tr></thead><tbody>' +
+        св.пары.map(x => {
+          const d = R2(x.наш - x.ofd), ok = Math.abs(d) < 1;
+          return '<tr><td>' + esc(x.вид || '<span class="what">не сопоставлен</span>') + '</td>' +
+            '<td style="text-align:left" class="what">' + esc(x.касса || "—") + '</td>' +
+            '<td class="mono">' + fmt0(x.наш) + '</td><td class="mono">' + fmt0(x.ofd) + '</td>' +
+            '<td class="mono ' + (ok ? "ok" : "bad") + '">' + (ok ? "0" : fmt0(d)) + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+      if (сиротки && сиротки.зачтено.length){
+        const с = сиротки.зачтено.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.хорошо.push("Возврат зачёта аванса на " + fmt0(с) + " ₽ убран из строк оплаты");
+        html += '<div class="note good"><b>Возврат зачтённого аванса: ' + fmt0(с) + ' ₽.</b> ' +
+          'Клиенту отменили услугу, закрытую авансом, и зачёт сторнировали. Денег при этом ' +
+          'не двигалось — ни карты, ни наличных, — поэтому терминала у такой строки нет и быть ' +
+          'не может. УМЦ положил её в «Возврат оплаты», где ей не место; вместо этого уменьшен ' +
+          'зачёт авансов на ту же сумму. Сверил с ОФД: зачёт в выгрузке был больше фискального ' +
+          'ровно на эту сумму.<span class="d">' +
+          сиротки.зачтено.map(x => дн(x.day) + " — " + fmt0(x.сумма) + " ₽").join("; ") + '</span></div>';
+      }
+      if (сиротки && сиротки.назначено.length){
+        const с = сиротки.назначено.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.хорошо.push("Терминал проставлен по данным ОФД на " + fmt0(с) + " ₽");
+        html += '<div class="note good"><b>Проставлен терминал: ' + fmt0(с) + ' ₽.</b> ' +
+          'В строке оплаты вид оплаты был пуст. В этот день ровно одному терминалу не хватало ' +
+          'ровно этой суммы — фискальные данные и сказали, чей это платёж.<span class="d">' +
+          сиротки.назначено.map(x => дн(x.day) + ": " + fmt0(x.сумма) + " ₽ → «" +
+            esc(x.вид) + "»").join("; ") + '</span></div>';
+      }
+      const пусто = карты.итог[БЕЗВИДА];
+      const сколько = пусто < 0 ? fmt0(-пусто) + " ₽ возврата" : fmt0(пусто) + " ₽ оплаты";
+      if (пусто){
+        ИТОГ.стоп.push("Без терминала проведено " + сколько);
+        html += '<div class="note alarm"><b>Вид оплаты не заполнен — ' + сколько + '.</b> ' +
+          'В отчёте о розничных продажах есть строки оплаты без терминала. ' +
+          'При загрузке такая строка не найдёт счёт эквайринга — документ либо не проведётся, ' +
+          'либо повесит деньги не туда. Найдите эти оплаты в УМЦ и укажите терминал.' +
+          '<span class="d">Чаще всего так выглядит возврат по карте, оформленный вручную.</span></div>';
+      }
+      /* Итог за месяц гасит плюсовые дни минусовыми, поэтому под таблицей —
+         разбивка по дням: это и есть список того, что открывать в УМЦ. */
+      const расх = [];
+      for (const d of [...new Set(св.пары.flatMap(x =>
+             Object.keys(x.дниOfd).concat(Object.keys(x.дниНаш))))].sort()){
+        const строка = св.пары.filter(x => x.вид).map(x =>
+          ({вид:x.вид, d:R2((x.дниНаш[d] || 0) - (x.дниOfd[d] || 0))}));
+        if (строка.some(x => Math.abs(x.d) > 0.5)) расх.push({day:d, по:строка});
+      }
+      if (расх.length){
+        const виды = св.пары.filter(x => x.вид).map(x => x.вид);
+        html += '<details class="set"><summary>Дни, где терминал не сошёлся — ' +
+          расх.length + '</summary><div class="setbody">' +
+          '<p class="sb" style="margin:10px 0 12px">Итог за период гасит плюсовые дни ' +
+          'минусовыми, поэтому смотреть надо сюда. Плюс — деньги есть в программе, ' +
+          'чека нет. Минус — чек пробит, а в программе оплаты нет.</p>' +
+          '<div class="tw"><table><thead><tr><th>День</th>' +
+          виды.map(v => '<th>' + esc(v) + '</th>').join("") + '</tr></thead><tbody>' +
+          расх.map(r => '<tr><td><b>' + esc(r.day) + '</b></td>' +
+            r.по.map(x => '<td class="mono ' + (Math.abs(x.d) > 0.5 ? "bad" : "") + '">' +
+              (Math.abs(x.d) > 0.5 ? fmt0(x.d) : "·") + '</td>').join("") + '</tr>').join("") +
+          '</tbody></table></div></div></details>';
+      }
+      if (дописано && дописано.добавлено.length){
+        const с = дописано.добавлено.reduce((s, x) => s + x.сумма, 0);
+        const виды = [...new Set(дописано.добавлено.map(x => x.вид))];
+        ИТОГ.хорошо.push("Дописано из ОФД " + fmt0(с) + " ₽ авансов — " + виды.join(", "));
+        html += '<div class="note good"><b>Дописано по фискальным данным: ' + fmt0(с) + ' ₽.</b> ' +
+          'Касса ' + виды.map(v => '«' + esc(v) + '»').join(", ") + ' в выгрузку не попадает, ' +
+          'а деньги по ней реальные. Все чеки по ней авансовые, поэтому номенклатура не нужна: ' +
+          'в отчёт о розничных продажах добавлены предоплата и оплата на одну и ту же сумму. ' +
+          'Проводка будет <b>Дт 57.03 Кт 62.Р</b> — получен аванс. Наличные при этом не сдвинулись: ' +
+          'они считаются остатком, а остаток не изменился.' +
+          '<span class="d">дней ' + дописано.добавлено.length + ', с ' +
+          дн(дописано.добавлено[0].day) + ' по ' +
+          дн(дописано.добавлено[дописано.добавлено.length - 1].day) + '</span></div>';
+      }
+      if (дописано && дописано.возвращено.length){
+        const с = дописано.возвращено.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.хорошо.push("Проведено из ОФД " + fmt0(с) + " ₽ возвратов, которых не было в программе");
+        ИТОГ.позже.push("Эти же возвраты оформить в УМЦ — иначе клиенты числятся оплатившими");
+        html += '<div class="note good"><b>Дописаны возвраты по фискальным данным: ' + fmt0(с) +
+          ' ₽.</b> Касса пробила возврат, а в программе его нет — значит в выгрузке на эту сумму ' +
+          'завышены и выручка, и эквайринг. Добавлены строка возврата товаров и строка возврата ' +
+          'оплаты на одну сумму, номенклатура взята та же, которой пользуются возвраты в самом файле. ' +
+          'Наличные не сдвинулись.' +
+          '<span class="d">' + дописано.возвращено.map(x => дн(x.day) + ": " + fmt0(x.сумма) +
+            " ₽ по «" + esc(x.вид) + "»").join("; ") + '</span></div>';
+      }
+      if (дописано && дописано.отказ.length){
+        html += '<div class="note"><b>Дописать не стал:</b><ul style="margin:6px 0 0 18px">' +
+          дописано.отказ.map(x => '<li>«' + esc(x.вид) + '» на ' + fmt0(x.сумма) + ' ₽ — ' +
+            esc(x.почему) + '</li>').join("") + '</ul></div>';
+      }
+
+      /* Три источника про одни и те же деньги: УМЦ — что завели администраторы,
+         ОФД — что пробила касса, выгрузка — что доедет до бухгалтерии. Разрыв
+         УМЦ↔ОФД лечится в программе, разрыв ОФД↔выгрузка — настройкой обмена,
+         и это разные болезни, которые иначе сливаются в одну цифру. */
+      const сТерм = (pay && pay.карты || []).filter(x => x.терминал);
+      if (сТерм.length){
+        const умц = {};
+        сТерм.forEach(x => {
+          (умц[x.терминал] || (умц[x.терминал] = {}))[x.day] =
+            (умц[x.терминал][x.day] || 0) + x.sum;
+        });
+        const строки = [], итоги = {}, неполные = [];
+        for (const пара of св.пары){
+          if (!пара.вид || !умц[пара.вид]) continue;
+          const дни = [...new Set(Object.keys(умц[пара.вид])
+            .concat(Object.keys(пара.дниOfd)).concat(Object.keys(пара.дниНаш)))].sort();
+          const и = {умц:0, ofd:0, наш:0}, свои = [];
+          for (const d of дни){
+            const u = умц[пара.вид][d] || 0, o = пара.дниOfd[d] || 0, v = пара.дниНаш[d] || 0;
+            и.умц += u; и.ofd += o; и.наш += v;
+            if (Math.abs(u - o) > 0.5 || Math.abs(v - o) > 0.5)
+              свои.push({day:d, вид:пара.вид, u, o, v});
+          }
+          /* Где почти все оплаты заведены прямо в оказании услуг, терминала у них
+             нет, и колонка «УМЦ» показывает огрызок. Сравнивать по ней нельзя. */
+          if (и.ofd > 0 && и.умц < и.ofd * 0.7){ неполные.push(пара.вид); continue; }
+          итоги[пара.вид] = и;
+          строки.push(...свои);
+        }
+        if (строки.length){
+          html += '<h2 style="margin-top:32px">Три источника об одних деньгах</h2>' +
+            '<div class="sb">УМЦ — что завели администраторы. ОФД — что пробила касса. ' +
+            'Выгрузка — что доедет до бухгалтерии. Показаны только дни, где они расходятся.</div>';
+          for (const вид in итоги){
+            const и = итоги[вид];
+            if (и.ofd > 0 && и.наш < и.ofd * 0.5)
+              html += '<div class="note alarm"><b>«' + esc(вид) + '» почти не доезжает: ' +
+                'касса пробила ' + fmt0(и.ofd) + ' ₽, в выгрузке ' + fmt0(и.наш) + ' ₽.</b> ' +
+                'В самой УМЦ деньги есть — ' + fmt0(и.умц) + ' ₽. Значит теряет их не программа, ' +
+                'а обмен: платежи этого терминала не помечены как фискализированные, и галка ' +
+                '«Только фискализированные документы» выкидывает их целиком. ' +
+                'Это вопрос к настройке связи УМЦ с этой кассой, а не к вашим документам.</div>';
+          }
+          html += '<div class="tw"><table><thead><tr><th>День</th><th>Терминал</th>' +
+            '<th>УМЦ</th><th>ОФД</th><th>Выгрузка</th><th>Где болит</th></tr></thead><tbody>' +
+            строки.slice(0, 60).map(r => {
+              const вУмц = R2(r.u - r.o), вВыг = R2(r.v - r.o);
+              const где = [];
+              if (Math.abs(вУмц) > 0.5) где.push("УМЦ " + (вУмц > 0 ? "+" : "") + fmt0(вУмц));
+              if (Math.abs(вВыг) > 0.5) где.push("выгрузка " + (вВыг > 0 ? "+" : "") + fmt0(вВыг));
+              return '<tr><td>' + esc(r.day) + '</td>' +
+                '<td style="text-align:left" class="what">' + esc(r.вид) + '</td>' +
+                '<td class="mono">' + fmt0(r.u) + '</td><td class="mono">' + fmt0(r.o) + '</td>' +
+                '<td class="mono">' + fmt0(r.v) + '</td>' +
+                '<td style="text-align:left" class="mono bad">' + esc(где.join(" · ")) + '</td></tr>';
+            }).join("") + '</tbody></table></div>' +
+            '<div class="note">В колонке «УМЦ» — только документы «Оплата платёжной картой». ' +
+            'Оплата, заведённая прямо в оказании услуг, терминала не имеет.' +
+            (неполные.length
+              ? ' Поэтому ' + неполные.map(x => '«' + esc(x) + '»').join(", ") +
+                ' в таблицу не берём: по ним в реестре видна лишь малая часть денег, ' +
+                'и сравнение вышло бы ложным. Их сверяет таблица выше — выгрузка против ОФД.'
+              : '') + '</div>';
+        }
+      }
+
+      /* платежи без привязки к чеку — их отсекает фильтр фискализации */
+      const ручные = (pay && pay.карты || []).filter(x => x.вручную && x.sum > 0);
+      if (ручные.length){
+        const поДням = {};
+        ручные.forEach(x => { поДням[x.day] = (поДням[x.day] || 0) + x.sum; });
+        const всего = ручные.reduce((s, x) => s + x.sum, 0);
+        ИТОГ.позже.push("Заведено вручную " + скл(ручные.length, "платёж", "платежа", "платежей") +
+          " на " + fmt0(всего) + " ₽ — в выгрузку они не попадают");
+        html += '<h2 style="margin-top:32px">Платежи, заведённые вручную</h2>' +
+          '<div class="sb">У платежа, который администратор завёл руками, время стоит ' +
+          '00:00:00 — привязки к чеку нет.</div>' +
+          '<div class="cards">' +
+          card("Таких платежей", String(ручные.length), "из " + pay.карты.length + " оплат картой") +
+          card("На сумму", fmt0(всего), "₽") + '</div>' +
+          '<div class="note alarm"><b>Этих денег в выгрузке нет.</b> Фильтр «Только ' +
+          'фискализированные документы» выкидывает такой платёж, потому что в УМЦ он ' +
+          'не связан с чеком. Но деньги настоящие — чек по ним в ОФД пробит, и выручка ' +
+          'по ним признаётся. Вот откуда берётся систематический недобор по терминалу. ' +
+          '<b>Что делать:</b> в УМЦ привязать эти платежи к чекам, либо разносить ' +
+          'облачную кассу не руками, а загрузкой из ОФД.' +
+          '<span class="d">' + Object.keys(поДням).sort().map(d =>
+            дн(d) + " — " + fmt0(поДням[d]) + " ₽").join("; ") + '</span></div>';
+        /* остаток после переноса часто равен ровно этим деньгам — так и говорим */
+        const хвосты = св.пары.filter(x => x.вид).map(x => ({вид:x.вид,
+          дни:Object.keys(поДням).filter(d =>
+            Math.abs(R2((x.дниНаш[d] || 0) - (x.дниOfd[d] || 0)) + поДням[d]) < 0.5)}))
+          .filter(x => x.дни.length);
+        if (хвосты.length)
+          html += '<div class="note good"><b>Сходится ровно.</b> ' +
+            хвосты.map(x => 'По «' + esc(x.вид) + '» за ' +
+              x.дни.map(дн).join(", ") + ' нехватка равна сумме заведённого вручную ' +
+              'в тот же день — значит расхождение объяснено полностью, ' +
+              'ничего другого искать не надо.').join(" ") + '</div>';
+      }
+      if (перенос.length){
+        const сум = перенос.reduce((s, x) => s + x.сумма, 0);
+        html += '<div class="note good"><b>Переставлено на правильный терминал: ' + fmt0(сум) +
+          ' ₽.</b> За эти дни у одного терминала было ровно столько же лишних денег, сколько ' +
+          'у другого не хватало, — значит оплату завели не туда. В файле это уже исправлено: ' +
+          'сумма документа не изменилась, деньги просто встали на нужный эквайринговый счёт, ' +
+          'и таблица выше показывает уже исправленные цифры.' +
+          '<span class="d">' + перенос.map(x => дн(x.day) + ": " + fmt0(x.сумма) +
+            " ₽ с «" + esc(x.из) + "» на «" + esc(x.куда) + "»").join("; ") + '</span></div>' +
+          '<div class="note alarm"><b>В самой УМЦ это не исправлено — туда я дотянуться не могу.</b> ' +
+          'Поправьте те же оплаты в программе: иначе при следующей выгрузке того же периода ' +
+          'ошибка вернётся, а управленческие отчёты по корпусам так и будут врать.</div>';
+      }
+      if (зерк.length){
+        const сум = зерк.reduce((s, x) => s + x.сумма, 0);
+        ИТОГ.стоп.push("Оплату на " + fmt0(сум) + " ₽ завели не на тот терминал — " +
+          зерк.map(x => дн(x.day)).join(", "));
+        html += '<div class="note alarm"><b>Оплату завели не на тот терминал: ' + fmt0(сум) +
+          ' ₽.</b> В эти дни у одного терминала ровно столько же лишних денег, сколько ' +
+          'у другого не хватает, — деньги на месте, но разнесены неверно. ' +
+          'Исправлять надо в УМЦ, до выгрузки: в бухгалтерии это разные счета эквайринга ' +
+          'и разные договоры с банком.<span class="d">' +
+          зерк.map(x => дн(x.day) + ": " + fmt0(x.сумма) + " ₽ переставить с «" +
+            esc(x.откуда) + "» на «" + esc(x.куда) + "»").join("; ") + '</span></div>';
+      } else if (св.пары.every(x => Math.abs(x.наш - x.ofd) < 1)){
+        ИТОГ.хорошо.push("Каждый терминал сходится со своей кассой");
+        html += '<div class="note good">Каждый терминал сходится с его кассой до рубля. ' +
+          'Эквайринг разнесён правильно.</div>';
+      }
+    }
+
+    html += '<h2 style="margin-top:32px">Что это значит</h2>' +
+      '<div class="sb">Расхождения разобраны по причинам: что само себя объясняет, ' +
+      'а что надо смотреть руками.</div>';
+    const живые = sums.cash[1] + sums.card[1];
+    const р = bad ? разборРасхождений(расхождения) : null;
+    if (Math.abs(нал) >= 1)
+      ИТОГ.стоп.push("Наличные не сходятся с ОФД на " + fmt0(нал) + " ₽");
+    else ИТОГ.хорошо.push("Наличные сходятся с фискальными данными до рубля");
+    if (р && р.безЧека > Math.abs(живые) * 0.005)
+      ИТОГ.стоп.push("Не объяснено " + fmt0(р.безЧека) + " ₽ при " + fmt0(живые) + " ₽ живых денег");
+    else if (р && р.безЧека > 0.5)
+      ИТОГ.позже.push("Мелкие расхождения на " + fmt0(р.безЧека) + " ₽ — разобрать до закрытия месяца");
+    if (р && Math.abs(р.авансСумма) > 0.5)
+      ИТОГ.позже.push("Зачёт аванса без чека на " + fmt0(р.авансСумма) + " ₽ — пробить чеки коррекции");
+    if (р && р.перенос > 0.5)
+      ИТОГ.хорошо.push("Перенос даты на " + fmt0(р.перенос) + " ₽ — деньги на месте, править нечего");
+    html += bad ? объяснение(р, Math.abs(нал) < 1, живые)
+      : '<div class="whys"><div class="why ok"><b>Сходится день в день по всем трём величинам.</b> ' +
+        'Выгрузка совпадает с фискальными данными полностью — можно грузить.</div></div>';
+    html += '</section>';
+  }
+
+  /* услуги без чека — только реестр услуг это показывает */
+  if (услуги){
+    const б = безЧека(услуги.recs, days);
+    html += '<section><div class="kick">Шаг 4</div><h2>Услуги без пробитого чека</h2>' +
+      '<div class="sb">Услуг в реестре: ' + услуги.recs.length +
+      '. «Нет чека» значит разное — смотрите пояснение под таблицей.</div>';
+    html += '<div class="cards">' +
+      card("С пробитым чеком", fmt0(б.сЧеком), "это и должно быть в кассе") +
+      card("Без чека, с суммой", fmt0(б.без), "услуга оказана, чека нет") +
+      card("Из них доехало до выручки", fmt0(б.прошло),
+           б.без ? "фильтр отсёк " + fmt0(б.без - б.прошло) + " ₽" : "") +
+      '</div>';
+
+    /* реестр против выгрузки, день в день: видно и лишнее, и недостающее */
+    const разн = б.дни.filter(d => Math.abs(d.сверх) > 0.5);
+    html += '<h3 style="font-size:15px;margin:22px 0 6px">Реестр услуг против выгрузки, по дням</h3>' +
+      '<div class="sb">Слева — услуги с пробитым чеком по «дате работ». Справа — строки ' +
+      '«Товары» в отчёте о розничных продажах. Совпадающие дни свёрнуты.</div>' +
+      '<div class="tw"><table><thead><tr><th>День</th><th>Реестр, с чеком</th>' +
+      '<th>Выгрузка, товары</th><th>Разница</th></tr></thead><tbody>' +
+      (разн.length ? разн.map(d =>
+        '<tr><td><b>' + esc(d.day) + '</b></td><td class="mono">' + fmt0(d.было) + '</td>' +
+        '<td class="mono">' + fmt0(d.стало) + '</td>' +
+        '<td class="mono bad">' + fmt0(d.сверх) + '</td></tr>').join("")
+        : '<tr><td colspan="4" class="what" style="text-align:left">Все дни сходятся.</td></tr>') +
+      '<tr class="sum"><td><b>Итого</b></td><td class="mono">' +
+      fmt0(б.дни.reduce((s, d) => s + d.было, 0)) + '</td><td class="mono">' +
+      fmt0(б.дни.reduce((s, d) => s + d.стало, 0)) + '</td><td class="mono">' +
+      fmt0(б.дни.reduce((s, d) => s + d.сверх, 0)) + '</td></tr>' +
+      '</tbody></table></div>';
+
+    const плюс = б.дни.filter(d => d.сверх > 0.5).reduce((s, d) => s + d.сверх, 0);
+    const недобор = б.дни.filter(d => d.сверх < -0.5);
+    if (плюс > 0.5)
+      html += '<div class="note"><b>Выгрузка больше реестра на ' + fmt0(плюс) + ' ₽.</b> ' +
+        'Так и должно быть в двух случаях: продали товар (бельё, кремы — их в реестре ' +
+        '<i>услуг</i> нет по определению) или услугу оказали вечером, а чек пробили ' +
+        'следующим днём. Если за период эти плюсы и минусы гасят друг друга, всё в порядке.</div>';
+    if (недобор.length){
+      const сумма = недобор.reduce((s2, d) => s2 - d.сверх, 0);
+      html += '<div class="note"><b>Выгрузка меньше реестра на ' + fmt0(сумма) + ' ₽.</b> ' +
+        'Обычно это погашенные дубли: лишний документ пометили на удаление, и в выгрузку ' +
+        'он не пошёл, — а в реестре он так и стоит плюсом, потому что колонка «Сумма» ' +
+        'знака не имеет. Смотрите следующий раздел: если эти суммы там числятся ' +
+        'погашенными, деньги на месте и делать ничего не надо.' +
+        '<span class="d">' + недобор.map(d => дн(d.day) + " на " + fmt0(-d.сверх) + " ₽").join(", ") +
+        '</span></div>';
+    }
+
+    if (б.список.length){
+      html += '<h3 style="font-size:15px;margin:22px 0 6px">Крупнейшие услуги без чека</h3>' +
+        '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Врач</th>' +
+        '<th>Сумма</th><th>Документ</th></tr></thead><tbody>' +
+        б.список.slice(0, 30).map(r =>
+          '<tr><td>' + esc(r.day) + '</td><td>' + esc(r.client) + '</td>' +
+          '<td style="text-align:left;color:var(--mute)">' + esc(r.врач) + '</td>' +
+          '<td class="mono">' + fmt0(r.sum) + '</td>' +
+          '<td class="mono" style="color:var(--faint)">' + esc(r.num.slice(-6)) + '</td></tr>').join("") +
+        '</tbody></table></div>' +
+        (б.список.length > 30
+          ? '<div class="sb" style="margin-top:8px">показаны 30 крупнейших из ' +
+            б.список.length + '</div>' : "");
+    }
+    html += '<div class="whys">' +
+      '<div class="why calm"><b>Услуга заведена, но не оплачена.</b> Выручки нет, ' +
+      'признавать нечего — фильтр «Только фискализированные документы» их отсекает, ' +
+      'и правильно делает.</div>' +
+      '<div class="why bad"><b>Оплачена авансом, чек зачёта не пробит.</b> ' +
+      'Выручка есть — услуга оказана. Отсечь её значит занизить выручку, так что ' +
+      'лечить надо кассу, а не выгрузку: при зачёте предоплаты чек обязателен.</div>' +
+      '<div class="why calm"><b>Оплачена не деньгами</b> — зачётом против гонорара врача, ' +
+      'когда хирург оплачивает своему пациенту реабилитацию. Выручка есть, чек не нужен, ' +
+      'но и в рознице таким услугам не место: их надо проводить реализацией на контрагента-ИП ' +
+      'и зачитывать против гонорара.</div>' +
+      '</div>';
+    html += '</section>';
+  }
+
+  /* задвоение: считаем по деньгам, а не по количеству документов */
+  if (pay || услуги){
+    const источник = услуги || pay;
+    const свои = услуги ? услуги.recs.filter(r => r.чек) : pay.recs;
+    const р = разборДублей(duplicates(свои), pay);
+    const всего = р.все.length;
+    html += '<section><div class="kick">Шаг 5</div><h2>Повторно заведённые услуги</h2>' +
+      '<div class="sb">' + (услуги ? "Документов услуг с пробитым чеком: " : "Оплат через «Оказание услуг»: ") +
+      свои.length + '. Признак дубля — один день, один клиент' + (услуги ? ", один врач" : "") +
+      ', одна сумма, разные документы.</div>';
+    html += '<div class="cards">' +
+      card("Групп-кандидатов", String(всего), "") +
+      card("Уже погашено", String(р.погашенные.length),
+           р.погашеноНа ? "на " + fmt0(р.погашеноНа) + " ₽" : "") +
+      (р.неясные.length ? card("Не проверено", String(р.неясные.length),
+        pay ? "оплат по этим документам нет" : "нет реестра оплат") : "") +
+      '<div class="card ' + (р.живые.length ? "warn" : "good") + '"><div class="l">Задвоено по деньгам</div>' +
+      '<div class="v">' + fmt0(р.ущерб) + '</div><div class="n">' +
+      (р.живые.length ? "групп " + р.живые.length + " — проверить в УМЦ"
+                      : "лишних денег нет") + '</div></div>' +
+      '</div>';
+
+    if (!pay)
+      html += '<div class="note alarm"><b>Реестр оплат не загружен — вывод неполный.</b> ' +
+        'По одному реестру услуг отличить настоящий дубль от уже погашенного нельзя: ' +
+        'обе половинки пары стоят там плюсом. Добавьте файл «Оплаты, детально по документам» ' +
+        '— в нём у лишнего документа стоит минус, и всё становится видно.</div>';
+
+    if (р.живые.length){
+      /* та же планка, что и для расхождений с кассой: полпроцента оборота.
+         Задвоенные три тысячи — ошибка, но не повод останавливать загрузку
+         месяца: их правят в УМЦ и перевыгружают период поверх. */
+      const строка = "Задвоено по деньгам " + fmt0(р.ущерб) + " ₽ — " +
+        скл(р.живые.length, "группа", "группы", "групп");
+      (р.ущерб > tot.rev * 0.005 ? ИТОГ.стоп : ИТОГ.позже).push(строка);
+    }
+    else if (pay) ИТОГ.хорошо.push("Задвоенных денег нет");
+    if (!pay) ИТОГ.позже.push("Реестр оплат не загружен — задвоение не проверено");
+    else if (р.неясные.length)
+      ИТОГ.позже.push("Не проверено " + скл(р.неясные.length, "группа", "группы", "групп") +
+        ": в реестре оплат по этим документам нет ни одной строки");
+    if (р.живые.length){
+      html += '<h3 style="font-size:15px;margin:22px 0 6px">Настоящие дубли — деньги посчитаны дважды</h3>' +
+        '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>За одну услугу</th>' +
+        '<th>Оплачено всего</th><th>Лишнее</th><th style="text-align:left">Документы</th>' +
+        '</tr></thead><tbody>' +
+        р.живые.map(x =>
+          '<tr><td>' + esc(x.g[0].day) + '</td><td>' + esc(x.g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(x.одна) + '</td><td class="mono">' + fmt0(x.оплачено) + '</td>' +
+          '<td class="mono bad">' + fmt0(x.лишниеДеньги) + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(x.номера.map(n => n.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div>' +
+        '<div class="note alarm">Откройте эти документы в УМЦ. ' +
+        'Если услуга оказана один раз — оплату надо перевесить на один документ, ' +
+        'а лишний пометить на удаление. Иначе выручка задвоится и в бухгалтерии. ' +
+        'Исправили — выгрузите период заново и загрузите поверх: документы обновятся, ' +
+        'а не создадутся второй раз.</div>';
+    } else if (pay){
+      html += '<div class="note good"><b>Задвоенных денег нет.</b> Все найденные пары ' +
+        'администраторы уже разобрали: оплата висит на одном документе, у близнеца минус. ' +
+        'В выгрузку такие документы не идут.</div>';
+    }
+
+    if (pay && р.неясные.length){
+      html += '<h3 style="font-size:15px;margin:22px 0 6px">Проверить вручную</h3>' +
+        '<div class="sb">Чек по этим услугам пробит, но в реестре оплат нет ни одной строки ' +
+        'по этим документам — значит по кассе они прошли иначе. Откройте их в УМЦ и посмотрите, ' +
+        'одна это услуга или две.</div>' +
+        '<div class="tw"><table><thead><tr><th>День</th><th>Клиент</th><th>Сумма</th>' +
+        '<th>Раз</th><th style="text-align:left">Документы</th></tr></thead><tbody>' +
+        р.неясные.slice(0, 40).map(x =>
+          '<tr><td>' + esc(x.g[0].day) + '</td><td>' + esc(x.g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(x.одна) + '</td><td class="mono">×' + x.g.length + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(x.номера.map(n => n.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div>';
+    }
+
+    if (р.погашенные.length){
+      html += '<details class="set" style="margin-top:18px"><summary>Погашенные пары — ' +
+        р.погашенные.length + ' (смотреть не обязательно)</summary><div class="setbody">' +
+        '<p class="sb" style="margin:10px 0 0">Здесь деньги посчитаны один раз: ' +
+        'сумма оплат по группе не больше стоимости одной услуги.</p>' +
+        '<div class="tw" style="margin-top:12px"><table><thead><tr><th>День</th><th>Клиент</th>' +
+        '<th>За одну</th><th>Оплачено</th><th style="text-align:left">Документы</th>' +
+        '</tr></thead><tbody>' +
+        р.погашенные.slice(0, 60).map(x =>
+          '<tr><td>' + esc(x.g[0].day) + '</td><td>' + esc(x.g[0].client) + '</td>' +
+          '<td class="mono">' + fmt0(x.одна) + '</td>' +
+          '<td class="mono ok">' + fmt0(x.оплачено) + '</td>' +
+          '<td style="text-align:left" class="mono">' +
+          esc(x.номера.map(n => n.slice(-6)).join("  ·  ")) + '</td></tr>').join("") +
+        '</tbody></table></div></div></details>';
+    }
+    if (услуги)
+      html += '<div class="note">В реестре услуг нет колонки «Пометка удаления», поэтому ' +
+        'в кандидаты попадают и уже удалённые документы. На загрузку это не влияет — ' +
+        'помеченные на удаление в файл обмена не выгружаются вовсе. Но если хотите ' +
+        'чистый список, добавьте эту колонку в настройках отчёта в УМЦ.</div>';
+    html += '</section>';
+  }
+
+  if (fixres.warned.length)
+    ИТОГ.позже.push("Смотреть руками: " + скл(fixres.warned.length, "пункт", "пункта", "пунктов") +
+      " в разделе «Доводка»");
+  if (!ofd) ИТОГ.позже.push("Отчёт ОФД не загружен — с кассой ничего не сверено");
+  $("#out").innerHTML = вердикт(ИТОГ, fixres, !!ofd) + html + инструкция();
+}
+function составAdd(состав, t, o){
+  const e = состав[t] || (состав[t] = {n:0, s:0, док:o.full.indexOf("Документ") === 0});
+  e.n++;
+  if (o.type === "ОтчетОРозничныхПродажах")
+    e.s += tabSum(o, "Товары", "Сумма") + tabSum(o, "Предоплаты", "Сумма");
+  else e.s += num(o.props["СуммаДокумента"]) || tabSum(o, "РасшифровкаПлатежа", "СуммаПлатежа");
+}
+const HUMAN = {
+  "ОтчетОРозничныхПродажах":"Отчёт о розничных продажах",
+  "ПриходныйКассовыйОрдер":"Приходный ордер",
+  "РасходныйКассовыйОрдер":"Расходный ордер",
+  "ОплатаПлатежнойКартой":"Оплата платёжной картой",
+  "ОперацияПоПлатежнойКарте":"Оплата платёжной картой",
+  "РеализацияТоваровУслуг":"Реализация товаров и услуг",
+  "ПоступлениеТоваровУслуг":"Поступление товаров и услуг",
+  "ВидыОплатОрганизаций":"Виды оплат организаций",
+  "ВидыНоменклатуры":"Виды номенклатуры",
+  "СтатьиЗатрат":"Статьи затрат",
+  "ДоговорыКонтрагентов":"Договоры контрагентов",
+  "СтатьиДвиженияДенежныхСредств":"Статьи движения денежных средств",
+  "КлассификаторЕдиницИзмерения":"Классификатор единиц измерения"
+};
+/* Вердикт наверху страницы. Смысл простой: человек должен с первого экрана
+   понять, можно грузить файл в бухгалтерию или сначала надо чинить УМЦ.
+   Красное — то, из-за чего в учёт поедут неверные суммы, и это блокирует
+   загрузку. Жёлтое — кассовая дисциплина: файлу не мешает, но до закрытия
+   месяца закрыть надо. */
+function вердикт(И, fixres, естьОФД){
+  const стоп = И.стоп.length;
+  let h = '<section style="margin-top:34px"><div class="kick">Главное</div>' +
+    '<h2>' + (стоп ? "Загружать рано" : "Файл можно загружать") + '</h2>' +
+    '<div class="sb">' +
+    (стоп
+      ? "Ниже то, из-за чего в бухгалтерию поедут суммы, которых по кассе не было. " +
+        "Это чинится в УМЦ, а не в файле: исправьте и выгрузите период заново."
+      : естьОФД
+        ? "Выгрузка сходится с фискальными данными. Жёлтые пункты, если они есть, " +
+          "загрузке не мешают — это кассовая дисциплина, а не файл."
+        : "Проверено то, что можно проверить по самому файлу. " +
+          "С кассой ничего не сверено — добавьте отчёт ОФД.") +
+    '</div><div class="whys">';
+  if (стоп) h += '<div class="why bad"><b>Сначала исправить в УМЦ:</b><ol style="margin:8px 0 0 18px">' +
+    И.стоп.map(x => "<li>" + x + "</li>").join("") + '</ol></div>';
+  if (И.позже.length) h += '<div class="why calm"><b>Не мешает загрузке, но закрыть до конца месяца:' +
+    '</b><ul style="margin:8px 0 0 18px">' +
+    И.позже.map(x => "<li>" + x + "</li>").join("") + '</ul></div>';
+  if (И.хорошо.length) h += '<div class="why ok"><b>Проверено и сходится:</b>' +
+    '<ul style="margin:8px 0 0 18px">' +
+    И.хорошо.map(x => "<li>" + x + "</li>").join("") + '</ul></div>';
+  if (fixres.fixed.length) h += '<div class="why calm"><b>Реквизиты дозаполнены: ' +
+    fixres.fixed.length + '.</b> Нажмите «Скачать исправленный файл» — грузить надо ' +
+    'именно его, а не исходный.</div>';
+  return h + '</div></section>';
+}
+
+/* Порядок загрузки: он не очевидный, а ошибиться дорого — поэтому памятка
+   лежит прямо в приложении, а не в отдельном файле, который потеряется. */
+function инструкция(){
+  const шаг = (n, з, т) => '<li><b>' + з + '</b><br><span class="what">' + т + '</span></li>';
+  return '<section><div class="kick">Памятка</div><h2>Как загрузить файл в бухгалтерию</h2>' +
+    '<div class="sb">Первый раз — обязательно на копии базы.</div>' +
+    '<ol class="steps">' +
+    шаг(1, "Сделать копию базы", "Администрирование → Выгрузить информационную базу. " +
+      "Загрузка правит справочники, и откатить её иначе нечем.") +
+    шаг(2, "Скачать исправленный файл", "Кнопка выше. Грузить надо файл с пометкой " +
+      "«-исправленный» — в исходном пустые склад, статья ДДС и ставка НДС, документы не проведутся.") +
+    шаг(3, "Договориться с собой про приходные ордера",
+      "Наличную выручку приходует сам отчёт о розничных продажах — Дт 50.01 Кт 90.01.1. " +
+      "С даты первой загрузки ручные приходные ордера «Розничная выручка» за те же дни " +
+      "заводить нельзя: касса удвоится. Если за начало периода такие ордера уже заведены " +
+      "руками, начинайте грузить со следующего дня после последнего из них.") +
+    шаг(4, "Проверить два справочника",
+      "Склад из настроек должен существовать в бухгалтерии и иметь тип «Розничный магазин» — " +
+      "иначе отчёт о розничных продажах не проведётся. И у каждого вида оплаты должен " +
+      "стоять свой эквайер: облачная касса — это Альфа-Банк, терминалы корпусов — ВТБ. " +
+      "Если эквайер не тот, счёт 57.03 не закроется выпиской.") +
+    шаг(4, "Открыть обработку загрузки", "В бухгалтерии: Универсальный обмен данными в формате XML " +
+      "→ закладка «Загрузка данных» → выбрать файл.") +
+    шаг(4, "Снять галку «Проводить документы при загрузке»",
+      "Первый раз документы лучше загрузить непроведёнными и посмотреть их глазами. " +
+      "Проведёте потом пачкой.") +
+    шаг(5, "Загрузить и проверить три числа", "Отчёт о розничных продажах за период: " +
+      "выручка, наличные, эквайринг. Они должны совпасть с карточками в разделе «Что в файле».") +
+    шаг(6, "Проверить остатки", "Оборотно-сальдовая ведомость: счёт 50.01 должен закрыться " +
+      "инкассацией в ноль (или на разменный фонд), 57.03 — закрыться выпиской банка, " +
+      "62.Р — показывать остаток невыбранных авансов.") +
+    шаг(7, "Провести документы", "Если всё сошлось — выделить загруженные документы в журнале " +
+      "и провести. Если нет — откатиться на копию, а не править руками.") +
+    '</ol>' +
+    '<div class="note"><b>Повторная загрузка того же периода ничего не задваивает.</b> ' +
+    'Кассовые ордера ищутся по внутреннему идентификатору, отчёты о розничных продажах — ' +
+    'по дню и ключу в комментарии. Документы обновятся, а не создадутся заново. ' +
+    'Поэтому исправили в УМЦ — смело выгружайте период целиком и грузите поверх.</div>' +
+    '</section>';
+}
+
+const card = (l, v, n, сверка) =>
+  '<div class="card' + (сверка ? " " + сверка.класс : "") + '">' +
+  '<div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' +
+  (n ? '<div class="n">' + esc(n) + '</div>' : '') +
+  (сверка ? '<div class="n ' + сверка.класс + '-t">' + esc(сверка.текст) + '</div>' : '') +
+  '</div>';
+/* одна карточка — одна величина: и куда она ляжет в учёте, и что про неё
+   говорит касса. Раньше это были две одинаковые карточки в разных разделах */
+const противОФД = (наше, кассовое) => {
+  if (kассовоеНет(кассовое)) return null;
+  const d = R2(наше - кассовое);
+  return Math.abs(d) < 1
+    ? {класс:"good", текст:"сходится с кассой"}
+    : {класс:"warn", текст:"касса: " + fmt0(кассовое) + " (" + (d > 0 ? "+" : "") + fmt0(d) + ")"};
+};
+const kассовоеНет = v => v === null || v === undefined;
+
+/* Если между самым ранним и самым поздним днём какой-то день пропущен, это
+   стоит показать: скорее всего файл за него просто забыли выгрузить. */
+function пропуски(дни){
+  if (!дни || дни.length < 2) return [];
+  const есть = new Set(дни), нет = [];
+  const d = new Date(дни[0] + "T00:00:00"), конец = new Date(дни[дни.length - 1] + "T00:00:00");
+  while (d < конец){
+    d.setDate(d.getDate() + 1);
+    const s = d.toISOString().slice(0, 10);
+    if (!есть.has(s) && d < конец) нет.push(s);
+  }
+  return нет;
+}
+
+/* ---------- склады по подразделениям ---------- */
+function skladInputs(objs){
+  const подр = [...new Set(objs.filter(o => o.type === "ОтчетОРозничныхПродажах")
+    .map(o => S((o.props["Комментарий"] || "").split(".")[0])).filter(Boolean))];
+  if (!подр.length){ $("#sklady").innerHTML = ""; return; }
+  $("#sklady").innerHTML = '<p class="sb" style="margin:18px 0 0">Подразделения из файла — ' +
+    'если ведёте корпуса раздельными складами, укажите свой для каждого. ' +
+    'Пусто — возьмётся склад по умолчанию.</p><div class="grid2">' +
+    подр.map(p => '<div class="fld"><label>' + esc(p) + '</label>' +
+      '<input data-sklad="' + esc(p) + '" value="' + esc(SKLADY[p] || "") + '"></div>').join("") +
+    '</div>';
+}
+
+/* ---------- подразделения под кассы ---------- */
+function кассаInputs(objs){
+  const блок = $("#kassy");
+  if ($("#c-podr").value === "нет"){ блок.innerHTML = ""; return; }
+  /* подразделение из выгрузки — готовое название: оно же обычно заведено и в
+     бухгалтерии. Подставляем его, но дать поправить надо: справочники разные */
+  const поКассе = {};
+  for (const п in КАССЫ_ПОДРАЗДЕЛЕНИЙ) поКассе[КАССЫ_ПОДРАЗДЕЛЕНИЙ[п]] = п;
+  /* правила обмена уже знают, какое подразделение какому корпусу отвечает, —
+     берём названия оттуда, они точно совпадают со справочником в бухгалтерии */
+  const изПравил = {};
+  for (const к in поКассе){
+    const п = ((ПРАВИЛА && ПРАВИЛА.подр) || []).find(x => поКассе[к].indexOf(x.по) === 0);
+    if (п) изПравил[к] = п.станет;
+  }
+  const кассы = ["К1", "К2"].filter(к => objs.some(d => кассаДокумента(d) === к));
+  if (!кассы.length){ блок.innerHTML = ""; return; }
+  блок.innerHTML = '<p class="sb" style="margin:18px 0 0">Каким подразделением назвать ' +
+    'каждую кассу в бухгалтерии. Название должно совпадать со справочником ' +
+    '«ПодразделенияОрганизаций» символ в символ, иначе загрузка заведёт новое. Пусто — документы ' +
+    'этой кассы уедут без подразделения, как раньше.</p><div class="grid2">' +
+    кассы.map(к => '<div class="fld"><label>' +
+      (к === "К1" ? "Основная касса" : "Вторая касса") +
+      (поКассе[к] ? ' <span style="color:var(--faint)">· ' + esc(поКассе[к]) + '</span>' : '') +
+      (изПравил[к] ? ' <span style="color:var(--faint)">→ из правил</span>' : '') +
+      '</label><input data-podr="' + к + '" value="' +
+      esc(ПОДР[к] != null ? ПОДР[к] : (изПравил[к] || поКассе[к] || "")) + '"></div>').join("") +
+    '</div>';
+  /* первый запуск: подставленное название должно сразу пойти в дело */
+  saveCfg();
+}
+
+/* ---------- соответствие терминалов ---------- */
+function терминалInputs(св){
+  if (!св.кассы.length){ $("#terminaly").innerHTML = ""; return; }
+  $("#terminaly").innerHTML = '<p class="sb" style="margin:18px 0 0">Какой вид оплаты из УМЦ ' +
+    'соответствует какой кассе в отчёте ОФД. Приложение расставило по обороту — ' +
+    'проверьте и поправьте, если угадало неверно.</p><div class="grid2">' +
+    св.пары.filter(x => x.касса).map(x =>
+      '<div class="fld"><label>' + esc(x.касса) +
+      (x.точка ? ' <span style="color:var(--faint)">· ' + esc(x.точка.slice(0, 34)) + '</span>' : '') +
+      '</label><select data-kkt="' + esc(x.касса) + '">' +
+      '<option value="">— не сверять —</option>' +
+      св.виды.map(v => '<option value="' + esc(v) + '"' + (v === x.вид ? " selected" : "") +
+        '>' + esc(v) + '</option>').join("") +
+      '</select></div>').join("") + '</div>';
+}
+
+/* ---------- файлы ---------- */
+const FILES = {xml:[], x1:null, x2:null, x3:null};
+let FIXED_TEXT = "", FIXED_NAME = "";
+
+function slot(id, key, accept, label){
+  const el = $("#" + id);
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = accept; input.hidden = true;
+  /* файлов обмена может быть много: обработка в УМЦ отдаёт по одному дню */
+  if (key === "xml") input.multiple = true;
+  el.appendChild(input);
+  el.addEventListener("click", () => input.click());
+  input.addEventListener("change", () => take(key, [...input.files]));
+  ["dragenter","dragover"].forEach(e => el.addEventListener(e, ev => {
+    ev.preventDefault(); el.classList.add("over"); }));
+  ["dragleave","drop"].forEach(e => el.addEventListener(e, ev => {
+    ev.preventDefault(); el.classList.remove("over"); }));
+  el.addEventListener("drop", ev => take(key, [...ev.dataTransfer.files]));
+  el.dataset.key = key; el.dataset.label = label;
+}
+function take(key, файлы){
+  файлы = [].concat(файлы).filter(Boolean);
+  if (!файлы.length) return;
+  const много = key === "xml";
+  if (много) FILES.xml = FILES.xml.concat(файлы);
+  else FILES[key] = файлы[0];
+  const el = document.querySelector('[data-key="' + key + '"]');
+  el.classList.add("ok");
+  const got = el.querySelector(".got");
+  got.hidden = false;
+  got.textContent = много && FILES.xml.length > 1
+    ? "файлов: " + FILES.xml.length + " — " + скл(FILES.xml.length, "день", "дня", "дней") +
+      " склеим в один"
+    : файлы[0].name;
+  $("#run").disabled = !FILES.xml.length;
+  $("#err").innerHTML = "";
+}
+["s-xml","s-ofd","s-srv","s-pay"].forEach((id, i) =>
+  slot(id, ["xml","x1","x2","x3"][i], i ? ".xlsx,.xls" : ".xml", id));
+
+const readText = f => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => res(r.result); r.onerror = () => rej(new Error("не читается " + f.name));
+  r.readAsText(f, "utf-8");
+});
+const readBook = f => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => { try { res(XLSX.read(new Uint8Array(r.result), {type:"array", cellDates:true})); }
+                     catch(e){ rej(new Error(f.name + ": " + e.message)); } };
+  r.onerror = () => rej(new Error("не читается " + f.name));
+  r.readAsArrayBuffer(f);
+});
+
+$("#run").addEventListener("click", async () => {
+  $("#err").innerHTML = ""; $("#out").innerHTML = "";
+  $("#save").disabled = true;
+  try {
+    saveCfg();
+    const тексты = [];
+    for (const f of FILES.xml) тексты.push(await readText(f));
+    const ex = parseExchange(тексты);
+    /* отсечка по дате — самым первым делом: и правки, и сверка с кассой должны
+       считаться уже по укороченному периоду, иначе месяц кассы сравнится
+       с неполной выгрузкой */
+    ПРАВИЛА = разобратьПравила(ex.xdoc);
+    const отсечено = оставитьПериод(ex, S(CFG["c-ot"]), S(CFG["c-do"]));
+    skladInputs(ex.objs);
+    /* таблицы узнаём по содержимому — какую в какую ячейку положили, неважно */
+    let ofd = null, услуги = null, pay = null, полныйОФД = null;
+    const чужие = [];
+    for (const k of ["x1", "x2", "x3"]){
+      if (!FILES[k]) continue;
+      const wb = await readBook(FILES[k]);
+      const о = parseOfd(wb), у = о ? null : parseServices(wb), о2 = (о || у) ? null : parsePayments(wb);
+      if (о && !ofd) polnyj(о);
+      else if (у && !услуги) услуги = у;
+      else if (о2 && !pay) pay = о2;
+      else чужие.push(FILES[k].name);
+    }
+    function polnyj(о){ полныйОФД = о; ofd = о; }
+    /* фискальные данные обрезаем по периоду файла обмена: иначе месяц кассы
+       сравнивается с одним днём выгрузки и всё расходится на миллионы */
+    if (ofd) ofd = обрезатьОФД(ofd, ex.period);
+    /* реестры — так же по периоду файла: иначе месяц работы сравнится с суткам
+       выгрузки и в отчёте появятся расхождения из воздуха */
+    ex.обрезано = {услуги:0, оплаты:0};
+    if (услуги){
+      const о = обрезатьРеестр(услуги.recs, ex.period);
+      услуги = {kind:услуги.kind, recs:о.recs};
+      ex.обрезано.услуги = о.убрано;
+    }
+    if (pay){
+      const о = обрезатьРеестр(pay.recs, ex.period);
+      const к = обрезатьРеестр(pay.карты, ex.period);
+      pay = {recs:о.recs, карты:к.recs, итоги:pay.итоги,
+             total:о.recs.reduce((s, r) => s + r.sum, 0)};
+      ex.обрезано.оплаты = о.убрано + к.убрано;
+    }
+    if (чужие.length)
+      throw new Error("Не разобран файл: " + чужие.join(", ") +
+        ". Нужен отчёт ОФД (колонки «Наличными» и «Сумма»), реестр услуг (колонки «Дата работ», " +
+        "«Клиент», «Сумма», «Чек пробит») или реестр оплат со строками «Оказание услуг …». " +
+        "Файлы одного вида дважды класть не надо.");
+    /* перенос эквайринга идёт до доводки: он меняет сами строки оплаты,
+       и всё остальное должно считаться уже по исправленному файлу */
+    let перенос = [], привязка = null, дописано = null, сиротки = null, остаток = null;
+    let перемещения = null;
+    разложитьПодразделения(ex.objs);
+    перемещения = разобратьПеремещения(ex, перемещенияМеждуКассами(ex.objs),
+                                        $("#c-perem").value);
+    if (перемещения.как === "выбросить" && перемещения.список.length)
+      ex.objs = ex.objs.filter(o => o.el.parentNode);
+    if ($("#c-ostatok").checked){
+      остаток = выкинутьОстатокКассы(ex, перемещенияМеждуКассами(ex.objs));
+      if (остаток) ex.objs = ex.objs.filter(o => o.el.parentNode);
+    }
+    if (ofd){
+      /* какой терминал какой кассе соответствует — определяем по файлу, каким он
+         пришёл, и дальше держимся этой привязки: перенос сдвинет обороты */
+      const св = сводТерминалов(cardByType(ex.objs, payTypeNames(ex.objs)), ofd);
+      привязка = {};
+      св.пары.forEach(x => { if (x.касса) привязка[x.касса] = x.вид; });
+      if ($("#c-perenos").checked) перенос = переносЭквайринга(ex, ofd, св);
+      /* строки без терминала разбираем всегда: пустой вид оплаты не даст
+         документу провестись, а лечится это без добавления денег */
+      сиротки = сироткиБезТерминала(ex, ofd,
+        сводТерминалов(cardByType(ex.objs, payTypeNames(ex.objs)), ofd, привязка));
+      if ($("#c-dopisat").checked){
+        /* пересобираем свод: перенос уже изменил суммы по терминалам */
+        дописано = дописатьАвансы(ex, ofd,
+          сводТерминалов(cardByType(ex.objs, payTypeNames(ex.objs)), ofd, привязка));
+      }
+    }
+    /* деление по кассам — последним: к этому моменту лишние документы уже
+       выброшены, а дописанные дни уже на месте */
+    кассаInputs(ex.objs);
+    const подразделения = проставитьПодразделения(ex, $("#c-podr").value, ПОДР);
+    перечитатьТабличные(ex);
+    const fixres = fixAll(ex);
+    render(ex, fixres, ofd, pay, услуги, перенос, привязка, дописано, сиротки, остаток,
+           перемещения, отсечено, подразделения);
+    /* сериализатор сам ставит объявление кодировки — второе сломает файл */
+    const body = new XMLSerializer().serializeToString(ex.xdoc);
+    FIXED_TEXT = body.startsWith("<?xml")
+      ? body : '<?xml version="1.0" encoding="UTF-8"?>\n' + body;
+    FIXED_NAME = (ex.файлов > 1
+      ? "Обмен " + ex.period[0] + " — " + ex.period[1]
+      : FILES.xml[0].name.replace(/\.xml$/i, "")) + "-исправленный.xml";
+    $("#save").disabled = !fixres.fixed.length;
+    if (!fixres.fixed.length) $("#save").textContent = "Править нечего";
+  } catch (e){
+    $("#err").innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+  }
+});
+/* В песочнице страница не скачивает файл сама — его отдаёт возможность
+   downloads, а .xml не входит в список разрешённых расширений. Поэтому
+   заворачиваем в архив из одной записи: внутри XML с нужным именем. */
+let DOWNLOADS = null;
+(async () => {
+  try { DOWNLOADS = window.claude && claude.use ? await claude.use("downloads") : null; }
+  catch (e){ DOWNLOADS = null; }
+  $("#zip-hint").hidden = !DOWNLOADS;
+  if (!DOWNLOADS) $("#save").hidden = true;
+})();
+
+function crc32(bytes){
+  let table = crc32.t;
+  if (!table){
+    table = crc32.t = new Int32Array(256);
+    for (let n = 0; n < 256; n++){
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c;
+    }
+  }
+  let crc = -1;
+  for (let i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ table[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ -1) >>> 0;
+}
+function zipOne(name, text){
+  const enc = new TextEncoder();
+  const data = enc.encode(text), nb = enc.encode(name), crc = crc32(data);
+  const out = new Uint8Array(30 + nb.length + data.length + 46 + nb.length + 22);
+  const v = new DataView(out.buffer);
+  let o = 0;
+  const w32 = x => { v.setUint32(o, x, true); o += 4; };
+  const w16 = x => { v.setUint16(o, x, true); o += 2; };
+  /* локальный заголовок: без сжатия, имя в UTF-8 (флаг 0x0800) */
+  w32(0x04034b50); w16(20); w16(0x0800); w16(0); w16(0); w16(0);
+  w32(crc); w32(data.length); w32(data.length); w16(nb.length); w16(0);
+  out.set(nb, o); o += nb.length;
+  out.set(data, o); o += data.length;
+  const central = o;
+  w32(0x02014b50); w16(20); w16(20); w16(0x0800); w16(0); w16(0); w16(0);
+  w32(crc); w32(data.length); w32(data.length);
+  w16(nb.length); w16(0); w16(0); w16(0); w16(0); w32(0); w32(0);
+  out.set(nb, o); o += nb.length;
+  const size = o - central;
+  /* конец центрального каталога: одна запись */
+  w32(0x06054b50); w16(0); w16(0); w16(1); w16(1); w32(size); w32(central); w16(0);
+  return out.slice(0, o);
+}
+
+$("#save").addEventListener("click", async () => {
+  if (!DOWNLOADS) return;
+  try {
+    await DOWNLOADS.save({
+      filename: FIXED_NAME.replace(/\.xml$/i, "") + ".zip",
+      data: new Blob([zipOne(FIXED_NAME, FIXED_TEXT)])
+    });
+  } catch (e){
+    const code = (e && e.code) || "";
+    const текст = code === "declined" ? "Сохранение отменено."
+      : code === "rate_limited" ? "Окно сохранения уже открыто — закройте его и нажмите ещё раз."
+      : "Файл сохранить не удалось: " + esc((e && e.message) || code);
+    $("#err").innerHTML = '<div class="err">' + текст + "</div>";
+  }
+});
+$("#clear").addEventListener("click", () => {
+  FILES.xml = []; FILES.x1 = FILES.x2 = FILES.x3 = null;
+  document.querySelectorAll(".slot").forEach(el => {
+    el.classList.remove("ok");
+    const g = el.querySelector(".got"); g.hidden = true; g.textContent = "";
+  });
+  $("#out").innerHTML = ""; $("#err").innerHTML = "";
+  $("#run").disabled = true; $("#save").disabled = true;
+  $("#save").textContent = "Скачать исправленный файл";
+});
+loadCfg();
+
+</script>
